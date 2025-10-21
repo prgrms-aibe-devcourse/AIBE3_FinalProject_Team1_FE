@@ -6,12 +6,6 @@ on:
     paths:
       - "**" # FE 단일 레포면 루트 전체 감지
       - ".github/workflows/fe-ci.yml"
-    paths-ignore:
-      - "**/*.md"
-      - "**/*.png"
-      - "**/*.jpg"
-      - "**/*.svg"
-      - ".gitignore"
   push:
     branches: ["dev", "feat/**"] # 필요하면 main 포함/조정
 
