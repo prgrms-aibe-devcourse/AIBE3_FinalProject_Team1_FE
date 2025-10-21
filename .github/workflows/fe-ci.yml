@@ -1,0 +1,70 @@
+name: fe-ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "**" # FE 단일 레포면 루트 전체 감지
+      - ".github/workflows/fe-ci.yml"
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.png"
+      - "**/*.jpg"
+      - "**/*.svg"
+      - ".gitignore"
+  push:
+    branches: ["dev", "feat/**"] # 필요하면 main 포함/조정
+
+concurrency:
+  group: fe-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft != true }}
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1 # Next 텔레메트리 비활성 (CI 소음 줄이기)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # Node 22: Next 15 / React 19 조합에 잘 맞음 (18/20도 가능)
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm" # package-lock.json 기반 npm 캐시
+
+      - name: Install deps
+        run: npm ci --no-audit --fund=false
+
+      # TypeScript(noEmit) + Prettier + ESLint 모두 한 번에
+      # --- 품질 체크를 분리해 어떤 단계가 깨지는지 명확히 ---
+      - name: TypeScript check
+        run: npm run typecheck # ex) tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check # ex) prettier -c .
+
+      # Next 빌드 캐시: .next/cache만 캐싱해도 체감 큼
+      - name: Cache Next build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('next.config.*', 'tsconfig*.json', 'tailwind.config.*', 'postcss.config.*', '**/*.{ts,tsx,js,jsx}') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            next-${{ runner.os }}-
+
+      # Turbopack 빌드 (package.json에 맞춤)
+      - name: Build (Next.js with Turbopack)
+        run: npm run build
