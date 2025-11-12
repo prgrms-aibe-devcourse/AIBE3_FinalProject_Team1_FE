@@ -79,7 +79,14 @@ export function useMyPostsQuery(filters?: PostListFilters) {
       } catch (error) {
         // API 실패 시 빈 페이지네이션 응답 반환
         console.error("Failed to fetch my posts:", error);
-        return { data: [], total: 0, page: 1, size: 20, totalPages: 0, status: 200 };
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          size: 20,
+          totalPages: 0,
+          status: 200,
+        };
       }
     },
     staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지

@@ -3,20 +3,68 @@
  */
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Star, Edit, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+import type { Reservation } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
+
 import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
-import { useRouter } from "next/navigation";
-import type { Reservation } from "@/types/domain";
+import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
+
+import { Calendar, Edit, Star } from "lucide-react";
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -99,11 +147,13 @@ export default function ProfilePage() {
   }
 
   const posts = Array.isArray(myPosts) ? myPosts : myPosts?.data || [];
-  const reservations = Array.isArray(myReservations) ? myReservations : myReservations?.data || [];
+  const reservations = Array.isArray(myReservations)
+    ? myReservations
+    : myReservations?.data || [];
 
   // 완료된 예약 수 계산
   const completedReservations = reservations.filter(
-    (r: Reservation) => r.status === "COMPLETED" || r.status === "APPROVED"
+    (r: Reservation) => r.status === "COMPLETED" || r.status === "APPROVED",
   ).length;
 
   return (
@@ -149,7 +199,10 @@ export default function ProfilePage() {
                 <span className="text-blue-100">(24개 리뷰)</span>
               </div>
               <p className="text-sm text-blue-100">
-                가입일: {format(new Date(me.createdAt), "yyyy. MM. dd.", { locale: ko })}
+                가입일:{" "}
+                {format(new Date(me.createdAt), "yyyy. MM. dd.", {
+                  locale: ko,
+                })}
               </p>
             </CardContent>
           </Card>
@@ -158,7 +211,9 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-4">
             <Card className="shadow-sm">
               <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-green-600 mb-1">{posts.length}</p>
+                <p className="text-3xl font-bold text-green-600 mb-1">
+                  {posts.length}
+                </p>
                 <p className="text-sm text-gray-600">등록한 게시글</p>
               </CardContent>
             </Card>
@@ -184,7 +239,10 @@ export default function ProfilePage() {
               {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       이름
                     </label>
                     <Input
@@ -197,7 +255,10 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       이메일
                     </label>
                     <Input
@@ -292,7 +353,8 @@ export default function ProfilePage() {
                       주소
                     </label>
                     <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {`${formData.address1} ${formData.address2}`.trim() || "주소 없음"}
+                      {`${formData.address1} ${formData.address2}`.trim() ||
+                        "주소 없음"}
                     </p>
                   </div>
                 </div>
@@ -323,13 +385,19 @@ export default function ProfilePage() {
                         예약 #{reservation.id}에 대한 예약 신청이 있습니다.
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {format(new Date(reservation.createdAt), "yyyy. MM. dd. HH:mm", { locale: ko })}
+                        {format(
+                          new Date(reservation.createdAt),
+                          "yyyy. MM. dd. HH:mm",
+                          { locale: ko },
+                        )}
                       </p>
                     </div>
                   </div>
                 ))}
                 {reservations.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">최근 활동이 없습니다.</p>
+                  <p className="text-center text-gray-500 py-8">
+                    최근 활동이 없습니다.
+                  </p>
                 )}
               </div>
             </CardContent>

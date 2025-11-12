@@ -24,7 +24,9 @@ import {
 export function useNotificationListQuery(filters?: Record<string, unknown>) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.notification.all),
-    queryFn: async (): Promise<Notification[] | PaginatedApiResponse<Notification>> => {
+    queryFn: async (): Promise<
+      Notification[] | PaginatedApiResponse<Notification>
+    > => {
       return getNotificationList(filters);
     },
     staleTime: 1000 * 30, // 30초간 fresh 상태 유지 (알림은 자주 업데이트)
@@ -35,9 +37,7 @@ export function useNotificationListQuery(filters?: Record<string, unknown>) {
 /**
  * 읽지 않은 알림 목록 조회 query
  */
-export function useUnreadNotificationsQuery(
-  filters?: Record<string, unknown>,
-) {
+export function useUnreadNotificationsQuery(filters?: Record<string, unknown>) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.notification.unread),
     queryFn: async (): Promise<PaginatedApiResponse<Notification>> => {
@@ -158,4 +158,3 @@ export function useDeleteNotificationMutation() {
     },
   });
 }
-

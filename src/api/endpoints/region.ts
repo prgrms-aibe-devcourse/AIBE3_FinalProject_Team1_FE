@@ -1,9 +1,9 @@
 /**
  * 지역 관련 API 엔드포인트
  */
+import type { Region } from "@/types/domain";
 
 import { apiClient } from "@/api/client";
-import type { Region } from "@/types/domain";
 
 /**
  * 지역 목록 조회
@@ -29,9 +29,10 @@ export async function getRegionTree(): Promise<Region[]> {
 /**
  * 지역 생성 (관리자용)
  */
-export async function createRegion(
-  data: { name: string; parentId?: number },
-): Promise<Region> {
+export async function createRegion(data: {
+  name: string;
+  parentId?: number;
+}): Promise<Region> {
   return apiClient.post<Region>("/api/v1/regions", data);
 }
 
@@ -51,4 +52,3 @@ export async function updateRegion(
 export async function deleteRegion(regionId: number): Promise<void> {
   return apiClient.delete<void>(`/api/v1/regions/${regionId}`);
 }
-

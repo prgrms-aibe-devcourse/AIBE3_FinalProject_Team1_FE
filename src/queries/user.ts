@@ -151,13 +151,8 @@ export function useUpdateUserByAdminMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      userId,
-      data,
-    }: {
-      userId: number;
-      data: UpdateMemberDto;
-    }) => updateUserByAdmin(userId, data),
+    mutationFn: ({ userId, data }: { userId: number; data: UpdateMemberDto }) =>
+      updateUserByAdmin(userId, data),
     onSuccess: (response, variables) => {
       // 사용자 상세 쿼리 업데이트
       queryClient.setQueryData(

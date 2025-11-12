@@ -5,6 +5,50 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
+/**
+ * 마이페이지 - 수익 현황
+ */
+
 export default function EarningsPage() {
   return (
     <div className="p-0">
@@ -17,4 +61,3 @@ export default function EarningsPage() {
     </div>
   );
 }
-

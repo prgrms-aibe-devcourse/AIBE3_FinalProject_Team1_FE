@@ -2,10 +2,10 @@
  * API 클라이언트 설정
  * axios, fetch 등을 사용하여 구현하세요.
  */
-
 import type { ApiError } from "@/types/api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
 /**
  * API 클라이언트 기본 설정
@@ -23,13 +23,13 @@ class ApiClient {
    */
   async get<T>(endpoint: string): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     // 개발 환경에서 쿠키 전송 확인
     if (process.env.NODE_ENV === "development") {
       console.log("[API Client] GET Request:", url);
       console.log("[API Client] Credentials:", "include");
     }
-    
+
     const response = await fetch(url, {
       method: "GET",
       credentials: "include", // 쿠키 자동 포함
@@ -190,4 +190,3 @@ class ApiClient {
  * API 클라이언트 인스턴스
  */
 export const apiClient = new ApiClient(API_BASE_URL);
-

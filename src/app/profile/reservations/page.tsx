@@ -3,14 +3,61 @@
  */
 "use client";
 
-import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
+import Link from "next/link";
+
+import type { Reservation } from "@/types/domain";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
 import { useMyReservationsQuery } from "@/queries/reservation";
-import type { Reservation } from "@/types/domain";
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
+
+/**
+ * 마이페이지 - 내 예약
+ */
 
 const statusLabels: Record<string, string> = {
   PENDING: "대기",
@@ -31,7 +78,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function MyReservationsPage() {
-  const { data: myReservations, isLoading: reservationsLoading } = useMyReservationsQuery();
+  const { data: myReservations, isLoading: reservationsLoading } =
+    useMyReservationsQuery();
 
   if (reservationsLoading) {
     return (
@@ -82,16 +130,25 @@ export default function MyReservationsPage() {
                             "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {statusLabels[reservation.status] || reservation.status}
+                          {statusLabels[reservation.status] ||
+                            reservation.status}
                         </span>
                       </div>
                       {reservation.reservationStartAt && (
                         <p className="text-sm text-gray-600">
                           대여 기간:{" "}
-                          {format(new Date(reservation.reservationStartAt), "yyyy. MM. dd.", { locale: ko })}{" "}
+                          {format(
+                            new Date(reservation.reservationStartAt),
+                            "yyyy. MM. dd.",
+                            { locale: ko },
+                          )}{" "}
                           ~{" "}
                           {reservation.reservationEndAt
-                            ? format(new Date(reservation.reservationEndAt), "yyyy. MM. dd.", { locale: ko })
+                            ? format(
+                                new Date(reservation.reservationEndAt),
+                                "yyyy. MM. dd.",
+                                { locale: ko },
+                              )
                             : ""}
                         </p>
                       )}
@@ -106,4 +163,3 @@ export default function MyReservationsPage() {
     </div>
   );
 }
-

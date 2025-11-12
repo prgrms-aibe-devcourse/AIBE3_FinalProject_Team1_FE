@@ -3,14 +3,74 @@
  */
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { Camera, Shield, MessageSquare, Search, TrendingUp, Star } from "lucide-react";
+
+import type { Post } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import { usePostListQuery } from "@/queries/post";
-import type { Post } from "@/types/domain";
-import Image from "next/image";
+
+import {
+  Camera,
+  MessageSquare,
+  Search,
+  Shield,
+  Star,
+  TrendingUp,
+} from "lucide-react";
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
 
 export default function Home() {
   const { data: postsData, isLoading } = usePostListQuery();
@@ -33,17 +93,13 @@ export default function Home() {
               </p>
               <div className="flex flex-col justify-center gap-4 sm:flex-row">
                 <Link href="/posts">
-                  <button
-                    className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-lg font-medium text-blue-600 shadow-lg transition-colors hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  >
+                  <button className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-lg font-medium text-blue-600 shadow-lg transition-colors hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
                     <Search className="mr-2 h-5 w-5" />
                     게시글 보기
                   </button>
                 </Link>
                 <Link href="/signup">
-                  <button
-                    className="inline-flex items-center justify-center rounded-lg border-2 border-white bg-transparent px-6 py-3 text-lg font-medium text-white shadow-lg transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
-                  >
+                  <button className="inline-flex items-center justify-center rounded-lg border-2 border-white bg-transparent px-6 py-3 text-lg font-medium text-white shadow-lg transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2">
                     시작하기
                   </button>
                 </Link>
@@ -108,7 +164,9 @@ export default function Home() {
                   <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">
                     인기 게시글
                   </h2>
-                  <p className="mt-2 text-gray-600">지금 가장 인기 있는 장비를 확인하세요</p>
+                  <p className="mt-2 text-gray-600">
+                    지금 가장 인기 있는 장비를 확인하세요
+                  </p>
                 </div>
                 <Link href="/posts">
                   <Button variant="outline" className="hidden sm:flex">

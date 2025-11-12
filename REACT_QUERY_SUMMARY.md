@@ -5,6 +5,7 @@
 ## 생성된 파일 목록
 
 ### 1. 인증 (Auth)
+
 - `src/queries/auth.ts`
   - `useLoginMutation()` - 로그인
   - `useSignupMutation()` - 회원가입
@@ -12,6 +13,7 @@
   - `useAuthQuery()` - 현재 사용자 인증 정보 조회
 
 ### 2. 사용자 (User)
+
 - `src/queries/user.ts`
   - `useUserQuery()` - 사용자 정보 조회
   - `useMeQuery()` - 현재 로그인한 사용자 정보 조회
@@ -23,6 +25,7 @@
   - `useUnbanUserMutation()` - 사용자 제재 해제 (관리자용)
 
 ### 3. 게시글 (Post)
+
 - `src/queries/post.ts`
   - `usePostListQuery()` - 게시글 목록 조회
   - `usePostQuery()` - 게시글 상세 조회
@@ -34,6 +37,7 @@
   - `useDeletePostMutation()` - 게시글 삭제
 
 ### 4. 게시글 즐겨찾기 (PostFavorite)
+
 - `src/queries/post-favorite.ts`
   - `useFavoritePostsQuery()` - 즐겨찾기한 게시글 목록 조회
   - `useFavoriteCheckQuery()` - 즐겨찾기 여부 확인
@@ -41,6 +45,7 @@
   - `useRemoveFavoriteMutation()` - 즐겨찾기 제거
 
 ### 5. 예약 (Reservation)
+
 - `src/queries/reservation.ts`
   - `useReservationListQuery()` - 예약 목록 조회
   - `useReservationQuery()` - 예약 상세 조회
@@ -55,6 +60,7 @@
   - `useCancelReservationMutation()` - 예약 취소
 
 ### 6. 후기 (Review)
+
 - `src/queries/review.ts`
   - `useReviewListQuery()` - 후기 목록 조회
   - `useReviewQuery()` - 후기 상세 조회
@@ -65,6 +71,7 @@
   - `useDeleteReviewMutation()` - 후기 삭제
 
 ### 7. 채팅 (Chat)
+
 - `src/queries/chat.ts`
   - `useChatRoomListQuery()` - 채팅방 목록 조회
   - `useChatRoomQuery()` - 채팅방 상세 조회
@@ -76,6 +83,7 @@
   - `useMarkChatRoomAsReadMutation()` - 채팅방 읽음 처리
 
 ### 8. 카테고리 (Category)
+
 - `src/queries/category.ts`
   - `useCategoryListQuery()` - 카테고리 목록 조회
   - `useCategoryQuery()` - 카테고리 상세 조회
@@ -85,6 +93,7 @@
   - `useDeleteCategoryMutation()` - 카테고리 삭제 (관리자용)
 
 ### 9. 지역 (Region)
+
 - `src/queries/region.ts`
   - `useRegionListQuery()` - 지역 목록 조회
   - `useRegionQuery()` - 지역 상세 조회
@@ -94,6 +103,7 @@
   - `useDeleteRegionMutation()` - 지역 삭제 (관리자용)
 
 ### 10. 알림 (Notification)
+
 - `src/queries/notification.ts`
   - `useNotificationListQuery()` - 알림 목록 조회 (자동 refetch)
   - `useUnreadNotificationsQuery()` - 읽지 않은 알림 목록 조회 (자동 refetch)
@@ -104,6 +114,7 @@
   - `useDeleteNotificationMutation()` - 알림 삭제
 
 ### 11. 신고 (Report)
+
 - `src/queries/report.ts`
   - `useReportListQuery()` - 신고 목록 조회 (관리자용)
   - `useReportQuery()` - 신고 상세 조회 (관리자용)
@@ -121,12 +132,12 @@
 ```tsx
 // 통합 import (권장)
 import {
-  usePostListQuery,
-  useCreatePostMutation,
-  useReservationListQuery,
-  useCreateReservationMutation,
   useCategoryListQuery,
+  useCreatePostMutation,
+  useCreateReservationMutation,
+  usePostListQuery,
   useRegionListQuery,
+  useReservationListQuery,
 } from "@/queries";
 
 // 컴포넌트에서 사용
@@ -163,24 +174,29 @@ function PostList() {
 ## 주요 특징
 
 ### 1. 타입 안전성
+
 - 모든 쿼리와 뮤테이션은 TypeScript로 타입 안전하게 정의됨
 - `query-key-factory`를 사용하여 쿼리 키 타입 안전성 보장
 
 ### 2. 캐시 관리
+
 - 적절한 `staleTime` 설정으로 불필요한 요청 방지
 - `invalidateQueries`를 통한 관련 쿼리 자동 무효화
 - `setQueryData`를 통한 낙관적 업데이트
 
 ### 3. 실시간 업데이트
+
 - 채팅 메시지: 5초마다 자동 refetch
 - 알림: 30초마다 자동 refetch
 - `refetchInterval` 옵션 사용
 
 ### 4. 에러 처리
+
 - 모든 뮤테이션에 `onError` 핸들러 포함
 - 콘솔에 에러 로그 출력
 
 ### 5. Zustand 통합
+
 - 인증 관련 쿼리는 Zustand 스토어와 연동
 - 사용자 정보 업데이트 시 스토어 자동 업데이트
 
@@ -205,4 +221,3 @@ function PostList() {
 - 뮤테이션 성공 시 관련 쿼리 자동 무효화
 - 실시간 데이터는 `refetchInterval` 사용
 - 타입 안전성을 위해 `query-key-factory` 사용
-

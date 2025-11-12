@@ -25,16 +25,16 @@ endpoints/
 /**
  * 도메인 관련 API 엔드포인트
  */
-
-import { apiClient } from "@/api/client";
 import type { ApiResponse } from "@/types/api";
 import type { YourDomain } from "@/types/domain";
+
+import { apiClient } from "@/api/client";
 
 /**
  * 도메인 목록 조회
  */
 export async function getYourDomainList(
-  filters?: Record<string, unknown>
+  filters?: Record<string, unknown>,
 ): Promise<ApiResponse<YourDomain[]>> {
   const params = new URLSearchParams();
   if (filters) {
@@ -51,7 +51,9 @@ export async function getYourDomainList(
 /**
  * 도메인 상세 조회
  */
-export async function getYourDomain(id: string): Promise<ApiResponse<YourDomain>> {
+export async function getYourDomain(
+  id: string,
+): Promise<ApiResponse<YourDomain>> {
   return apiClient.get<YourDomain>(`/your-domain/${id}`);
 }
 
@@ -59,7 +61,7 @@ export async function getYourDomain(id: string): Promise<ApiResponse<YourDomain>
  * 도메인 생성
  */
 export async function createYourDomain(
-  data: CreateYourDomainDto
+  data: CreateYourDomainDto,
 ): Promise<ApiResponse<YourDomain>> {
   return apiClient.post<YourDomain>("/your-domain", data);
 }
@@ -69,7 +71,7 @@ export async function createYourDomain(
  */
 export async function updateYourDomain(
   id: string,
-  data: UpdateYourDomainDto
+  data: UpdateYourDomainDto,
 ): Promise<ApiResponse<YourDomain>> {
   return apiClient.put<YourDomain>(`/your-domain/${id}`, data);
 }
@@ -88,4 +90,3 @@ export async function deleteYourDomain(id: string): Promise<ApiResponse<void>> {
 - 반환 타입은 `Promise<ApiResponse<T>>` 형식
 - 요청 파라미터는 명확한 타입으로 정의
 - 주석으로 각 함수의 용도 설명
-

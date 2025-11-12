@@ -3,19 +3,68 @@
  */
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+
 import Image from "next/image";
-import { Search, Filter, X } from "lucide-react";
+import Link from "next/link";
+
+import type { Post, ReceiveMethod } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { usePostListQuery } from "@/queries/post";
-import { useCategoryListQuery } from "@/queries/category";
-import { useRegionListQuery } from "@/queries/region";
+
 import { useFilterStore } from "@/store/filterStore";
-import type { Post, ReceiveMethod } from "@/types/domain";
+
+import { useCategoryListQuery } from "@/queries/category";
+import { usePostListQuery } from "@/queries/post";
+import { useRegionListQuery } from "@/queries/region";
+
+import { Filter, Search, X } from "lucide-react";
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
 
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   DIRECT: "직거래",
@@ -73,7 +122,9 @@ export default function PostsPage() {
     setPostFilters({ regionId, page: 1 });
   };
 
-  const handleReceiveMethodChange = (receiveMethod: ReceiveMethod | undefined) => {
+  const handleReceiveMethodChange = (
+    receiveMethod: ReceiveMethod | undefined,
+  ) => {
     setPostFilters({ receiveMethod, page: 1 });
   };
 
@@ -179,7 +230,9 @@ export default function PostsPage() {
             <CardContent className="space-y-4 p-0">
               {/* 카테고리 */}
               <div>
-                <label className="mb-2 block text-sm font-medium">카테고리</label>
+                <label className="mb-2 block text-sm font-medium">
+                  카테고리
+                </label>
                 <select
                   value={postFilters.categoryId || ""}
                   onChange={(e) =>
@@ -221,28 +274,36 @@ export default function PostsPage() {
 
               {/* 수령방식 */}
               <div>
-                <label className="mb-2 block text-sm font-medium">수령방식</label>
+                <label className="mb-2 block text-sm font-medium">
+                  수령방식
+                </label>
                 <select
                   value={postFilters.receiveMethod || ""}
                   onChange={(e) =>
                     handleReceiveMethodChange(
-                      (e.target.value || undefined) as ReceiveMethod | undefined,
+                      (e.target.value || undefined) as
+                        | ReceiveMethod
+                        | undefined,
                     )
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2"
                 >
                   <option value="">전체</option>
-                  {Object.entries(RECEIVE_METHOD_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
+                  {Object.entries(RECEIVE_METHOD_LABELS).map(
+                    ([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ),
+                  )}
                 </select>
               </div>
 
               {/* 보증금 범위 */}
               <div>
-                <label className="mb-2 block text-sm font-medium">보증금 범위</label>
+                <label className="mb-2 block text-sm font-medium">
+                  보증금 범위
+                </label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -262,7 +323,9 @@ export default function PostsPage() {
 
               {/* 일일 대여료 범위 */}
               <div>
-                <label className="mb-2 block text-sm font-medium">일일 대여료 범위</label>
+                <label className="mb-2 block text-sm font-medium">
+                  일일 대여료 범위
+                </label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -380,4 +443,3 @@ export default function PostsPage() {
     </div>
   );
 }
-

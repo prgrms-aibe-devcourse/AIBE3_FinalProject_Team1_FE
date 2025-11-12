@@ -13,6 +13,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ## 엔드포인트 명세 형식
 
 ### 기본 정보
+
 - **엔드포인트**: `GET /api/your-domain/:id`
 - **설명**: 특정 도메인 정보 조회
 - **인증**: 필요 (Bearer Token)
@@ -21,16 +22,19 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ### 요청
 
 #### Path Parameters
-| 파라미터 | 타입 | 필수 | 설명 |
-|---------|------|------|------|
-| id | string | 예 | 도메인 ID |
+
+| 파라미터 | 타입   | 필수 | 설명      |
+| -------- | ------ | ---- | --------- |
+| id       | string | 예   | 도메인 ID |
 
 #### Query Parameters
-| 파라미터 | 타입 | 필수 | 설명 |
-|---------|------|------|------|
-| include | string | 아니오 | 포함할 관련 데이터 |
+
+| 파라미터 | 타입   | 필수   | 설명               |
+| -------- | ------ | ------ | ------------------ |
+| include  | string | 아니오 | 포함할 관련 데이터 |
 
 #### Request Body
+
 ```json
 {
   "name": "string",
@@ -41,6 +45,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ### 응답
 
 #### 200 OK
+
 ```json
 {
   "data": {
@@ -56,6 +61,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 #### 400 Bad Request
+
 ```json
 {
   "message": "Validation error",
@@ -67,6 +73,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 #### 401 Unauthorized
+
 ```json
 {
   "message": "Unauthorized",
@@ -75,6 +82,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 #### 404 Not Found
+
 ```json
 {
   "message": "Not found",
@@ -83,6 +91,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 #### 500 Internal Server Error
+
 ```json
 {
   "message": "Internal server error",
@@ -97,10 +106,12 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ### 인증 (Auth)
 
 #### POST /api/auth/login
+
 - **설명**: 로그인
 - **인증**: 불필요
 
 **Request Body**:
+
 ```json
 {
   "email": "user@example.com",
@@ -109,6 +120,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 **Response 200**:
+
 ```json
 {
   "data": {
@@ -125,10 +137,12 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 #### POST /api/auth/logout
+
 - **설명**: 로그아웃
 - **인증**: 필요
 
 **Response 200**:
+
 ```json
 {
   "data": null,
@@ -138,10 +152,12 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 #### POST /api/auth/signup
+
 - **설명**: 회원가입
 - **인증**: 불필요
 
 **Request Body**:
+
 ```json
 {
   "email": "user@example.com",
@@ -151,6 +167,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 **Response 200**:
+
 ```json
 {
   "data": {
@@ -169,10 +186,12 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ### 사용자 (User)
 
 #### GET /api/users/me
+
 - **설명**: 현재 로그인한 사용자 정보 조회
 - **인증**: 필요
 
 **Response 200**:
+
 ```json
 {
   "data": {
@@ -188,10 +207,12 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 #### PUT /api/users/me
+
 - **설명**: 현재 로그인한 사용자 정보 수정
 - **인증**: 필요
 
 **Request Body**:
+
 ```json
 {
   "name": "Updated Name",
@@ -200,6 +221,7 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 ```
 
 **Response 200**:
+
 ```json
 {
   "data": {
@@ -239,4 +261,3 @@ Notion에서 API 명세를 작성할 때 사용할 템플릿입니다.
 4. **Query Key** (`src/lib/query-keys.ts`)
 
 명세를 공유해주시면 자동으로 코드를 생성해드립니다!
-

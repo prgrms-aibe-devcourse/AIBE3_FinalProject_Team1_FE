@@ -33,7 +33,9 @@ import {
 export function useReservationListQuery(filters?: Record<string, unknown>) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.reservation.list(filters)),
-    queryFn: async (): Promise<Reservation[] | PaginatedApiResponse<Reservation>> => {
+    queryFn: async (): Promise<
+      Reservation[] | PaginatedApiResponse<Reservation>
+    > => {
       try {
         return await getReservationList(filters);
       } catch (error) {
@@ -80,7 +82,14 @@ export function useMyReservationsQuery(filters?: Record<string, unknown>) {
       } catch (error) {
         // API 실패 시 빈 페이지네이션 응답 반환
         console.error("Failed to fetch my reservations:", error);
-        return { data: [], total: 0, page: 1, size: 20, totalPages: 0, status: 200 };
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          size: 20,
+          totalPages: 0,
+          status: 200,
+        };
       }
     },
     staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지
@@ -97,7 +106,9 @@ export function useReservationsByPostQuery(
 ) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.reservation.byPost(postId)),
-    queryFn: async (): Promise<Reservation[] | PaginatedApiResponse<Reservation>> => {
+    queryFn: async (): Promise<
+      Reservation[] | PaginatedApiResponse<Reservation>
+    > => {
       return getReservationsByPost(postId, filters);
     },
     enabled: !!postId, // postId가 있을 때만 쿼리 실행
@@ -114,7 +125,9 @@ export function useReservationsByStatusQuery(
 ) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.reservation.byStatus(status)),
-    queryFn: async (): Promise<Reservation[] | PaginatedApiResponse<Reservation>> => {
+    queryFn: async (): Promise<
+      Reservation[] | PaginatedApiResponse<Reservation>
+    > => {
       return getReservationsByStatus(status, filters);
     },
     staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지
@@ -140,9 +153,7 @@ export function useCreateReservationMutation() {
       // 게시글별 예약 목록 무효화
       if (response.postId) {
         queryClient.invalidateQueries({
-          queryKey: getQueryKey(
-            queryKeys.reservation.byPost(response.postId),
-          ),
+          queryKey: getQueryKey(queryKeys.reservation.byPost(response.postId)),
         });
       }
       // 게시글 상세 쿼리 무효화 (예약 수 변경)
@@ -231,9 +242,7 @@ export function useApproveReservationMutation() {
       });
       // 상태별 예약 목록 무효화
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(
-          queryKeys.reservation.byStatus(response.status),
-        ),
+        queryKey: getQueryKey(queryKeys.reservation.byStatus(response.status)),
       });
     },
     onError: (error) => {
@@ -268,9 +277,7 @@ export function useRejectReservationMutation() {
       });
       // 상태별 예약 목록 무효화
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(
-          queryKeys.reservation.byStatus(response.status),
-        ),
+        queryKey: getQueryKey(queryKeys.reservation.byStatus(response.status)),
       });
     },
     onError: (error) => {
@@ -305,9 +312,7 @@ export function useCancelReservationMutation() {
       });
       // 상태별 예약 목록 무효화
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(
-          queryKeys.reservation.byStatus(response.status),
-        ),
+        queryKey: getQueryKey(queryKeys.reservation.byStatus(response.status)),
       });
     },
     onError: (error) => {

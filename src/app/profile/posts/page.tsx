@@ -3,13 +3,59 @@
  */
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+
+import type { Post } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
 import { useMyPostsQuery } from "@/queries/post";
-import type { Post } from "@/types/domain";
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
 
 export default function MyPostsPage() {
   const { data: myPosts, isLoading: postsLoading } = useMyPostsQuery();
@@ -88,4 +134,3 @@ export default function MyPostsPage() {
     </div>
   );
 }
-

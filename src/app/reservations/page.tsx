@@ -7,7 +7,52 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
 import { useMyReservationsQuery } from "@/queries/reservation";
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
+
+/**
+ * 예약 목록 페이지
+ */
 
 const statusLabels: Record<string, string> = {
   PENDING: "대기",
@@ -86,10 +131,12 @@ export default function ReservationsPage() {
                         </h3>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            statusColors[reservation.status] || "bg-gray-100 text-gray-800"
+                            statusColors[reservation.status] ||
+                            "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {statusLabels[reservation.status] || reservation.status}
+                          {statusLabels[reservation.status] ||
+                            reservation.status}
                         </span>
                       </div>
                       {reservation.reservationStartAt && (
@@ -117,4 +164,3 @@ export default function ReservationsPage() {
     </div>
   );
 }
-

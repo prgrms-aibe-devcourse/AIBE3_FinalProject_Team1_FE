@@ -26,7 +26,7 @@ export function useLoginMutation() {
       // 쿠키 기반 인증: 토큰은 HttpOnly 쿠키로 자동 설정됨
       // 응답은 MemberResponse 객체 자체
       setAuth(user);
-      
+
       // 로그인 성공 후 me API를 호출하여 쿠키가 제대로 설정되었는지 확인
       try {
         const me = await getMe();
@@ -35,7 +35,7 @@ export function useLoginMutation() {
         console.error("Failed to fetch user info after login:", error);
         // 쿠키가 제대로 설정되지 않았을 수 있지만, 로그인 응답의 사용자 정보는 있으므로 계속 진행
       }
-      
+
       // 인증 및 사용자 정보 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.auth.all),
@@ -63,7 +63,7 @@ export function useSignupMutation() {
       // 쿠키 기반 인증: 토큰은 HttpOnly 쿠키로 자동 설정됨
       // 응답은 MemberResponse 객체 자체
       setAuth(user);
-      
+
       // 회원가입 성공 후 me API를 호출하여 쿠키가 제대로 설정되었는지 확인
       try {
         const me = await getMe();
@@ -72,7 +72,7 @@ export function useSignupMutation() {
         console.error("Failed to fetch user info after signup:", error);
         // 쿠키가 제대로 설정되지 않았을 수 있지만, 회원가입 응답의 사용자 정보는 있으므로 계속 진행
       }
-      
+
       // 인증 및 사용자 정보 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.auth.all),
