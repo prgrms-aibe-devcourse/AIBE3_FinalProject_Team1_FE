@@ -1,0 +1,117 @@
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { User, FileText, Calendar, DollarSign } from "lucide-react";
+
+import { useMeQuery } from "@/queries/user";
+
+type TabType = "profile" | "posts" | "reservations" | "earnings";
+
+export default function ProfileLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const { data: me } = useMeQuery();
+
+  // 현재 경로에 따라 활성 탭 결정
+  const getActiveTab = (): TabType => {
+    if (pathname === "/profile") return "profile";
+    if (pathname === "/profile/posts") return "posts";
+    if (pathname === "/profile/reservations") return "reservations";
+    if (pathname === "/profile/earnings") return "earnings";
+    return "profile";
+  };
+
+  const activeTab = getActiveTab();
+
+  const navItems = [
+    { id: "profile" as TabType, label: "내 정보", icon: User, path: "/profile" },
+    { id: "posts" as TabType, label: "내 게시글", icon: FileText, path: "/profile/posts" },
+    {
+      id: "reservations" as TabType,
+      label: "내 예약",
+      icon: Calendar,
+      path: "/profile/reservations",
+    },
+    {
+      id: "earnings" as TabType,
+      label: "수익 현황",
+      icon: DollarSign,
+      path: "/profile/earnings",
+    },
+  ];
+
+  return (
+    <div className="bg-gray-50 h-full">
+      <div className="container mx-auto px-4 h-full">
+        <div className="flex gap-6 py-8 h-full">
+          {/* 좌측 사이드바 */}
+          <aside className="w-64 bg-white border border-gray-200 rounded-lg flex-shrink-0 self-start">
+            {/* 프로필 요약 */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  {me?.profileImgUrl ? (
+                    <Image
+                      src={me.profileImgUrl}
+                      alt={me.nickname || "User"}
+                      fill
+                      className="object-cover rounded-full"
+                    />
+                  ) : (
+                    <User className="h-8 w-8 text-gray-400" />
+                  )}
+                </div>
+                {me && (
+                  <>
+                    <p className="font-semibold text-base text-gray-900 text-center">
+                      {me.nickname}
+                    </p>
+                    <p className="text-sm text-gray-500 text-center">
+                      {me.email}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 네비게이션 메뉴 */}
+            <nav className="p-4">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.path}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* 우측 메인 콘텐츠 */}
+          <div className="flex-1 min-w-0">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
