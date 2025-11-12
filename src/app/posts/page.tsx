@@ -28,7 +28,7 @@ export default function PostsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [localKeyword, setLocalKeyword] = useState(postFilters.keyword || "");
 
-  const { data, isLoading, error } = usePostListQuery(postFilters);
+  const { data, isLoading } = usePostListQuery(postFilters);
   const { data: categories } = useCategoryListQuery();
   const { data: regions } = useRegionListQuery();
 

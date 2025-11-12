@@ -9,12 +9,9 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMyPostsQuery } from "@/queries/post";
-import { useAuthStore } from "@/store/authStore";
-import { useRouter } from "next/navigation";
 import type { Post } from "@/types/domain";
 
 export default function MyPostsPage() {
-  const router = useRouter();
   const { data: myPosts, isLoading: postsLoading } = useMyPostsQuery();
 
   if (postsLoading) {

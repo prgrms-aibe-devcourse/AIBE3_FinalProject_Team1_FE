@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Star, Edit, Calendar, User } from "lucide-react";
+import { Star, Edit, Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
 import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
-import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
 import type { Reservation } from "@/types/domain";
 

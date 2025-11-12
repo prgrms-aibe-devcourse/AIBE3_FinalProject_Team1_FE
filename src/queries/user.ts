@@ -3,7 +3,6 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { ApiResponse } from "@/types/api";
 import type { MemberResponse, UpdateMemberDto } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
@@ -41,9 +40,14 @@ export function useUserQuery(userId?: number) {
         // 쿠키 기반 인증: me API 호출 성공 시 사용자 정보를 스토어에 저장
         setUser(user);
         return user;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 인증 실패 시 (401, 403) 로그아웃 처리
-        if (error?.status === 401 || error?.status === 403) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "status" in error &&
+          (error.status === 401 || error.status === 403)
+        ) {
           logout();
         }
         // API 실패 시 null 반환하여 정상 동작
@@ -71,9 +75,14 @@ export function useMeQuery() {
         // 쿠키 기반 인증: me API 호출 성공 시 사용자 정보를 스토어에 저장
         setUser(user);
         return user;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 인증 실패 시 (401, 403) 로그아웃 처리
-        if (error?.status === 401 || error?.status === 403) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "status" in error &&
+          (error.status === 401 || error.status === 403)
+        ) {
           logout();
         }
         // API 실패 시 null 반환하여 정상 동작

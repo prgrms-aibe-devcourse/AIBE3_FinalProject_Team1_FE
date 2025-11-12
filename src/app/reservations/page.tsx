@@ -8,7 +8,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMyReservationsQuery } from "@/queries/reservation";
-import type { ReservationStatus } from "@/types/domain";
 
 const statusLabels: Record<string, string> = {
   PENDING: "대기",

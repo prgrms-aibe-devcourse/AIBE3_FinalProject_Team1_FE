@@ -3,7 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { ApiResponse, PaginatedApiResponse } from "@/types/api";
+import type { PaginatedApiResponse } from "@/types/api";
 import type {
   CreatePostDto,
   Post,

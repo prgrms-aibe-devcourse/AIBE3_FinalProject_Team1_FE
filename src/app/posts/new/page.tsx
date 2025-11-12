@@ -11,14 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useCreatePostMutation } from "@/queries/post";
 import { useCategoryListQuery } from "@/queries/category";
-import { useRegionListQuery } from "@/queries/region";
 import type { CreatePostDto, ReceiveMethod } from "@/types/domain";
 
 export default function NewPostPage() {
   const router = useRouter();
   const createPostMutation = useCreatePostMutation();
   const { data: categories } = useCategoryListQuery();
-  const { data: regions } = useRegionListQuery();
 
   const [formData, setFormData] = useState<Partial<CreatePostDto>>({
     title: "",
