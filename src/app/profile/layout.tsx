@@ -4,12 +4,68 @@
  */
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, FileText, Calendar, DollarSign } from "lucide-react";
 
 import { useMeQuery } from "@/queries/user";
+
+import { Calendar, DollarSign, FileText, User } from "lucide-react";
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
+
+/**
+ * 프로필 레이아웃
+ * 좌측 사이드바와 우측 메인 콘텐츠 구조
+ */
 
 type TabType = "profile" | "posts" | "reservations" | "earnings";
 
@@ -33,8 +89,18 @@ export default function ProfileLayout({
   const activeTab = getActiveTab();
 
   const navItems = [
-    { id: "profile" as TabType, label: "내 정보", icon: User, path: "/profile" },
-    { id: "posts" as TabType, label: "내 게시글", icon: FileText, path: "/profile/posts" },
+    {
+      id: "profile" as TabType,
+      label: "내 정보",
+      icon: User,
+      path: "/profile",
+    },
+    {
+      id: "posts" as TabType,
+      label: "내 게시글",
+      icon: FileText,
+      path: "/profile/posts",
+    },
     {
       id: "reservations" as TabType,
       label: "내 예약",
@@ -107,9 +173,7 @@ export default function ProfileLayout({
           </aside>
 
           {/* 우측 메인 콘텐츠 */}
-          <div className="flex-1 min-w-0">
-            {children}
-          </div>
+          <div className="flex-1 min-w-0">{children}</div>
         </div>
       </div>
     </div>

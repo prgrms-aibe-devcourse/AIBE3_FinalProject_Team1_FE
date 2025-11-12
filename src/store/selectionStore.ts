@@ -40,7 +40,9 @@ export const useSelectionStore = create<SelectionState>((set) => ({
   selectedReservationIds: [],
   toggleReservationSelection: (reservationId) =>
     set((state) => ({
-      selectedReservationIds: state.selectedReservationIds.includes(reservationId)
+      selectedReservationIds: state.selectedReservationIds.includes(
+        reservationId,
+      )
         ? state.selectedReservationIds.filter((id) => id !== reservationId)
         : [...state.selectedReservationIds, reservationId],
     })),
@@ -55,4 +57,3 @@ export const useSelectionStore = create<SelectionState>((set) => ({
       selectedReservationIds: [],
     }),
 }));
-

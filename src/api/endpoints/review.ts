@@ -1,10 +1,10 @@
 /**
  * 후기 관련 API 엔드포인트
  */
+import type { PaginatedApiResponse } from "@/types/api";
+import type { CreateReviewDto, Review, UpdateReviewDto } from "@/types/domain";
 
 import { apiClient } from "@/api/client";
-import type { PaginatedApiResponse } from "@/types/api";
-import type { Review, CreateReviewDto, UpdateReviewDto } from "@/types/domain";
 
 /**
  * 후기 목록 조회
@@ -84,4 +84,3 @@ export async function getReviewByReservation(
     `/api/v1/reservations/${reservationId}/review`,
   );
 }
-

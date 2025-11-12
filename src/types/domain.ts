@@ -39,7 +39,7 @@ export interface Member extends BaseEntity {
 /**
  * 사용자 응답 (비밀번호 제외)
  */
-export interface MemberResponse extends Omit<Member, "password"> {}
+export type MemberResponse = Omit<Member, "password">;
 
 /**
  * 사용자 생성 DTO

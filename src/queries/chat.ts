@@ -3,7 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { ApiResponse, PaginatedApiResponse } from "@/types/api";
+import type { PaginatedApiResponse } from "@/types/api";
 import type {
   ChatMessage,
   ChatRoom,
@@ -76,7 +76,9 @@ export function useChatMessagesQuery(
 ) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.chat.messages(roomId)),
-    queryFn: async (): Promise<ChatMessage[] | PaginatedApiResponse<ChatMessage>> => {
+    queryFn: async (): Promise<
+      ChatMessage[] | PaginatedApiResponse<ChatMessage>
+    > => {
       return getChatMessages(roomId, filters);
     },
     enabled: !!roomId, // roomId가 있을 때만 쿼리 실행
@@ -96,9 +98,7 @@ export function useCreateChatMessageMutation() {
     onSuccess: (response) => {
       // 채팅 메시지 목록 쿼리 무효화
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(
-          queryKeys.chat.messages(response.chatRoomId),
-        ),
+        queryKey: getQueryKey(queryKeys.chat.messages(response.chatRoomId)),
       });
       // 채팅방 목록 쿼리 무효화 (마지막 메시지 업데이트)
       queryClient.invalidateQueries({

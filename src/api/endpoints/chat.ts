@@ -89,7 +89,9 @@ export async function deleteChatMessage(
   roomId: number,
   messageId: number,
 ): Promise<void> {
-  return apiClient.delete<void>(`/api/v1/chat/rooms/${roomId}/messages/${messageId}`);
+  return apiClient.delete<void>(
+    `/api/v1/chat/rooms/${roomId}/messages/${messageId}`,
+  );
 }
 
 /**

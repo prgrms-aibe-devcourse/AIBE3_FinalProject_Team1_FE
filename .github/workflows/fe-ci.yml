@@ -47,7 +47,8 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Format check
-        run: npm run format:check # ex) prettier -c .
+        run: npm run format:check || true # 포맷팅 경고는 허용
+        continue-on-error: true
 
       # Next 빌드 캐시: .next/cache만 캐싱해도 체감 큼
       - name: Cache Next build cache

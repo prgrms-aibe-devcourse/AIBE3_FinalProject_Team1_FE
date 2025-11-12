@@ -3,7 +3,6 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { ApiResponse } from "@/types/api";
 import type { Region } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
@@ -158,4 +157,3 @@ export function useDeleteRegionMutation() {
     },
   });
 }
-

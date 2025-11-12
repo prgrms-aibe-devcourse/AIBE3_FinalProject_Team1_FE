@@ -3,15 +3,65 @@
  */
 "use client";
 
-import { useParams } from "next/navigation";
 import Image from "next/image";
+import { useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { usePostQuery, useDeletePostMutation } from "@/queries/post";
-import { useAddFavoriteMutation, useRemoveFavoriteMutation, useFavoriteCheckQuery } from "@/queries/post-favorite";
+
 import { useAuthStore } from "@/store/authStore";
-import { useRouter } from "next/navigation";
+
+import { useDeletePostMutation, usePostQuery } from "@/queries/post";
+import {
+  useAddFavoriteMutation,
+  useFavoriteCheckQuery,
+  useRemoveFavoriteMutation,
+} from "@/queries/post-favorite";
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -100,7 +150,10 @@ export default function PostDetailPage() {
                     variant="ghost"
                     size="sm"
                     onClick={handleFavorite}
-                    disabled={addFavoriteMutation.isPending || removeFavoriteMutation.isPending}
+                    disabled={
+                      addFavoriteMutation.isPending ||
+                      removeFavoriteMutation.isPending
+                    }
                   >
                     {isFavorite ? "❤️" : "🤍"}
                   </Button>
@@ -110,7 +163,9 @@ export default function PostDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <h3 className="mb-2 font-semibold">장비 정보</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  {post.content}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -157,7 +212,9 @@ export default function PostDetailPage() {
               ) : (
                 <Button
                   className="w-full"
-                  onClick={() => router.push(`/reservations/new?postId=${postId}`)}
+                  onClick={() =>
+                    router.push(`/reservations/new?postId=${postId}`)
+                  }
                 >
                   예약하기
                 </Button>
@@ -169,4 +226,3 @@ export default function PostDetailPage() {
     </div>
   );
 }
-

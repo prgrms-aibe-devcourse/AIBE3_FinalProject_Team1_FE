@@ -5,12 +5,14 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
 ## 생성된 파일 목록
 
 ### 1. 인증 (Auth)
+
 - `src/api/endpoints/auth.ts`
   - `login()` - 로그인
   - `logout()` - 로그아웃
   - `signup()` - 회원가입 (CreateMemberDto 사용)
 
 ### 2. 사용자 (User)
+
 - `src/api/endpoints/user.ts`
   - `getUserList()` - 사용자 목록 조회 (관리자용)
   - `getUser()` - 사용자 상세 조회
@@ -22,6 +24,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `unbanUser()` - 사용자 제재 해제 (관리자용)
 
 ### 3. 게시글 (Post)
+
 - `src/api/endpoints/post.ts`
   - `getPostList()` - 게시글 목록 조회 (필터 지원)
   - `getPost()` - 게시글 상세 조회
@@ -33,6 +36,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `getPostsByRegion()` - 지역별 게시글 목록 조회
 
 ### 4. 게시글 즐겨찾기 (PostFavorite)
+
 - `src/api/endpoints/post-favorite.ts`
   - `getFavoritePosts()` - 즐겨찾기한 게시글 목록 조회
   - `addFavorite()` - 게시글 즐겨찾기 추가
@@ -40,6 +44,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `checkFavorite()` - 즐겨찾기 여부 확인
 
 ### 5. 예약 (Reservation)
+
 - `src/api/endpoints/reservation.ts`
   - `getReservationList()` - 예약 목록 조회
   - `getReservation()` - 예약 상세 조회
@@ -54,6 +59,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `getReservationsByStatus()` - 상태별 예약 목록 조회
 
 ### 6. 후기 (Review)
+
 - `src/api/endpoints/review.ts`
   - `getReviewList()` - 후기 목록 조회
   - `getReview()` - 후기 상세 조회
@@ -64,6 +70,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `getReviewByReservation()` - 예약별 후기 조회
 
 ### 7. 채팅 (Chat)
+
 - `src/api/endpoints/chat.ts`
   - `getChatRoomList()` - 채팅방 목록 조회
   - `getChatRoom()` - 채팅방 상세 조회
@@ -75,6 +82,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `markChatRoomAsRead()` - 채팅방 읽음 처리
 
 ### 8. 카테고리 (Category)
+
 - `src/api/endpoints/category.ts`
   - `getCategoryList()` - 카테고리 목록 조회
   - `getCategory()` - 카테고리 상세 조회
@@ -84,6 +92,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `deleteCategory()` - 카테고리 삭제 (관리자용)
 
 ### 9. 지역 (Region)
+
 - `src/api/endpoints/region.ts`
   - `getRegionList()` - 지역 목록 조회
   - `getRegion()` - 지역 상세 조회
@@ -93,6 +102,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `deleteRegion()` - 지역 삭제 (관리자용)
 
 ### 10. 알림 (Notification)
+
 - `src/api/endpoints/notification.ts`
   - `getNotificationList()` - 알림 목록 조회
   - `getUnreadNotifications()` - 읽지 않은 알림 목록 조회
@@ -103,6 +113,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `getUnreadNotificationCount()` - 읽지 않은 알림 개수 조회
 
 ### 11. 신고 (Report)
+
 - `src/api/endpoints/report.ts`
   - `getReportList()` - 신고 목록 조회 (관리자용)
   - `getReport()` - 신고 상세 조회 (관리자용)
@@ -112,6 +123,7 @@ ERD 기반으로 모든 도메인 API 엔드포인트 함수를 생성했습니�
   - `getMyReports()` - 내 신고 목록 조회
 
 ### 12. 파일 업로드 (Upload)
+
 - `src/api/endpoints/upload.ts`
   - `uploadFile()` - 단일 파일 업로드
   - `uploadFiles()` - 여러 파일 업로드
@@ -144,24 +156,29 @@ import {
 ## 주요 특징
 
 ### 1. 타입 안전성
+
 - 모든 함수는 TypeScript 타입으로 정의됨
 - 요청/응답 타입이 명확히 지정됨
 - DTO 타입을 사용하여 데이터 검증
 
 ### 2. 인증 처리
+
 - 인증이 필요한 API는 자동으로 토큰을 헤더에 추가
 - `getAuthHeaders()` 메서드를 통해 토큰 관리
 
 ### 3. 에러 처리
+
 - 통합 에러 처리 (`ApiError` 타입)
 - 에러 응답 구조 표준화
 
 ### 4. 파일 업로드
+
 - FormData를 사용하여 파일 업로드
 - 이미지 타입 체크
 - 프로필 이미지 및 게시글 이미지 별도 처리
 
 ### 5. 필터링 및 페이지네이션
+
 - 필터 옵션을 Query Parameter로 전달
 - 페이지네이션 응답 타입 (`PaginatedApiResponse`)
 

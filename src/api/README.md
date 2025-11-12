@@ -15,6 +15,7 @@ src/api/
 ### 1. Notion API 명세에서 정보 추출
 
 Notion 페이지에서 다음 정보를 확인하세요:
+
 - 엔드포인트 URL
 - HTTP 메서드 (GET, POST, PUT, DELETE, PATCH)
 - 요청 파라미터 (Path, Query, Body)
@@ -38,17 +39,22 @@ export interface YourDomain {
 `src/api/endpoints/` 폴더에 새 파일 생성:
 
 ```typescript
-import { apiClient } from "@/api/client";
 import type { ApiResponse } from "@/types/api";
 import type { YourDomain } from "@/types/domain";
 
+import { apiClient } from "@/api/client";
+
 // GET 예시
-export async function getYourDomain(id: string): Promise<ApiResponse<YourDomain>> {
+export async function getYourDomain(
+  id: string,
+): Promise<ApiResponse<YourDomain>> {
   return apiClient.get<YourDomain>(`/your-domain/${id}`);
 }
 
 // POST 예시
-export async function createYourDomain(data: CreateYourDomainDto): Promise<ApiResponse<YourDomain>> {
+export async function createYourDomain(
+  data: CreateYourDomainDto,
+): Promise<ApiResponse<YourDomain>> {
   return apiClient.post<YourDomain>("/your-domain", data);
 }
 ```
@@ -58,10 +64,13 @@ export async function createYourDomain(data: CreateYourDomainDto): Promise<ApiRe
 `src/queries/` 폴더에 새 파일 생성:
 
 ```typescript
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getYourDomain, createYourDomain } from "@/api/endpoints/your-domain";
-import { queryKeys, getQueryKey } from "@/lib/query-keys";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import type { YourDomain } from "@/types/domain";
+
+import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { createYourDomain, getYourDomain } from "@/api/endpoints/your-domain";
 
 export function useYourDomainQuery(id: string) {
   return useQuery({
@@ -72,7 +81,7 @@ export function useYourDomainQuery(id: string) {
 
 export function useCreateYourDomainMutation() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: createYourDomain,
     onSuccess: () => {
@@ -141,6 +150,7 @@ Notion에서 API 명세를 작성할 때 다음 형식을 사용하세요:
 ## 자동 생성 스크립트 (향후 추가 예정)
 
 API 명세를 바탕으로 자동으로 코드를 생성하는 스크립트를 만들 수 있습니다:
+
 - OpenAPI/Swagger 스펙 → 타입 생성
 - Notion API → 코드 생성
 - JSON Schema → 타입 생성
@@ -156,6 +166,7 @@ API 명세를 바탕으로 자동으로 코드를 생성하는 스크립트를 �
 ## 도움 요청
 
 API 명세를 공유해주시면:
+
 - 타입 정의 자동 생성
 - 엔드포인트 함수 자동 생성
 - React Query 쿼리 자동 생성

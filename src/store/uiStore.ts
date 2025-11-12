@@ -46,7 +46,8 @@ export const useUIStore = create<UIState>((set) => ({
 
   // 사이드바
   isSidebarOpen: false,
-  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  toggleSidebar: () =>
+    set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   setSidebarOpen: (open) => set({ isSidebarOpen: open }),
 
   // 토스트
@@ -61,4 +62,3 @@ export const useUIStore = create<UIState>((set) => ({
   isLoading: false,
   setLoading: (loading) => set({ isLoading: loading }),
 }));
-

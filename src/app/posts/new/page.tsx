@@ -4,21 +4,72 @@
 "use client";
 
 import { useState } from "react";
+
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useCreatePostMutation } from "@/queries/post";
-import { useCategoryListQuery } from "@/queries/category";
-import { useRegionListQuery } from "@/queries/region";
 import type { CreatePostDto, ReceiveMethod } from "@/types/domain";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+import { useCategoryListQuery } from "@/queries/category";
+import { useCreatePostMutation } from "@/queries/post";
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
 
 export default function NewPostPage() {
   const router = useRouter();
   const createPostMutation = useCreatePostMutation();
   const { data: categories } = useCategoryListQuery();
-  const { data: regions } = useRegionListQuery();
 
   const [formData, setFormData] = useState<Partial<CreatePostDto>>({
     title: "",
@@ -43,7 +94,9 @@ export default function NewPostPage() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData({
@@ -60,9 +113,7 @@ export default function NewPostPage() {
       <Card className="mx-auto max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl">게시글 작성</CardTitle>
-          <CardDescription>
-            대여할 장비 정보를 입력해주세요
-          </CardDescription>
+          <CardDescription>대여할 장비 정보를 입력해주세요</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -217,4 +268,3 @@ export default function NewPostPage() {
     </div>
   );
 }
-

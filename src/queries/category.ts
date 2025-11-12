@@ -3,7 +3,6 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { ApiResponse } from "@/types/api";
 import type { Category } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
@@ -119,9 +118,7 @@ export function useUpdateCategoryMutation() {
       });
       // 해당 카테고리의 게시글 목록 무효화
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(
-          queryKeys.post.byCategory(variables.categoryId),
-        ),
+        queryKey: getQueryKey(queryKeys.post.byCategory(variables.categoryId)),
       });
     },
     onError: (error) => {
@@ -160,4 +157,3 @@ export function useDeleteCategoryMutation() {
     },
   });
 }
-

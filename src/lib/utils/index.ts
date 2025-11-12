@@ -2,7 +2,6 @@
  * 유틸리티 함수들을 모아두는 파일입니다.
  * 필요에 따라 별도 파일로 분리하세요.
  */
-
 import { type ClassValue, clsx } from "clsx";
 
 /**
@@ -41,4 +40,3 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     timeout = setTimeout(later, wait);
   };
 }
-

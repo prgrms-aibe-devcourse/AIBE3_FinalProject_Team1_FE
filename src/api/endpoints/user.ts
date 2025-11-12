@@ -2,11 +2,7 @@
  * 사용자 관련 API 엔드포인트
  */
 import type { PaginatedApiResponse } from "@/types/api";
-import type {
-  CreateMemberDto,
-  MemberResponse,
-  UpdateMemberDto,
-} from "@/types/domain";
+import type { MemberResponse, UpdateMemberDto } from "@/types/domain";
 
 import { apiClient } from "@/api/client";
 
