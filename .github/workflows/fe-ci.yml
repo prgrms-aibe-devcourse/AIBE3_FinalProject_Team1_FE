@@ -19,7 +19,7 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request.draft != true }}
+    if: ${{ github.event.pull_request.draft != true || github.event_name == 'push' }}
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1 # Next 텔레메트리 비활성 (CI 소음 줄이기)
@@ -43,7 +43,7 @@ jobs:
       # TypeScript(noEmit) + Prettier + ESLint 모두 한 번에
       # --- 품질 체크를 분리해 어떤 단계가 깨지는지 명확히 ---
       - name: TypeScript check
-        run: npm run typecheck # ex) tsc --noEmit
+        run: npm run tsc # tsc --noEmit
       - name: Lint
         run: npm run lint
       - name: Format check
