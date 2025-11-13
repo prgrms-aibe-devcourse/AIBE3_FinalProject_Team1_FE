@@ -76,7 +76,7 @@ export default function MyPostsPage() {
     );
   }
 
-  const posts = Array.isArray(myPosts) ? myPosts : myPosts?.data || [];
+  const posts = Array.isArray(myPosts) ? myPosts : myPosts?.content || [];
 
   return (
     <div className="p-0">

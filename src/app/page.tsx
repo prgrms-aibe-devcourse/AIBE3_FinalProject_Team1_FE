@@ -72,9 +72,13 @@ import {
  * 홈 페이지
  */
 
+/**
+ * 홈 페이지
+ */
+
 export default function Home() {
   const { data: postsData, isLoading } = usePostListQuery();
-  const posts = Array.isArray(postsData) ? postsData : postsData?.data || [];
+  const posts = Array.isArray(postsData) ? postsData : postsData?.content || [];
   const featuredPosts = posts.slice(0, 6);
 
   return (

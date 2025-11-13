@@ -146,10 +146,10 @@ export default function ProfilePage() {
     );
   }
 
-  const posts = Array.isArray(myPosts) ? myPosts : myPosts?.data || [];
+  const posts = Array.isArray(myPosts) ? myPosts : myPosts?.content || [];
   const reservations = Array.isArray(myReservations)
     ? myReservations
-    : myReservations?.data || [];
+    : myReservations?.content || [];
 
   // 완료된 예약 수 계산
   const completedReservations = reservations.filter(

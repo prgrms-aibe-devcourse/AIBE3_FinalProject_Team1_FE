@@ -3,6 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { PaginatedApiResponse } from "@/types/api";
 import type { MemberResponse, UpdateMemberDto } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
@@ -109,8 +110,11 @@ export function useUserListQuery(filters?: Record<string, unknown>) {
       if (Array.isArray(response)) {
         return response;
       }
-      // 페이지네이션 응답인 경우 (필요시 처리)
-      return (response as unknown as { data: MemberResponse[] }).data || [];
+      // 페이지네이션 응답인 경우 content 필드에서 배열 추출
+      if (response && typeof response === "object" && "content" in response) {
+        return (response as PaginatedApiResponse<MemberResponse>).content || [];
+      }
+      return [];
     },
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
   });

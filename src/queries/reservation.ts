@@ -83,12 +83,18 @@ export function useMyReservationsQuery(filters?: Record<string, unknown>) {
         // API 실패 시 빈 페이지네이션 응답 반환
         console.error("Failed to fetch my reservations:", error);
         return {
-          data: [],
-          total: 0,
-          page: 1,
-          size: 20,
-          totalPages: 0,
-          status: 200,
+          content: [],
+          page: {
+            page: 0,
+            size: 20,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true,
+            hasNext: false,
+            hasPrevious: false,
+            sort: [],
+          },
         };
       }
     },

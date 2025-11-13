@@ -80,7 +80,7 @@ export async function getMyPosts(
       }
     });
   }
-  const endpoint = `/api/v1/posts/me${params.toString() ? `?${params.toString()}` : ""}`;
+  const endpoint = `/api/v1/posts/my${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Post>>(endpoint);
 }
 

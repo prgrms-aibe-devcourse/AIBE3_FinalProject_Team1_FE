@@ -52,34 +52,14 @@ export function useLoginMutation() {
 
 /**
  * 회원가입 mutation
+ * 회원가입은 계정 생성만 하고, 로그인은 별도로 처리해야 함
  */
 export function useSignupMutation() {
-  const queryClient = useQueryClient();
-  const { setAuth } = useAuthStore();
-
   return useMutation({
     mutationFn: (data: CreateMemberDto) => signup(data),
-    onSuccess: async (user) => {
-      // 쿠키 기반 인증: 토큰은 HttpOnly 쿠키로 자동 설정됨
-      // 응답은 MemberResponse 객체 자체
-      setAuth(user);
-
-      // 회원가입 성공 후 me API를 호출하여 쿠키가 제대로 설정되었는지 확인
-      try {
-        const me = await getMe();
-        setAuth(me); // 최신 사용자 정보로 업데이트
-      } catch (error) {
-        console.error("Failed to fetch user info after signup:", error);
-        // 쿠키가 제대로 설정되지 않았을 수 있지만, 회원가입 응답의 사용자 정보는 있으므로 계속 진행
-      }
-
-      // 인증 및 사용자 정보 쿼리 무효화
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.auth.all),
-      });
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.user.all),
-      });
+    onSuccess: () => {
+      // 회원가입 성공: 계정만 생성되고 로그인은 되지 않음
+      // 사용자는 별도로 로그인해야 함
     },
     onError: (error) => {
       console.error("Signup error:", error);
