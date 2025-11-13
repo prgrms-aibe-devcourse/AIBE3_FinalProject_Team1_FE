@@ -60,7 +60,8 @@ export default function SignupPage() {
     e.preventDefault();
     try {
       await signupMutation.mutateAsync(formData);
-      router.push("/posts");
+      // 회원가입 성공 후 로그인 페이지로 이동
+      router.push("/login");
     } catch (error) {
       console.error("Signup failed:", error);
     }

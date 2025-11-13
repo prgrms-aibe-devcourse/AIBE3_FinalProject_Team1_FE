@@ -102,7 +102,7 @@ export default function ReservationsPage() {
     );
   }
 
-  const reservations = data?.data || [];
+  const reservations = data?.content || [];
 
   return (
     <div className="container mx-auto px-4 py-8">

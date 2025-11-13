@@ -2,7 +2,7 @@
  * API 클라이언트 설정
  * axios, fetch 등을 사용하여 구현하세요.
  */
-import type { ApiError } from "@/types/api";
+import type { ApiError, ApiResponse } from "@/types/api";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
@@ -19,7 +19,7 @@ class ApiClient {
 
   /**
    * GET 요청
-   * 응답은 객체 자체를 반환 (data 래퍼 없음)
+   * 응답은 { status, msg, data } 형식으로 래핑되어 반환됨
    */
   async get<T>(endpoint: string): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
@@ -51,12 +51,17 @@ class ApiClient {
       throw error;
     }
 
-    return response.json();
+    const result: ApiResponse<T> = await response.json();
+    // data가 undefined인 경우를 방지
+    if (result.data === undefined) {
+      throw new Error("API response data is undefined");
+    }
+    return result.data;
   }
 
   /**
    * POST 요청
-   * 응답은 객체 자체를 반환 (data 래퍼 없음)
+   * 응답은 { status, msg, data } 형식으로 래핑되어 반환됨
    */
   async post<T>(
     endpoint: string,
@@ -99,12 +104,13 @@ class ApiClient {
       throw error;
     }
 
-    return response.json();
+    const result: ApiResponse<T> = await response.json();
+    return result.data;
   }
 
   /**
    * PUT 요청
-   * 응답은 객체 자체를 반환 (data 래퍼 없음)
+   * 응답은 { status, msg, data } 형식으로 래핑되어 반환됨
    */
   async put<T>(
     endpoint: string,
@@ -131,12 +137,13 @@ class ApiClient {
       throw await this.handleError(response);
     }
 
-    return response.json();
+    const result: ApiResponse<T> = await response.json();
+    return result.data;
   }
 
   /**
    * DELETE 요청
-   * 응답은 객체 자체를 반환 (data 래퍼 없음)
+   * 응답은 { status, msg, data } 형식으로 래핑되어 반환됨 (void인 경우 data가 없을 수 있음)
    */
   async delete<T>(endpoint: string): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
@@ -152,7 +159,14 @@ class ApiClient {
       throw await this.handleError(response);
     }
 
-    return response.json();
+    // DELETE 요청의 경우 응답 본문이 없을 수 있음
+    const text = await response.text();
+    if (!text) {
+      return undefined as T;
+    }
+
+    const result: ApiResponse<T> = JSON.parse(text);
+    return result.data;
   }
 
   /**
@@ -166,7 +180,8 @@ class ApiClient {
 
     try {
       const data = await response.json();
-      error.message = data.message || error.message;
+      // msg 또는 message 필드에서 에러 메시지 추출
+      error.message = data.msg || data.message || error.message;
       error.errors = data.errors;
     } catch {
       // JSON 파싱 실패 시 기본 에러 메시지 사용

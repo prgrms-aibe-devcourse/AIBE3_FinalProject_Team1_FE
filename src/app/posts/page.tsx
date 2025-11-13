@@ -91,9 +91,9 @@ export default function PostsPage() {
     }
   }, [localKeyword, postFilters.keyword, setPostFilters]);
 
-  // 페이지네이션 응답인 경우 data 배열 추출, 아니면 배열 자체 사용
+  // 페이지네이션 응답인 경우 content 배열 추출, 아니면 배열 자체 사용
   // API 실패 시에도 빈 배열로 정상 동작
-  const posts = Array.isArray(data) ? data : data?.data || [];
+  const posts = Array.isArray(data) ? data : data?.content || [];
   const hasPosts = posts.length > 0;
 
   if (isLoading) {

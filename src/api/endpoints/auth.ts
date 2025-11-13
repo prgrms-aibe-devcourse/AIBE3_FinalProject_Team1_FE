@@ -28,8 +28,9 @@ export async function logout(): Promise<void> {
 
 /**
  * 회원가입
- * 응답: MemberResponse 객체 (쿠키에 토큰이 자동으로 설정됨)
+ * 응답: MemberResponse 객체
+ * 회원가입은 계정만 생성하고, 로그인은 별도로 처리해야 함
  */
 export async function signup(data: CreateMemberDto): Promise<MemberResponse> {
-  return apiClient.post<MemberResponse>("/api/v1/members/signup", data);
+  return apiClient.post<MemberResponse>("/api/v1/members", data);
 }

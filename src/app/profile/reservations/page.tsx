@@ -98,7 +98,7 @@ export default function MyReservationsPage() {
 
   const reservations = Array.isArray(myReservations)
     ? myReservations
-    : myReservations?.data || [];
+    : myReservations?.content || [];
 
   return (
     <div className="p-0">

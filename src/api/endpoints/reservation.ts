@@ -70,7 +70,7 @@ export async function deleteReservation(reservationId: number): Promise<void> {
 }
 
 /**
- * 내 예약 목록 조회
+ * 내가 신청한 예약 목록 조회
  */
 export async function getMyReservations(
   filters?: Record<string, unknown>,
@@ -83,7 +83,7 @@ export async function getMyReservations(
       }
     });
   }
-  const endpoint = `/api/v1/reservations/me${params.toString() ? `?${params.toString()}` : ""}`;
+  const endpoint = `/api/v1/reservations/sent${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Reservation>>(endpoint);
 }
 
