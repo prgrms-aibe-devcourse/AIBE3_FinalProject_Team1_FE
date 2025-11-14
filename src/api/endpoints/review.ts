@@ -4,6 +4,8 @@
 import type { PaginatedApiResponse } from "@/types/api";
 import type { CreateReviewDto, Review, UpdateReviewDto } from "@/types/domain";
 
+import { buildQueryParams } from "@/lib/utils/api-params";
+
 import { apiClient } from "@/api/client";
 
 /**
@@ -12,14 +14,7 @@ import { apiClient } from "@/api/client";
 export async function getReviewList(
   filters?: Record<string, unknown>,
 ): Promise<PaginatedApiResponse<Review>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters);
   const endpoint = `/api/v1/reviews${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Review>>(endpoint);
 }
@@ -62,14 +57,7 @@ export async function getReviewsByPost(
   postId: number,
   filters?: Record<string, unknown>,
 ): Promise<PaginatedApiResponse<Review>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters);
   const endpoint = `/api/v1/posts/${postId}/reviews${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Review>>(endpoint);
 }
