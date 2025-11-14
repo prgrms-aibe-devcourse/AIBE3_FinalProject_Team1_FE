@@ -6,7 +6,7 @@
 
 import { format, formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,9 +24,8 @@ import {
 } from "@/queries/chat";
 import { useMeQuery } from "@/queries/user";
 import { useStomp } from "@/hooks/useStomp";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
-import type { ChatMessage } from "@/types/domain";
 import type { PaginatedApiResponse } from "@/types/api";
 
 import { MessageSquare, Send, User } from "lucide-react";
@@ -65,7 +64,7 @@ function formatTimestamp(date: Date | string): string {
   }
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomIdParam = searchParams.get("roomId");
@@ -150,7 +149,9 @@ export default function ChatPage() {
           const newMessage: ChatMessage = JSON.parse(stompMessage.body);
 
           // React Query 캐시 업데이트 (무한 스크롤 쿼리)
-          queryClient.setQueryData<PaginatedApiResponse<ChatMessage>>(
+          queryClient.setQueryData<
+            InfiniteData<PaginatedApiResponse<ChatMessage>>
+          >(
             getQueryKey(queryKeys.chat.messages(selectedRoomId)),
             (oldData) => {
               if (!oldData) return oldData;
@@ -576,5 +577,13 @@ export default function ChatPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatPageContent />
+    </Suspense>
   );
 }
