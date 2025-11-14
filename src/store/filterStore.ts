@@ -34,8 +34,7 @@ const defaultPostFilters: PostListFilters = {
   receiveMethod: undefined,
   page: 1,
   size: 20,
-  sort: "createdAt",
-  order: "desc",
+  sort: ["createdAt,DESC"],
 };
 
 /**

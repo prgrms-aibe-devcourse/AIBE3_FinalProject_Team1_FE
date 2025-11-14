@@ -18,6 +18,7 @@ import {
   useFavoriteCheckQuery,
   useRemoveFavoriteMutation,
 } from "@/queries/post-favorite";
+import { useCreateChatRoomMutation } from "@/queries/chat";
 
 /**
  * 게시글 상세 페이지
@@ -73,6 +74,7 @@ export default function PostDetailPage() {
   const addFavoriteMutation = useAddFavoriteMutation();
   const removeFavoriteMutation = useRemoveFavoriteMutation();
   const deletePostMutation = useDeletePostMutation();
+  const createChatRoomMutation = useCreateChatRoomMutation();
 
   const handleFavorite = () => {
     if (isFavorite) {
@@ -86,6 +88,24 @@ export default function PostDetailPage() {
     if (confirm("정말 삭제하시겠습니까?")) {
       await deletePostMutation.mutateAsync(postId);
       router.push("/posts");
+    }
+  };
+
+  const handleChat = async () => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      // 채팅방 생성 (API가 이미 존재하는 채팅방이 있으면 chatRoomId 반환, 없으면 생성)
+      const result = await createChatRoomMutation.mutateAsync(postId);
+      // response가 { id: number } 또는 ChatRoom 객체이므로 항상 id 속성 있음
+      router.push(`/chat?roomId=${result.id}`);
+    } catch (error) {
+      console.error("Failed to create chat room:", error);
+      // 에러가 발생해도 채팅 페이지로 이동 시도
+      router.push("/chat");
     }
   };
 
@@ -210,14 +230,28 @@ export default function PostDetailPage() {
                   </Button>
                 </div>
               ) : (
-                <Button
-                  className="w-full"
-                  onClick={() =>
-                    router.push(`/reservations/new?postId=${postId}`)
-                  }
-                >
-                  예약하기
-                </Button>
+                <div className="flex flex-col gap-2 pt-4">
+                  <Button
+                    className="w-full"
+                    onClick={() =>
+                      router.push(`/reservations/new?postId=${postId}`)
+                    }
+                  >
+                    예약하기
+                  </Button>
+                  {isAuthenticated && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleChat}
+                      disabled={createChatRoomMutation.isPending}
+                    >
+                      {createChatRoomMutation.isPending
+                        ? "채팅방 생성 중..."
+                        : "채팅하기"}
+                    </Button>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

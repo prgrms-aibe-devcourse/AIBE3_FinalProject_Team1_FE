@@ -224,8 +224,7 @@ export interface PostListFilters {
   receiveMethod?: ReceiveMethod;
   page?: number;
   size?: number;
-  sort?: "createdAt" | "deposit" | "fee"; // 정렬 기준
-  order?: "asc" | "desc"; // 정렬 순서
+  sort?: string[]; // 정렬 기준 및 순서 배열 (예: ["createdAt,ASC", "id,DESC"])
 }
 
 /**

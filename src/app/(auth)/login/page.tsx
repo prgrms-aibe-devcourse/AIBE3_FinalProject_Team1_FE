@@ -3,9 +3,9 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import { useLoginMutation } from "@/queries/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const loginMutation = useLoginMutation();
@@ -33,7 +34,9 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await loginMutation.mutateAsync({ email, password });
-      router.push("/posts");
+      // 리다이렉트 파라미터가 있으면 해당 경로로, 없으면 /posts로
+      const redirect = searchParams.get("redirect");
+      router.push(redirect || "/posts");
     } catch (error) {
       console.error("Login failed:", error);
     }

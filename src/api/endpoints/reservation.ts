@@ -9,6 +9,8 @@ import type {
   UpdateReservationDto,
 } from "@/types/domain";
 
+import { buildQueryParams } from "@/lib/utils/api-params";
+
 import { apiClient } from "@/api/client";
 
 /**
@@ -17,14 +19,7 @@ import { apiClient } from "@/api/client";
 export async function getReservationList(
   filters?: Record<string, unknown>,
 ): Promise<Reservation[] | PaginatedApiResponse<Reservation>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters);
   const endpoint = `/api/v1/reservations${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<Reservation[] | PaginatedApiResponse<Reservation>>(
     endpoint,
@@ -75,14 +70,7 @@ export async function deleteReservation(reservationId: number): Promise<void> {
 export async function getMyReservations(
   filters?: Record<string, unknown>,
 ): Promise<PaginatedApiResponse<Reservation>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters);
   const endpoint = `/api/v1/reservations/sent${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Reservation>>(endpoint);
 }
@@ -94,14 +82,7 @@ export async function getReservationsByPost(
   postId: number,
   filters?: Record<string, unknown>,
 ): Promise<Reservation[] | PaginatedApiResponse<Reservation>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters);
   const endpoint = `/api/v1/posts/${postId}/reservations${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<Reservation[] | PaginatedApiResponse<Reservation>>(
     endpoint,
@@ -157,15 +138,8 @@ export async function getReservationsByStatus(
   status: ReservationStatus,
   filters?: Record<string, unknown>,
 ): Promise<Reservation[] | PaginatedApiResponse<Reservation>> {
-  const params = new URLSearchParams();
+  const params = buildQueryParams(filters);
   params.append("status", status);
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
   const endpoint = `/api/v1/reservations${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<Reservation[] | PaginatedApiResponse<Reservation>>(
     endpoint,
