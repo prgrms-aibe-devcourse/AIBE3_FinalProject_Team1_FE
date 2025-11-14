@@ -9,6 +9,8 @@ import type {
   UpdatePostDto,
 } from "@/types/domain";
 
+import { buildQueryParams } from "@/lib/utils/api-params";
+
 import { apiClient } from "@/api/client";
 
 /**
@@ -17,14 +19,7 @@ import { apiClient } from "@/api/client";
 export async function getPostList(
   filters?: PostListFilters,
 ): Promise<Post[] | PaginatedApiResponse<Post>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters as Record<string, unknown>);
   const endpoint = `/api/v1/posts${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<Post[] | PaginatedApiResponse<Post>>(endpoint);
 }
@@ -72,14 +67,7 @@ export async function deletePost(postId: number): Promise<void> {
 export async function getMyPosts(
   filters?: PostListFilters,
 ): Promise<PaginatedApiResponse<Post>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters as Record<string, unknown>);
   const endpoint = `/api/v1/posts/my${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Post>>(endpoint);
 }
@@ -91,14 +79,7 @@ export async function getPostsByCategory(
   categoryId: number,
   filters?: PostListFilters,
 ): Promise<PaginatedApiResponse<Post>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters as Record<string, unknown>);
   const endpoint = `/api/v1/posts/category/${categoryId}${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Post>>(endpoint);
 }
@@ -110,14 +91,7 @@ export async function getPostsByRegion(
   regionId: number,
   filters?: PostListFilters,
 ): Promise<PaginatedApiResponse<Post>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters as Record<string, unknown>);
   const endpoint = `/api/v1/posts/region/${regionId}${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Post>>(endpoint);
 }

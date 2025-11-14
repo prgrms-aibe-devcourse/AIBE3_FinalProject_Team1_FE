@@ -66,6 +66,10 @@ import { Filter, Search, X } from "lucide-react";
  * 게시글 목록 페이지
  */
 
+/**
+ * 게시글 목록 페이지
+ */
+
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   DIRECT: "직거래",
   DELIVERY: "택배",
@@ -157,11 +161,16 @@ export default function PostsPage() {
   };
 
   const handleSortChange = (sort: "createdAt" | "deposit" | "fee") => {
-    setPostFilters({ sort, page: 1 });
+    const currentSort = postFilters.sort || ["createdAt,DESC"];
+    const currentOrder = currentSort[0]?.split(",")[1] || "DESC";
+    setPostFilters({ sort: [`${sort},${currentOrder}`], page: 1 });
   };
 
   const handleOrderChange = (order: "asc" | "desc") => {
-    setPostFilters({ order, page: 1 });
+    const currentSort = postFilters.sort || ["createdAt,DESC"];
+    const currentSortField = currentSort[0]?.split(",")[0] || "createdAt";
+    const orderUpper = order.toUpperCase();
+    setPostFilters({ sort: [`${currentSortField},${orderUpper}`], page: 1 });
   };
 
   const hasActiveFilters =
@@ -348,7 +357,7 @@ export default function PostsPage() {
                 <label className="mb-2 block text-sm font-medium">정렬</label>
                 <div className="flex items-center gap-2">
                   <select
-                    value={postFilters.sort || "createdAt"}
+                    value={postFilters.sort?.[0]?.split(",")[0] || "createdAt"}
                     onChange={(e) =>
                       handleSortChange(
                         e.target.value as "createdAt" | "deposit" | "fee",
@@ -361,7 +370,10 @@ export default function PostsPage() {
                     <option value="fee">대여료</option>
                   </select>
                   <select
-                    value={postFilters.order || "desc"}
+                    value={
+                      postFilters.sort?.[0]?.split(",")[1]?.toLowerCase() ||
+                      "desc"
+                    }
                     onChange={(e) =>
                       handleOrderChange(e.target.value as "asc" | "desc")
                     }

@@ -4,6 +4,8 @@
 import type { PaginatedApiResponse } from "@/types/api";
 import type { CreateReportDto, Report, ReportType } from "@/types/domain";
 
+import { buildQueryParams } from "@/lib/utils/api-params";
+
 import { apiClient } from "@/api/client";
 
 /**
@@ -12,14 +14,7 @@ import { apiClient } from "@/api/client";
 export async function getReportList(
   filters?: Record<string, unknown>,
 ): Promise<PaginatedApiResponse<Report>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters);
   const endpoint = `/api/v1/reports${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Report>>(endpoint);
 }
@@ -52,15 +47,8 @@ export async function getReportsByType(
   reportType: ReportType,
   filters?: Record<string, unknown>,
 ): Promise<PaginatedApiResponse<Report>> {
-  const params = new URLSearchParams();
+  const params = buildQueryParams(filters);
   params.append("reportType", reportType);
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
   const endpoint = `/api/v1/reports${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Report>>(endpoint);
 }
@@ -71,14 +59,7 @@ export async function getReportsByType(
 export async function getMyReports(
   filters?: Record<string, unknown>,
 ): Promise<PaginatedApiResponse<Report>> {
-  const params = new URLSearchParams();
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  const params = buildQueryParams(filters);
   const endpoint = `/api/v1/reports/me${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Report>>(endpoint);
 }
