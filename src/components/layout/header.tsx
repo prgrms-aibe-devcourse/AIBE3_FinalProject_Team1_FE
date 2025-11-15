@@ -5,7 +5,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Calendar, MessageCircle, User, LogOut, LogIn, UserPlus } from "lucide-react";
+import { Home, FileText, Calendar, MessageCircle, User, LogOut, LogIn, UserPlus, Settings } from "lucide-react";
+
+import { MemberRole } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
@@ -68,6 +70,20 @@ export function Header() {
                 <MessageCircle className="h-5 w-5" />
                 <span className="hidden sm:inline">채팅</span>
               </Link>
+              {user?.role === MemberRole.ADMIN && (
+                <Link
+                  href="/admin"
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname?.startsWith("/admin")
+                      ? "bg-purple-50 text-purple-600"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                  title="관리자"
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="hidden sm:inline">관리자</span>
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${

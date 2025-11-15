@@ -33,7 +33,7 @@ export async function createCategory(data: {
   name: string;
   parentId?: number;
 }): Promise<Category> {
-  return apiClient.post<Category>("/api/v1/categories", data);
+  return apiClient.post<Category>("/api/v1/adm/categories", data);
 }
 
 /**
@@ -41,14 +41,14 @@ export async function createCategory(data: {
  */
 export async function updateCategory(
   categoryId: number,
-  data: { name?: string; parentId?: number },
+  data: { name: string },
 ): Promise<Category> {
-  return apiClient.put<Category>(`/api/v1/categories/${categoryId}`, data);
+  return apiClient.put<Category>(`/api/v1/adm/categories/${categoryId}`, data);
 }
 
 /**
  * 카테고리 삭제 (관리자용)
  */
 export async function deleteCategory(categoryId: number): Promise<void> {
-  return apiClient.delete<void>(`/api/v1/categories/${categoryId}`);
+  return apiClient.delete<void>(`/api/v1/adm/categories/${categoryId}`);
 }
