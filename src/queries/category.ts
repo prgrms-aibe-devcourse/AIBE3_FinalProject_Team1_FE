@@ -3,9 +3,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { ApiError } from "@/types/api";
 import type { Category } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   createCategory,
@@ -70,6 +73,7 @@ export function useCategoryTreeQuery() {
  */
 export function useCreateCategoryMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (data: { name: string; parentId?: number }) =>
@@ -82,9 +86,13 @@ export function useCreateCategoryMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.category.tree),
       });
+      showToast("카테고리가 생성되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create category error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "카테고리 생성에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -94,6 +102,7 @@ export function useCreateCategoryMutation() {
  */
 export function useUpdateCategoryMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({
@@ -120,9 +129,13 @@ export function useUpdateCategoryMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.byCategory(variables.categoryId)),
       });
+      showToast("카테고리가 수정되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Update category error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "카테고리 수정에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -132,6 +145,7 @@ export function useUpdateCategoryMutation() {
  */
 export function useDeleteCategoryMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (categoryId: number) => deleteCategory(categoryId),
@@ -151,9 +165,13 @@ export function useDeleteCategoryMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.byCategory(categoryId)),
       });
+      showToast("카테고리가 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete category error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "카테고리 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

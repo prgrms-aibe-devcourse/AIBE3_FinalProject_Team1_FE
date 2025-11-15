@@ -3,10 +3,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type { CreateReviewDto, Review, UpdateReviewDto } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   createReview,
@@ -83,6 +85,7 @@ export function useReviewByReservationQuery(reservationId: number) {
  */
 export function useCreateReviewMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (data: CreateReviewDto) => createReview(data),
@@ -116,9 +119,13 @@ export function useCreateReviewMutation() {
           queryKeys.reservation.detail(response.reservationId),
         ),
       });
+      showToast("후기가 생성되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create review error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "후기 생성에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -128,6 +135,7 @@ export function useCreateReviewMutation() {
  */
 export function useUpdateReviewMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({
@@ -155,9 +163,13 @@ export function useUpdateReviewMutation() {
           ),
         });
       }
+      showToast("후기가 수정되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Update review error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "후기 수정에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -167,6 +179,7 @@ export function useUpdateReviewMutation() {
  */
 export function useDeleteReviewMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (reviewId: number) => deleteReview(reviewId),
@@ -179,9 +192,13 @@ export function useDeleteReviewMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.review.all),
       });
+      showToast("후기가 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete review error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "후기 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

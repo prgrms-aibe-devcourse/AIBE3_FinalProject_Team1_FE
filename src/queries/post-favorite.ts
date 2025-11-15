@@ -3,16 +3,18 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { ApiError } from "@/types/api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { Post } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
+import { useUIStore } from "@/store/uiStore";
+
 import {
-  addFavorite,
   checkFavorite,
   getFavoritePosts,
-  removeFavorite,
+  toggleFavorite,
 } from "@/api/endpoints/post-favorite";
 
 /**
@@ -71,49 +73,178 @@ export function useFavoriteCheckQuery(postId: number) {
 }
 
 /**
- * 즐겨찾기 추가 mutation
+ * 즐겨찾기 토글 mutation (optimistic update 적용)
+ * POST 요청으로 토글 방식 동작
  */
-export function useAddFavoriteMutation() {
+export function useToggleFavoriteMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
-    mutationFn: (postId: number) => addFavorite(postId),
-    onSuccess: (_, postId) => {
+    mutationFn: (postId: number) => toggleFavorite(postId),
+    // Optimistic update: API 응답 전에 UI 즉시 업데이트
+    onMutate: async (postId: number) => {
+      // 진행 중인 모든 게시글 관련 쿼리 취소
+      await queryClient.cancelQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (!Array.isArray(key) || key.length === 0) return false;
+          // ["post", "list", {...}] 또는 ["post", "all"] 등
+          return key[0] === "post";
+        },
+      });
+
+      // 이전 값 저장 (롤백용) - 모든 게시글 목록 쿼리
+      const allPostQueries = queryClient.getQueriesData<Post[] | PaginatedApiResponse<Post>>({
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (!Array.isArray(key) || key.length === 0) return false;
+          // ["post", "list", {...}] 또는 ["post", "all"] 등
+          // detail은 제외 (detail은 별도로 처리)
+          return key[0] === "post" && key[1] !== "detail";
+        },
+      });
+
+      // 게시글 상세 쿼리
+      const previousPost = queryClient.getQueryData<Post>(
+        getQueryKey(queryKeys.post.detail(postId)),
+      );
+
+      // 현재 즐겨찾기 상태 확인
+      let currentIsFavorite = false;
+      if (previousPost) {
+        currentIsFavorite = previousPost.isFavorite ?? false;
+      } else {
+        // 게시글 목록에서 찾기
+        for (const [, data] of allPostQueries) {
+          if (!data) continue;
+          const post = Array.isArray(data)
+            ? data.find((p) => p.id === postId)
+            : data.content.find((p) => p.id === postId);
+          if (post) {
+            currentIsFavorite = post.isFavorite ?? false;
+            break;
+          }
+        }
+      }
+
+      // Optimistic update: 현재 상태의 반대로 즉시 변경
+      const newIsFavorite = !currentIsFavorite;
+
+      // Optimistic update: 모든 게시글 목록 쿼리
+      allPostQueries.forEach(([queryKey, data]) => {
+        if (!data) return;
+        queryClient.setQueryData<Post[] | PaginatedApiResponse<Post>>(
+          queryKey,
+          (old) => {
+            if (!old) return old;
+            if (Array.isArray(old)) {
+              const updated = old.map((post) =>
+                post.id === postId
+                  ? { ...post, isFavorite: newIsFavorite }
+                  : post,
+              );
+              return updated;
+            }
+            const updated = {
+              ...old,
+              content: old.content.map((post) =>
+                post.id === postId
+                  ? { ...post, isFavorite: newIsFavorite }
+                  : post,
+              ),
+            };
+            return updated;
+          },
+        );
+      });
+
+      // Optimistic update: 게시글 상세
+      if (previousPost) {
+        queryClient.setQueryData<Post>(
+          getQueryKey(queryKeys.post.detail(postId)),
+          (old) => (old ? { ...old, isFavorite: newIsFavorite } : old),
+        );
+      }
+
+      return { allPostQueries, previousPost, currentIsFavorite };
+    },
+    onSuccess: (response, postId) => {
+      // API 응답에서 data (isFavorite) 추출
+      const isFavorite = response.data;
+      
+      // API 응답에 따라 실제 상태 반영 - 모든 게시글 목록 쿼리
+      const allPostQueries = queryClient.getQueriesData<Post[] | PaginatedApiResponse<Post>>({
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (!Array.isArray(key) || key.length === 0) return false;
+          // ["post", "list", {...}] 또는 ["post", "all"] 등
+          // detail은 제외 (detail은 별도로 처리)
+          return key[0] === "post" && key[1] !== "detail";
+        },
+      });
+
+      allPostQueries.forEach(([queryKey, data]) => {
+        if (!data) return;
+        queryClient.setQueryData<Post[] | PaginatedApiResponse<Post>>(
+          queryKey,
+          (old) => {
+            if (!old) return old;
+            if (Array.isArray(old)) {
+              const updated = old.map((post) =>
+                post.id === postId ? { ...post, isFavorite } : post,
+              );
+              return updated;
+            }
+            const updated = {
+              ...old,
+              content: old.content.map((post) =>
+                post.id === postId ? { ...post, isFavorite } : post,
+              ),
+            };
+            return updated;
+          },
+        );
+      });
+
+      // 게시글 상세 쿼리 업데이트
+      queryClient.setQueryData<Post>(
+        getQueryKey(queryKeys.post.detail(postId)),
+        (old) => (old ? { ...old, isFavorite } : old),
+      );
+
       // 즐겨찾기 목록 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.favorites),
       });
-      // 게시글 상세 쿼리 업데이트 (isFavorite 필드)
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.detail(postId)),
-      });
+      
+      // 성공 메시지 표시 (API 응답의 msg 사용)
+      if (response.msg) {
+        showToast(response.msg, "success");
+      }
     },
-    onError: (error) => {
-      console.error("Add favorite error:", error);
-    },
-  });
-}
+    onError: (error: unknown, postId: number, context) => {
+      console.error("Toggle favorite error:", error);
+      
+      // 롤백: 이전 상태로 복원 - 모든 게시글 목록 쿼리
+      if (context?.allPostQueries) {
+        context.allPostQueries.forEach(([queryKey, data]) => {
+          if (data) {
+            queryClient.setQueryData(queryKey, data);
+          }
+        });
+      }
+      if (context?.previousPost) {
+        queryClient.setQueryData(
+          getQueryKey(queryKeys.post.detail(postId)),
+          context.previousPost,
+        );
+      }
 
-/**
- * 즐겨찾기 제거 mutation
- */
-export function useRemoveFavoriteMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (postId: number) => removeFavorite(postId),
-    onSuccess: (_, postId) => {
-      // 즐겨찾기 목록 쿼리 무효화
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.favorites),
-      });
-      // 게시글 상세 쿼리 업데이트 (isFavorite 필드)
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.detail(postId)),
-      });
-    },
-    onError: (error) => {
-      console.error("Remove favorite error:", error);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError.message || "즐겨찾기 토글에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

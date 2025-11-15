@@ -3,9 +3,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { ApiError } from "@/types/api";
 import type { CreateMemberDto, MemberResponse } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import { login, logout as logoutApi, signup } from "@/api/endpoints/auth";
 import { getMe } from "@/api/endpoints/user";
@@ -18,6 +21,7 @@ import { useAuthStore } from "@/store/authStore";
 export function useLoginMutation() {
   const queryClient = useQueryClient();
   const { setAuth } = useAuthStore();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
@@ -43,9 +47,13 @@ export function useLoginMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.user.all),
       });
+      showToast("로그인되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Login error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "로그인에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -55,14 +63,20 @@ export function useLoginMutation() {
  * 회원가입은 계정 생성만 하고, 로그인은 별도로 처리해야 함
  */
 export function useSignupMutation() {
+  const showToast = useUIStore((state) => state.showToast);
+
   return useMutation({
     mutationFn: (data: CreateMemberDto) => signup(data),
     onSuccess: () => {
       // 회원가입 성공: 계정만 생성되고 로그인은 되지 않음
       // 사용자는 별도로 로그인해야 함
+      showToast("회원가입이 완료되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Signup error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "회원가입에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -73,6 +87,7 @@ export function useSignupMutation() {
 export function useLogoutMutation() {
   const queryClient = useQueryClient();
   const { logout } = useAuthStore();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: () => logoutApi(),
@@ -81,12 +96,16 @@ export function useLogoutMutation() {
       logout();
       // 모든 쿼리 캐시 클리어
       queryClient.clear();
+      showToast("로그아웃되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Logout error:", error);
       // 에러가 발생해도 로그아웃 처리
       logout();
       queryClient.clear();
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "로그아웃에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

@@ -3,9 +3,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { ApiError } from "@/types/api";
 import type { Region } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   createRegion,
@@ -70,6 +73,7 @@ export function useRegionTreeQuery() {
  */
 export function useCreateRegionMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (data: { name: string; parentId?: number }) =>
@@ -82,9 +86,13 @@ export function useCreateRegionMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.region.tree),
       });
+      showToast("지역이 생성되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create region error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "지역 생성에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -94,6 +102,7 @@ export function useCreateRegionMutation() {
  */
 export function useUpdateRegionMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({
@@ -120,9 +129,13 @@ export function useUpdateRegionMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.byRegion(variables.regionId)),
       });
+      showToast("지역이 수정되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Update region error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "지역 수정에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -132,6 +145,7 @@ export function useUpdateRegionMutation() {
  */
 export function useDeleteRegionMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (regionId: number) => deleteRegion(regionId),
@@ -151,9 +165,13 @@ export function useDeleteRegionMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.byRegion(regionId)),
       });
+      showToast("지역이 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete region error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "지역 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

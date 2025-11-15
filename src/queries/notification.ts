@@ -3,10 +3,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type { Notification } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   deleteNotification,
@@ -83,6 +85,7 @@ export function useUnreadNotificationCountQuery() {
  */
 export function useMarkNotificationAsReadMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (notificationId: number) =>
@@ -101,9 +104,13 @@ export function useMarkNotificationAsReadMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.notification.unread),
       });
+      showToast("알림을 읽음 처리했습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Mark notification as read error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "알림 읽음 처리에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -113,6 +120,7 @@ export function useMarkNotificationAsReadMutation() {
  */
 export function useMarkAllNotificationsAsReadMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: () => markAllNotificationsAsRead(),
@@ -124,9 +132,13 @@ export function useMarkAllNotificationsAsReadMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.notification.unread),
       });
+      showToast("모든 알림을 읽음 처리했습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Mark all notifications as read error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "알림 읽음 처리에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -136,6 +148,7 @@ export function useMarkAllNotificationsAsReadMutation() {
  */
 export function useDeleteNotificationMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (notificationId: number) => deleteNotification(notificationId),
@@ -152,9 +165,13 @@ export function useDeleteNotificationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.notification.unread),
       });
+      showToast("알림이 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete notification error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "알림 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

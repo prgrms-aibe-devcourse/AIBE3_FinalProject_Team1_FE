@@ -103,7 +103,7 @@ export default function MyPostsPage() {
                 {post.images && post.images.length > 0 && (
                   <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
                     <Image
-                      src={post.images[0].url}
+                      src={post.images[0].file || post.images[0].url || ""}
                       alt={post.title}
                       fill
                       className="object-cover"

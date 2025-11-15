@@ -83,8 +83,8 @@ function ChatPageContent() {
     isFetchingNextPage,
   } = useChatRoomListQuery();
   // 선택된 채팅방 상세 정보 조회 (목록과 별개)
-  const { data: selectedRoomDetail, isLoading: roomDetailLoading } =
-    useChatRoomQuery(selectedRoomId || 0);
+  // 채팅방 상세 정보는 필요 시 사용할 수 있도록 쿼리만 실행
+  useChatRoomQuery(selectedRoomId || 0);
   const {
     data: messagesData,
     isLoading: messagesLoading,

@@ -7,7 +7,6 @@ import type { Client, IMessage } from "@stomp/stompjs";
 
 import {
   connectStompClient,
-  disconnectStompClient,
   getStompClient,
 } from "@/lib/websocket/stomp-client";
 
@@ -64,15 +63,19 @@ export function useStomp(options?: UseStompOptions) {
       connect();
     }
 
+    // cleanup 함수에서 사용할 구독 맵 복사
+    const subscriptions = subscriptionsRef.current;
+
     return () => {
       mounted = false;
       // 모든 구독 해제
-      subscriptionsRef.current.forEach((subscription) => {
+      subscriptions.forEach((subscription) => {
         subscription.unsubscribe();
       });
-      subscriptionsRef.current.clear();
+      subscriptions.clear();
       // 클라이언트는 연결 해제하지 않음 (싱글톤이므로 다른 컴포넌트에서 사용할 수 있음)
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 구독

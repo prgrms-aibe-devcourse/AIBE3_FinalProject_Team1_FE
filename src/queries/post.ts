@@ -3,7 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type {
   CreatePostDto,
   Post,
@@ -24,6 +24,8 @@ import {
   updatePost,
 } from "@/api/endpoints/post";
 
+import { useUIStore } from "@/store/uiStore";
+
 /**
  * 게시글 목록 조회 query
  */
@@ -37,7 +39,9 @@ export function usePostListQuery(filters?: PostListFilters) {
         const result = await getPostList(filters);
         // undefined 체크
         if (result === undefined) {
-          console.warn("getPostList returned undefined, returning empty paginated response");
+          console.warn(
+            "getPostList returned undefined, returning empty paginated response",
+          );
           return {
             content: [],
             page: {
@@ -171,9 +175,10 @@ export function usePostsByRegionQuery(
  */
 export function useCreatePostMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
-    mutationFn: (data: CreatePostDto) => createPost(data),
+    mutationFn: (data: CreatePostDto | FormData) => createPost(data),
     onSuccess: () => {
       // 게시글 목록 쿼리 무효화
       queryClient.invalidateQueries({
@@ -182,9 +187,13 @@ export function useCreatePostMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.myPosts),
       });
+      showToast("게시글이 생성되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create post error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "게시글 생성에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -194,6 +203,7 @@ export function useCreatePostMutation() {
  */
 export function useUpdatePostMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({ postId, data }: { postId: number; data: UpdatePostDto }) =>
@@ -211,9 +221,13 @@ export function useUpdatePostMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.myPosts),
       });
+      showToast("게시글이 수정되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Update post error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "게시글 수정에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -223,6 +237,7 @@ export function useUpdatePostMutation() {
  */
 export function useDeletePostMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (postId: number) => deletePost(postId),
@@ -238,9 +253,13 @@ export function useDeletePostMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.myPosts),
       });
+      showToast("게시글이 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete post error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "게시글 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

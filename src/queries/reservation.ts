@@ -3,7 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type {
   CreateReservationDto,
   Reservation,
@@ -12,6 +12,8 @@ import type {
 } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   approveReservation,
@@ -145,6 +147,7 @@ export function useReservationsByStatusQuery(
  */
 export function useCreateReservationMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (data: CreateReservationDto) => createReservation(data),
@@ -166,9 +169,13 @@ export function useCreateReservationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.detail(response.postId)),
       });
+      showToast("예약이 생성되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create reservation error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "예약 생성에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -178,6 +185,7 @@ export function useCreateReservationMutation() {
  */
 export function useUpdateReservationMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({
@@ -197,9 +205,13 @@ export function useUpdateReservationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
       });
+      showToast("예약이 수정되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Update reservation error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "예약 수정에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -209,6 +221,7 @@ export function useUpdateReservationMutation() {
  */
 export function useDeleteReservationMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (reservationId: number) => deleteReservation(reservationId),
@@ -221,9 +234,13 @@ export function useDeleteReservationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
       });
+      showToast("예약이 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete reservation error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "예약 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -233,6 +250,7 @@ export function useDeleteReservationMutation() {
  */
 export function useApproveReservationMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (reservationId: number) => approveReservation(reservationId),
@@ -250,9 +268,13 @@ export function useApproveReservationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.byStatus(response.status)),
       });
+      showToast("예약이 승인되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Approve reservation error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "예약 승인에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -262,6 +284,7 @@ export function useApproveReservationMutation() {
  */
 export function useRejectReservationMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({
@@ -285,9 +308,13 @@ export function useRejectReservationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.byStatus(response.status)),
       });
+      showToast("예약이 거절되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Reject reservation error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "예약 거절에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -297,6 +324,7 @@ export function useRejectReservationMutation() {
  */
 export function useCancelReservationMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({
@@ -320,9 +348,13 @@ export function useCancelReservationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.byStatus(response.status)),
       });
+      showToast("예약이 취소되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Cancel reservation error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "예약 취소에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

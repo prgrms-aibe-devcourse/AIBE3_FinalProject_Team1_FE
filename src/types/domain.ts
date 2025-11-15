@@ -127,8 +127,9 @@ export interface Notification extends BaseEntity {
  */
 export interface Category extends BaseEntity {
   name: string;
-  parentId: number | null;
-  children?: Category[]; // 하위 카테고리 (프론트엔드에서 사용)
+  parentId?: number | null;
+  child?: Category[]; // 하위 카테고리 (API 응답 형식)
+  children?: Category[]; // 하위 카테고리 (프론트엔드에서 사용, child의 별칭)
 }
 
 /**
@@ -136,8 +137,9 @@ export interface Category extends BaseEntity {
  */
 export interface Region extends BaseEntity {
   name: string;
-  parentId: number | null;
-  children?: Region[]; // 하위 지역 (프론트엔드에서 사용)
+  parentId?: number | null;
+  child?: Region[]; // 하위 지역 (API 응답 형식)
+  children?: Region[]; // 하위 지역 (프론트엔드에서 사용, child의 별칭)
 }
 
 /**
@@ -164,6 +166,9 @@ export interface Post extends BaseEntity {
   isBanned: boolean;
   authorId: number;
   categoryId: number;
+  regionIds?: number[]; // 지역 ID 배열 (API 응답)
+  thumbnailImageUrl?: string; // 썸네일 이미지 URL (API 응답)
+  authorNickname?: string; // 작성자 닉네임 (API 응답)
   // 관계 데이터 (API 응답에 포함될 수 있음)
   author?: MemberResponse;
   category?: Category;
@@ -232,7 +237,8 @@ export interface PostListFilters {
  */
 export interface PostImg extends BaseEntity {
   isPrimary: boolean; // 대표이미지 여부
-  url: string;
+  url?: string; // 이미지 URL (일부 API 응답)
+  file?: string; // 이미지 파일 URL (일부 API 응답, file 속성 사용)
   postId: number;
 }
 
