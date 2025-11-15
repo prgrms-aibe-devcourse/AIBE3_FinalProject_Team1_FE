@@ -83,7 +83,7 @@ export async function getReservationsByPost(
   filters?: Record<string, unknown>,
 ): Promise<Reservation[] | PaginatedApiResponse<Reservation>> {
   const params = buildQueryParams(filters);
-  const endpoint = `/api/v1/posts/${postId}/reservations${params.toString() ? `?${params.toString()}` : ""}`;
+  const endpoint = `/api/v1/reservations/received/${postId}${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<Reservation[] | PaginatedApiResponse<Reservation>>(
     endpoint,
   );
