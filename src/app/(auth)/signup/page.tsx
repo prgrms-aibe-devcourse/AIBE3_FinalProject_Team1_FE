@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MapPin } from "lucide-react";
 
 import { useSignupMutation } from "@/queries/auth";
 
@@ -55,6 +56,66 @@ export default function SignupPage() {
     nickname: "",
   });
   const signupMutation = useSignupMutation();
+
+  // 다음 주소 검색 스크립트 로드
+  useEffect(() => {
+    if (window.daum && window.daum.Postcode) {
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      try {
+        if (document.head.contains(script)) {
+          document.head.removeChild(script);
+        }
+      } catch {
+        // 스크립트가 이미 제거되었을 수 있음
+      }
+    };
+  }, []);
+
+  // 주소 검색 팝업 열기
+  const handleOpenAddressSearch = () => {
+    if (typeof window === "undefined" || !window.daum) {
+      alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    new window.daum.Postcode({
+      oncomplete: function (data: daum.PostcodeData) {
+        let fullAddress = data.address;
+        let extraAddress = "";
+
+        if (data.addressType === "R") {
+          if (data.bname !== "") {
+            extraAddress += data.bname;
+          }
+          if (data.buildingName !== "") {
+            extraAddress +=
+              extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+          }
+          fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
+        }
+
+        setFormData({
+          ...formData,
+          address1: fullAddress,
+        });
+      },
+      width: "100%",
+      height: "100%",
+    }).open({
+      q: formData.address1,
+      left: window.screen.width / 2 - 300,
+      top: window.screen.height / 2 - 300,
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,32 +221,47 @@ export default function SignupPage() {
             </div>
             <div className="space-y-2">
               <label htmlFor="address1" className="text-sm font-medium">
-                도로명 주소
+                도로명 주소 <span className="text-red-500">*</span>
               </label>
-              <Input
-                id="address1"
-                name="address1"
-                type="text"
-                placeholder="서울시 강남구 테헤란로 123"
-                value={formData.address1}
-                onChange={handleChange}
-                required
-                disabled={signupMutation.isPending}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="address1"
+                  name="address1"
+                  type="text"
+                  placeholder="도로명 주소를 검색해주세요"
+                  value={formData.address1}
+                  onChange={handleChange}
+                  required
+                  disabled={signupMutation.isPending}
+                  className="flex-1"
+                  readOnly
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleOpenAddressSearch}
+                  disabled={signupMutation.isPending}
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  <MapPin className="h-4 w-4" />
+                  주소 검색
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <label htmlFor="address2" className="text-sm font-medium">
-                상세주소
+                상세주소 <span className="text-red-500">*</span>
               </label>
               <Input
                 id="address2"
                 name="address2"
                 type="text"
-                placeholder="123동 456호"
+                placeholder="상세 주소 (예: 123-45, 101호)"
                 value={formData.address2}
                 onChange={handleChange}
                 required
                 disabled={signupMutation.isPending}
+                className="w-full"
               />
             </div>
             {signupMutation.isError && (
