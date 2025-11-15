@@ -11,4 +11,5 @@ export { Checkbox } from "./checkbox";
 export { RadioGroup, RadioGroupItem } from "./radio-group";
 export { Sidebar } from "./sidebar";
 export { GlobalLoading } from "./loading";
+export { Pagination } from "./pagination";
 

@@ -18,6 +18,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 
 import { useFilterStore } from "@/store/filterStore";
 
@@ -548,6 +549,17 @@ export default function PostsPage() {
               </Button>
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* 페이지네이션 */}
+      {!Array.isArray(data) && data?.page && data.page.totalPages > 1 && (
+        <div className="mt-8">
+          <Pagination
+            currentPage={postFilters.page || 1}
+            totalPages={data.page.totalPages || 1}
+            onPageChange={(page) => setPostFilters({ page })}
+          />
         </div>
       )}
     </div>

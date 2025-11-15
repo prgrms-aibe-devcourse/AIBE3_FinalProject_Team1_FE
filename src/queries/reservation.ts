@@ -77,7 +77,7 @@ export function useReservationQuery(reservationId: number) {
  */
 export function useMyReservationsQuery(filters?: Record<string, unknown>) {
   return useQuery({
-    queryKey: getQueryKey(queryKeys.reservation.myReservations),
+    queryKey: [...getQueryKey(queryKeys.reservation.myReservations), filters ?? {}],
     queryFn: async (): Promise<PaginatedApiResponse<Reservation>> => {
       try {
         return await getMyReservations(filters);
@@ -264,6 +264,18 @@ export function useApproveReservationMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
       });
+      // 게시글별 예약 목록 무효화 (모든 게시글)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return (
+            Array.isArray(key) &&
+            key.length >= 2 &&
+            key[0] === "reservation" &&
+            key[1] === "byPost"
+          );
+        },
+      });
       // 상태별 예약 목록 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.byStatus(response.status)),
@@ -303,6 +315,18 @@ export function useRejectReservationMutation() {
       // 예약 목록 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
+      });
+      // 게시글별 예약 목록 무효화 (모든 게시글)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return (
+            Array.isArray(key) &&
+            key.length >= 2 &&
+            key[0] === "reservation" &&
+            key[1] === "byPost"
+          );
+        },
       });
       // 상태별 예약 목록 무효화
       queryClient.invalidateQueries({

@@ -322,7 +322,7 @@ function ReservationDetailPageContent() {
 
                 <div className="flex items-center gap-2 text-gray-600">
                   <User className="h-4 w-4" />
-                  <span>호스트: {post.authorNickname || "호스트"}</span>
+                  <span>호스트: {post.author?.nickname || post.authorNickname || "호스트"}</span>
                 </div>
 
                 {post.regions && post.regions.length > 0 && (
@@ -447,7 +447,7 @@ function ReservationDetailPageContent() {
                       {post.author?.profileImgUrl ? (
                         <Image
                           src={getImageUrl(post.author.profileImgUrl)}
-                          alt={post.authorNickname || "호스트"}
+                          alt={post.author?.nickname || post.authorNickname || "호스트"}
                           width={48}
                           height={48}
                           className="rounded-full"
@@ -459,7 +459,7 @@ function ReservationDetailPageContent() {
                       )}
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {post.authorNickname || "호스트"}
+                          {post.author?.nickname || post.authorNickname || "호스트"}
                         </p>
                         <p className="text-sm text-gray-600">호스트</p>
                       </div>
@@ -739,7 +739,7 @@ function ReservationDetailPageContent() {
                       </p>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <User className="h-4 w-4" />
-                        <span>{post?.authorNickname || "호스트"}</span>
+                        <span>{post?.author?.nickname || post?.authorNickname || "호스트"}</span>
                       </div>
                       <p className="text-xs text-gray-500">
                         {reservation.updatedAt &&
@@ -897,7 +897,7 @@ function ReservationDetailPageContent() {
                       <div className="space-y-2 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          <span>{post.authorNickname || "호스트"}</span>
+                          <span>{post.author?.nickname || post.authorNickname || "호스트"}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
