@@ -2,7 +2,7 @@
  * 게시글 즐겨찾기 관련 API 엔드포인트
  */
 import type { ApiResponse, PaginatedApiResponse } from "@/types/api";
-import type { Post, PostFavorite } from "@/types/domain";
+import type { Post } from "@/types/domain";
 
 import { buildQueryParams } from "@/lib/utils/api-params";
 

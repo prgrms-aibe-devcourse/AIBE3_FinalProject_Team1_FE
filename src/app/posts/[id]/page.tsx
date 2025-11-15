@@ -9,8 +9,6 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
-import type { ReceiveMethod } from "@/types/domain";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -42,12 +40,6 @@ import {
 /**
  * 게시글 상세 페이지
  */
-
-const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
-  DIRECT: "직거래",
-  DELIVERY: "택배",
-  ANY: "상관없음",
-};
 
 export default function PostDetailPage() {
   const params = useParams();

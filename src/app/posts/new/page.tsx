@@ -6,9 +6,9 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, X, Plus, Star, MapPin } from "lucide-react";
+import { Camera, X, Star, MapPin } from "lucide-react";
 
-import type { CreatePostDto, ReceiveMethod, PostOption, Region } from "@/types/domain";
+import type { CreatePostDto, ReceiveMethod } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,7 +80,7 @@ export default function NewPostPage() {
   // 다음 주소 검색 스크립트 로드
   useEffect(() => {
     // 이미 로드되어 있는지 확인
-    if ((window as any).daum && (window as any).daum.Postcode) {
+    if (window.daum && window.daum.Postcode) {
       return;
     }
 
@@ -96,7 +96,7 @@ export default function NewPostPage() {
         if (document.head.contains(script)) {
           document.head.removeChild(script);
         }
-      } catch (error) {
+      } catch {
         // 스크립트가 이미 제거되었을 수 있음
       }
     };
@@ -104,19 +104,13 @@ export default function NewPostPage() {
 
   // 다음 주소 검색 팝업 열기
   const handleOpenAddressSearch = () => {
-    if (typeof window === "undefined" || !(window as any).daum) {
+    if (typeof window === "undefined" || !window.daum) {
       alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
       return;
     }
 
-    const daum = (window as any).daum;
-    new daum.Postcode({
-      oncomplete: function (data: {
-        address: string;
-        addressType: string;
-        bname: string;
-        buildingName: string;
-      }) {
+    new window.daum.Postcode({
+      oncomplete: function (data: daum.PostcodeData) {
         // 도로명 주소 선택 시
         let fullAddress = data.address;
         let extraAddress = "";
