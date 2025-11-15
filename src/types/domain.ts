@@ -284,7 +284,7 @@ export enum ReservationStatus {
  * 예약 (Reservation)
  */
 export interface Reservation extends BaseEntity {
-  status: ReservationStatus;
+  status: ReservationStatus | string; // PENDING_APPROVAL 등 추가 상태 지원
   receiveMethod: ReceiveMethod | null; // 수령 방법
   receiveCarrier: string | null; // 수령 택배사
   receiveTrackingNumber: string | null; // 수령 택배번호
@@ -295,14 +295,17 @@ export interface Reservation extends BaseEntity {
   returnTrackingNumber: string | null; // 반납 택배번호
   cancelReason: string | null; // 예약 취소 사유
   rejectReason: string | null; // 승인 거절 사유
-  reservationStartAt: Date | null; // 대여시작일
-  reservationEndAt: Date | null; // 대여종료일
+  reservationStartAt: Date | string | null; // 대여시작일 (API 응답은 문자열)
+  reservationEndAt: Date | string | null; // 대여종료일 (API 응답은 문자열)
   postId: number;
   authorId: number;
+  totalAmount?: number; // 총 금액 (API 응답)
   // 관계 데이터
   post?: Post;
   author?: MemberResponse;
   options?: ReservationOption[];
+  option?: unknown[]; // API 응답 형식 (option 배열)
+  logs?: unknown[]; // 예약 로그
   review?: Review;
 }
 
@@ -314,12 +317,10 @@ export interface CreateReservationDto {
   receiveMethod: ReceiveMethod;
   receiveAddress1?: string;
   receiveAddress2?: string;
-  returnMethod?: ReceiveMethod;
-  returnAddress1?: string;
-  returnAddress2?: string;
-  reservationStartAt: Date;
-  reservationEndAt: Date;
-  optionIds?: number[]; // 선택한 옵션 ID 배열
+  returnMethod: ReceiveMethod;
+  reservationStartAt: string; // YYYY-MM-DD 형식
+  reservationEndAt: string; // YYYY-MM-DD 형식
+  optionIds?: number[]; // 선택한 옵션 ID 배열 (최대 5개)
 }
 
 /**

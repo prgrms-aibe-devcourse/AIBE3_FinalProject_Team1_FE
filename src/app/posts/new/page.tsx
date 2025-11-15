@@ -6,7 +6,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, X, Star, MapPin } from "lucide-react";
+import { Camera, X, Star, MapPin, Plus, User, Truck, CheckCircle, Info } from "lucide-react";
 
 import type { CreatePostDto, ReceiveMethod } from "@/types/domain";
 
@@ -48,8 +48,8 @@ export default function NewPostPage() {
     content: "",
     deposit: 0,
     fee: 0,
-    receiveMethod: "DIRECT" as ReceiveMethod,
-    returnMethod: "DIRECT" as ReceiveMethod,
+    receiveMethod: "ANY" as ReceiveMethod,
+    returnMethod: "ANY" as ReceiveMethod,
     returnAddress1: "",
     returnAddress2: "",
     categoryId: 0,
@@ -68,14 +68,6 @@ export default function NewPostPage() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [options, setOptions] = useState<PostOptionInput[]>([]);
-  const [receiveMethods, setReceiveMethods] = useState<{
-    delivery: boolean;
-    direct: boolean;
-  }>({ delivery: false, direct: true });
-  const [returnMethods, setReturnMethods] = useState<{
-    delivery: boolean;
-    direct: boolean;
-  }>({ delivery: false, direct: true });
 
   // 다음 주소 검색 스크립트 로드
   useEffect(() => {
@@ -236,44 +228,19 @@ export default function NewPostPage() {
   };
 
   // 수령 방법 변경 핸들러
-  const handleReceiveMethodChange = (type: "delivery" | "direct", checked: boolean) => {
-    const newMethods = { ...receiveMethods, [type]: checked };
-    setReceiveMethods(newMethods);
-
-    // 둘 다 선택되면 ANY, 택배만 선택되면 DELIVERY, 직거래만 선택되면 DIRECT, 둘 다 안 선택되면 DIRECT
-    if (newMethods.delivery && newMethods.direct) {
-      setFormData({ ...formData, receiveMethod: "ANY" as ReceiveMethod });
-    } else if (newMethods.delivery) {
-      setFormData({ ...formData, receiveMethod: "DELIVERY" as ReceiveMethod });
-    } else if (newMethods.direct) {
-      setFormData({ ...formData, receiveMethod: "DIRECT" as ReceiveMethod });
-    } else {
-      setFormData({ ...formData, receiveMethod: "DIRECT" as ReceiveMethod });
-    }
+  const handleReceiveMethodChange = (method: ReceiveMethod) => {
+    setFormData({ ...formData, receiveMethod: method });
   };
 
   // 반납 방법 변경 핸들러
-  const handleReturnMethodChange = (type: "delivery" | "direct", checked: boolean) => {
-    const newMethods = { ...returnMethods, [type]: checked };
-    setReturnMethods(newMethods);
-
-    // 둘 다 선택되면 ANY, 택배만 선택되면 DELIVERY, 직거래만 선택되면 DIRECT, 둘 다 안 선택되면 DIRECT
-    const newReturnMethod =
-      newMethods.delivery && newMethods.direct
-        ? ("ANY" as ReceiveMethod)
-        : newMethods.delivery
-          ? ("DELIVERY" as ReceiveMethod)
-          : newMethods.direct
-            ? ("DIRECT" as ReceiveMethod)
-            : ("DIRECT" as ReceiveMethod);
-
-    setFormData({ ...formData, returnMethod: newReturnMethod });
+  const handleReturnMethodChange = (method: ReceiveMethod) => {
+    setFormData({ ...formData, returnMethod: method });
     
     // 택배 방식이 없으면 반납 주소 초기화
-    if (!newMethods.delivery) {
+    if (method !== "DELIVERY" && method !== "ANY") {
       setFormData((prev) => ({
         ...prev,
-        returnMethod: newReturnMethod,
+        returnMethod: method,
         returnAddress1: "",
         returnAddress2: "",
       }));
@@ -644,126 +611,152 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* 추가 옵션 */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">추가 옵션</h3>
-                <button
-                  type="button"
-                  onClick={handleAddOption}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                  disabled={createPostMutation.isPending}
-                >
-                  + 옵션 추가
-                </button>
-              </div>
-
-              {options.map((option, index) => (
-                <div key={index} className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">옵션명</label>
-                    <Input
-                      placeholder="옵션명을 입력하세요"
-                      value={option.name}
-                      onChange={(e) =>
-                        handleOptionChange(index, "name", e.target.value)
-                      }
-                      disabled={createPostMutation.isPending}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">추가 요금</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                      value={option.fee}
-                      onChange={(e) =>
-                        handleOptionChange(index, "fee", e.target.value)
-                      }
-                      disabled={createPostMutation.isPending}
-                    />
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleRemoveOption(index)}
-                      disabled={createPostMutation.isPending}
-                    >
-                      삭제
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
             {/* 수령 방법 및 반납 방법 */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">수령 방법</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={receiveMethods.delivery}
-                      onChange={(e) =>
-                        handleReceiveMethodChange("delivery", e.target.checked)
-                      }
-                      disabled={createPostMutation.isPending}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>택배</span>
+            <div className="space-y-4">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* 수령 방식 */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">
+                    수령 방식 <span className="text-red-500">*</span>
                   </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={receiveMethods.direct}
-                      onChange={(e) =>
-                        handleReceiveMethodChange("direct", e.target.checked)
-                      }
-                      disabled={createPostMutation.isPending}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>직접 만나서</span>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                      style={{
+                        borderColor: formData.receiveMethod === "DIRECT" ? "#2563eb" : "#e5e7eb",
+                        backgroundColor: formData.receiveMethod === "DIRECT" ? "#eff6ff" : "transparent"
+                      }}>
+                      <input
+                        type="radio"
+                        name="receiveMethod"
+                        value="DIRECT"
+                        checked={formData.receiveMethod === "DIRECT"}
+                        onChange={() => handleReceiveMethodChange("DIRECT" as ReceiveMethod)}
+                        disabled={createPostMutation.isPending}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <User className="h-5 w-5 text-gray-600" />
+                      <span className="flex-1">만나서</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                      style={{
+                        borderColor: formData.receiveMethod === "DELIVERY" ? "#2563eb" : "#e5e7eb",
+                        backgroundColor: formData.receiveMethod === "DELIVERY" ? "#eff6ff" : "transparent"
+                      }}>
+                      <input
+                        type="radio"
+                        name="receiveMethod"
+                        value="DELIVERY"
+                        checked={formData.receiveMethod === "DELIVERY"}
+                        onChange={() => handleReceiveMethodChange("DELIVERY" as ReceiveMethod)}
+                        disabled={createPostMutation.isPending}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Truck className="h-5 w-5 text-gray-600" />
+                      <span className="flex-1">택배</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                      style={{
+                        borderColor: formData.receiveMethod === "ANY" ? "#2563eb" : "#e5e7eb",
+                        backgroundColor: formData.receiveMethod === "ANY" ? "#eff6ff" : "transparent"
+                      }}>
+                      <input
+                        type="radio"
+                        name="receiveMethod"
+                        value="ANY"
+                        checked={formData.receiveMethod === "ANY"}
+                        onChange={() => handleReceiveMethodChange("ANY" as ReceiveMethod)}
+                        disabled={createPostMutation.isPending}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <CheckCircle className="h-5 w-5 text-gray-600" />
+                      <span className="flex-1">상관없음</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 반납 방식 */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">
+                    반납 방식 <span className="text-red-500">*</span>
                   </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                      style={{
+                        borderColor: formData.returnMethod === "DIRECT" ? "#2563eb" : "#e5e7eb",
+                        backgroundColor: formData.returnMethod === "DIRECT" ? "#eff6ff" : "transparent"
+                      }}>
+                      <input
+                        type="radio"
+                        name="returnMethod"
+                        value="DIRECT"
+                        checked={formData.returnMethod === "DIRECT"}
+                        onChange={() => handleReturnMethodChange("DIRECT" as ReceiveMethod)}
+                        disabled={createPostMutation.isPending}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <User className="h-5 w-5 text-gray-600" />
+                      <span className="flex-1">만나서</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                      style={{
+                        borderColor: formData.returnMethod === "DELIVERY" ? "#2563eb" : "#e5e7eb",
+                        backgroundColor: formData.returnMethod === "DELIVERY" ? "#eff6ff" : "transparent"
+                      }}>
+                      <input
+                        type="radio"
+                        name="returnMethod"
+                        value="DELIVERY"
+                        checked={formData.returnMethod === "DELIVERY"}
+                        onChange={() => handleReturnMethodChange("DELIVERY" as ReceiveMethod)}
+                        disabled={createPostMutation.isPending}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Truck className="h-5 w-5 text-gray-600" />
+                      <span className="flex-1">택배</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                      style={{
+                        borderColor: formData.returnMethod === "ANY" ? "#2563eb" : "#e5e7eb",
+                        backgroundColor: formData.returnMethod === "ANY" ? "#eff6ff" : "transparent"
+                      }}>
+                      <input
+                        type="radio"
+                        name="returnMethod"
+                        value="ANY"
+                        checked={formData.returnMethod === "ANY"}
+                        onChange={() => handleReturnMethodChange("ANY" as ReceiveMethod)}
+                        disabled={createPostMutation.isPending}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <CheckCircle className="h-5 w-5 text-gray-600" />
+                      <span className="flex-1">상관없음</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">반납 방법</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={returnMethods.delivery}
-                      onChange={(e) =>
-                        handleReturnMethodChange("delivery", e.target.checked)
-                      }
-                      disabled={createPostMutation.isPending}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>택배</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={returnMethods.direct}
-                      onChange={(e) =>
-                        handleReturnMethodChange("direct", e.target.checked)
-                      }
-                      disabled={createPostMutation.isPending}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>직접 만나서</span>
-                  </label>
+              {/* 안내 박스 */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
+                      <Info className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">수령/반납 방식 안내</h4>
+                    <ul className="space-y-1 text-sm text-gray-700">
+                      <li>• 만나서: 직접 만나서 수령/반납</li>
+                      <li>• 택배: 택배로 발송/반납 (택배비 별도)</li>
+                      <li>• 상관없음: 대여자가 선택 가능</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* 반납 주소 입력 (택배 방식 선택 시, 전체 너비) */}
-            {(returnMethods.delivery || formData.returnMethod === "ANY") && (
+            {(formData.returnMethod === "DELIVERY" || formData.returnMethod === "ANY") && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">
                   반납 주소 <span className="text-red-500">*</span>
@@ -781,7 +774,7 @@ export default function NewPostPage() {
                     }
                     disabled={createPostMutation.isPending}
                     required={
-                      returnMethods.delivery || formData.returnMethod === "ANY"
+                      formData.returnMethod === "DELIVERY" || formData.returnMethod === "ANY"
                     }
                     className="flex-1"
                     readOnly
@@ -812,6 +805,73 @@ export default function NewPostPage() {
                 />
               </div>
             )}
+
+            {/* 추가 옵션 */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-300">
+                <h3 className="text-xl font-semibold text-gray-900">추가 옵션 <span className="text-sm font-normal text-gray-500">(선택사항)</span></h3>
+                <Button
+                  type="button"
+                  onClick={handleAddOption}
+                  disabled={createPostMutation.isPending}
+                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-0 shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  옵션 추가
+                </Button>
+              </div>
+
+              {options.length === 0 ? (
+                <div className="text-center py-6 text-gray-400">
+                  <p className="text-sm">옵션을 추가하지 않아도 됩니다.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {options.map((option, index) => (
+                    <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">옵션명</label>
+                          <Input
+                            placeholder="옵션명을 입력하세요"
+                            value={option.name}
+                            onChange={(e) =>
+                              handleOptionChange(index, "name", e.target.value)
+                            }
+                            disabled={createPostMutation.isPending}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">추가 요금</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="0"
+                            value={option.fee}
+                            onChange={(e) =>
+                              handleOptionChange(index, "fee", e.target.value)
+                            }
+                            disabled={createPostMutation.isPending}
+                          />
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleRemoveOption(index)}
+                            disabled={createPostMutation.isPending}
+                            className="w-full"
+                          >
+                            삭제
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {createPostMutation.isError && (
               <p className="text-sm text-red-600">

@@ -41,6 +41,13 @@ import {
  * 게시글 상세 페이지
  */
 
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -152,8 +159,8 @@ export default function PostDetailPage() {
       router.push(`/chat?roomId=${result.id}`);
     } catch (error) {
       console.error("Failed to create chat room:", error);
-      // 에러가 발생해도 채팅 페이지로 이동 시도
-      router.push("/chat");
+      // API 실패 시 페이지 이동하지 않음
+      // 에러 메시지는 mutation의 onError에서 처리됨 (toast 표시)
     }
   };
 
@@ -322,6 +329,24 @@ export default function PostDetailPage() {
                     </div>
                   </div>
 
+                  {/* 반납 주소 섹션 */}
+                  {(post.returnAddress1 || post.returnAddress2) && (
+                    <div className="pb-4 mb-4 bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-start gap-2 mb-2">
+                        <MapPin className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium">반납 주소</p>
+                      </div>
+                      <div className="bg-white rounded p-2 text-sm space-y-1">
+                        {post.returnAddress1 && (
+                          <p className="text-gray-700">{post.returnAddress1}</p>
+                        )}
+                        {post.returnAddress2 && (
+                          <p className="text-gray-700">{post.returnAddress2}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* 수령/반납 방식 섹션 */}
                   <div className="space-y-4 pb-4 mb-4 bg-gray-50 rounded-lg p-4">
                     {/* 수령 방식 */}
@@ -421,30 +446,6 @@ export default function PostDetailPage() {
         </div>
       </div>
 
-      {/* 반납 주소 섹션 (전체 너비) */}
-      {(post.returnAddress1 || post.returnAddress2) && (
-        <div className="mt-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-2">
-                <MapPin className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium mb-2">반납 주소</p>
-                  <div className="bg-gray-50 rounded p-3 text-sm space-y-1">
-                    {post.returnAddress1 && (
-                      <p className="text-gray-700">{post.returnAddress1}</p>
-                    )}
-                    {post.returnAddress2 && (
-                      <p className="text-gray-700">{post.returnAddress2}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* 상세 설명 및 후기 섹션 (같은 너비) */}
       <div className="grid gap-6 lg:grid-cols-3 mt-6">
         <div className="lg:col-span-2 space-y-6">
@@ -461,6 +462,50 @@ export default function PostDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* 옵션 섹션 */}
+          {post.options && post.options.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>추가 옵션</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {post.options.map((option, index) => (
+                    <div
+                      key={option.id || index}
+                      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 mb-1">
+                            {option.name}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            {option.deposit > 0 && (
+                              <span>
+                                보증금: {option.deposit.toLocaleString()}원
+                              </span>
+                            )}
+                            {option.fee > 0 && (
+                              <span className="text-blue-600 font-semibold">
+                                추가 요금: {option.fee.toLocaleString()}원/일
+                              </span>
+                            )}
+                            {option.deposit === 0 && option.fee === 0 && (
+                              <span className="text-gray-500">
+                                추가 요금 없음
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 작성자 수정/삭제 버튼 */}
           {isAuthor && (
