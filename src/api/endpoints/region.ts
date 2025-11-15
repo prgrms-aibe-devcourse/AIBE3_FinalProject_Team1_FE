@@ -33,7 +33,7 @@ export async function createRegion(data: {
   name: string;
   parentId?: number;
 }): Promise<Region> {
-  return apiClient.post<Region>("/api/v1/regions", data);
+  return apiClient.post<Region>("/api/v1/adm/regions", data);
 }
 
 /**
@@ -41,14 +41,14 @@ export async function createRegion(data: {
  */
 export async function updateRegion(
   regionId: number,
-  data: { name?: string; parentId?: number },
+  data: { name: string },
 ): Promise<Region> {
-  return apiClient.put<Region>(`/api/v1/regions/${regionId}`, data);
+  return apiClient.put<Region>(`/api/v1/adm/regions/${regionId}`, data);
 }
 
 /**
  * 지역 삭제 (관리자용)
  */
 export async function deleteRegion(regionId: number): Promise<void> {
-  return apiClient.delete<void>(`/api/v1/regions/${regionId}`);
+  return apiClient.delete<void>(`/api/v1/adm/regions/${regionId}`);
 }

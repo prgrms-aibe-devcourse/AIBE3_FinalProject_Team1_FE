@@ -110,7 +110,7 @@ export function useUpdateRegionMutation() {
       data,
     }: {
       regionId: number;
-      data: { name?: string; parentId?: number };
+      data: { name: string };
     }) => updateRegion(regionId, data),
     onSuccess: (response, variables) => {
       // 지역 상세 쿼리 업데이트

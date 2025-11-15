@@ -110,7 +110,7 @@ export function useUpdateCategoryMutation() {
       data,
     }: {
       categoryId: number;
-      data: { name?: string; parentId?: number };
+      data: { name: string };
     }) => updateCategory(categoryId, data),
     onSuccess: (response, variables) => {
       // 카테고리 상세 쿼리 업데이트
