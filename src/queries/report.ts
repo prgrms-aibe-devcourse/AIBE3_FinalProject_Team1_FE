@@ -3,10 +3,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type { CreateReportDto, Report, ReportType } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   createReport,
@@ -79,6 +81,7 @@ export function useMyReportsQuery(filters?: Record<string, unknown>) {
  */
 export function useCreateReportMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (data: CreateReportDto) => createReport(data),
@@ -91,9 +94,13 @@ export function useCreateReportMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.report.list({})),
       });
+      showToast("신고가 접수되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create report error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "신고 접수에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -103,6 +110,7 @@ export function useCreateReportMutation() {
  */
 export function useDeleteReportMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (reportId: number) => deleteReport(reportId),
@@ -115,9 +123,13 @@ export function useDeleteReportMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.report.all),
       });
+      showToast("신고가 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete report error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "신고 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

@@ -37,8 +37,17 @@ export async function getPost(postId: number): Promise<Post> {
 export async function createPost(
   data: CreatePostDto | FormData,
 ): Promise<Post> {
+  // FormData 확인 (브라우저 환경에서만 FormData가 존재)
+  const isFormData =
+    typeof FormData !== "undefined" && data instanceof FormData;
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[createPost] IsFormData:", isFormData);
+    console.log("[createPost] Data type:", data.constructor?.name);
+  }
+
   return apiClient.post<Post>("/api/v1/posts", data, {
-    isFormData: data instanceof FormData,
+    isFormData,
   });
 }
 

@@ -8,7 +8,12 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import type { Post, ReceiveMethod } from "@/types/domain";
+import type {
+  Post,
+  ReceiveMethod,
+  Category,
+  Region,
+} from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,56 +24,9 @@ import { useFilterStore } from "@/store/filterStore";
 import { useCategoryListQuery } from "@/queries/category";
 import { usePostListQuery } from "@/queries/post";
 import { useRegionListQuery } from "@/queries/region";
+import { useToggleFavoriteMutation } from "@/queries/post-favorite";
 
-import { Filter, Search, X } from "lucide-react";
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
+import { Filter, Search, X, Heart } from "lucide-react";
 
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   DIRECT: "직거래",
@@ -84,6 +42,7 @@ export default function PostsPage() {
   const { data, isLoading } = usePostListQuery(postFilters);
   const { data: categories } = useCategoryListQuery();
   const { data: regions } = useRegionListQuery();
+  const toggleFavoriteMutation = useToggleFavoriteMutation();
 
   // 필터 변경 시 쿼리 업데이트
   useEffect(() => {
@@ -351,79 +310,218 @@ export default function PostsPage() {
                   />
                 </div>
               </div>
-
-              {/* 정렬 */}
-              <div>
-                <label className="mb-2 block text-sm font-medium">정렬</label>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={postFilters.sort?.[0]?.split(",")[0] || "createdAt"}
-                    onChange={(e) =>
-                      handleSortChange(
-                        e.target.value as "createdAt" | "deposit" | "fee",
-                      )
-                    }
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
-                  >
-                    <option value="createdAt">등록일</option>
-                    <option value="deposit">보증금</option>
-                    <option value="fee">대여료</option>
-                  </select>
-                  <select
-                    value={
-                      postFilters.sort?.[0]?.split(",")[1]?.toLowerCase() ||
-                      "desc"
-                    }
-                    onChange={(e) =>
-                      handleOrderChange(e.target.value as "asc" | "desc")
-                    }
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
-                  >
-                    <option value="desc">내림차순</option>
-                    <option value="asc">오름차순</option>
-                  </select>
-                </div>
-              </div>
             </CardContent>
           </Card>
         )}
       </div>
 
+      {/* 총 게시글 수 및 정렬 */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          {Array.isArray(data) ? (
+            <span>총 {data.length}개의 게시글</span>
+          ) : data?.page ? (
+            <span>총 {data.page.totalElements}개의 게시글</span>
+          ) : (
+            <span>총 0개의 게시글</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">정렬:</label>
+          <select
+            value={postFilters.sort?.[0]?.split(",")[0] || "createdAt"}
+            onChange={(e) =>
+              handleSortChange(
+                e.target.value as "createdAt" | "deposit" | "fee",
+              )
+            }
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="createdAt">등록일</option>
+            <option value="deposit">보증금</option>
+            <option value="fee">대여료</option>
+          </select>
+          <select
+            value={
+              postFilters.sort?.[0]?.split(",")[1]?.toLowerCase() || "desc"
+            }
+            onChange={(e) =>
+              handleOrderChange(e.target.value as "asc" | "desc")
+            }
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="desc">내림차순</option>
+            <option value="asc">오름차순</option>
+          </select>
+        </div>
+      </div>
+
       {/* 게시글 목록 또는 빈 상태 */}
       {hasPosts ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post: Post) => (
-            <Link key={post.id} href={`/posts/${post.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-lg">
-                {post.images && post.images.length > 0 && (
-                  <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
-                    <Image
-                      src={post.images[0].url}
-                      alt={post.title}
-                      fill
-                      className="object-cover"
+          {posts.map((post: Post) => {
+            // 카테고리 찾기
+            const findCategoryById = (id: number): Category | null => {
+              if (!categories) return null;
+              for (const category of categories) {
+                if (category.id === id) return category;
+                if (category.child) {
+                  const child = category.child.find((c) => c.id === id);
+                  if (child) return child;
+                }
+              }
+              return null;
+            };
+
+            // 지역 이름 찾기
+            const findRegionById = (id: number): Region | null => {
+              if (!regions) return null;
+              for (const region of regions) {
+                if (region.id === id) return region;
+                if (region.child) {
+                  const child = region.child.find((r) => r.id === id);
+                  if (child) return child;
+                }
+              }
+              return null;
+            };
+
+            // 카테고리 정보 (대분류와 소분류)
+            const category = post.categoryId
+              ? findCategoryById(post.categoryId)
+              : null;
+            const mainCategory = category
+              ? categories?.find((c) =>
+                  c.child?.some((child) => child.id === category.id),
+                )
+              : null;
+            const subCategory = category;
+
+            const regionNames =
+              post.regionIds && post.regionIds.length > 0
+                ? post.regionIds
+                    .map((id: number) => findRegionById(id))
+                    .filter((r: Region | null) => r !== null)
+                    .map((r: Region | null) => r!.name)
+                : [];
+
+            const MAX_VISIBLE_REGIONS = 2;
+
+            const handleFavoriteClick = (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleFavoriteMutation.mutate(post.id);
+            };
+
+            return (
+              <div key={post.id} className="relative">
+                <Link href={`/posts/${post.id}`} className="block">
+                  <Card className="h-full transition-shadow hover:shadow-lg relative">
+                  {/* 즐겨찾기 버튼 */}
+                  <button
+                    type="button"
+                    onClick={handleFavoriteClick}
+                    className="absolute right-2 top-2 z-10 rounded-full bg-white bg-opacity-80 p-2 shadow-md hover:bg-opacity-100 transition-all"
+                    disabled={toggleFavoriteMutation.isPending}
+                  >
+                    <Heart
+                      className={`h-5 w-5 ${
+                        post.isFavorite ?? false
+                          ? "fill-red-500 text-red-500"
+                          : "text-gray-400"
+                      }`}
                     />
-                  </div>
-                )}
-                <CardContent className="p-4">
-                  <h3 className="mb-2 text-lg font-semibold line-clamp-2">
-                    {post.title}
-                  </h3>
-                  <p className="mb-4 text-sm text-gray-600 line-clamp-2">
-                    {post.content}
-                  </p>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-blue-600">
-                      보증금: {post.deposit.toLocaleString()}원
-                    </span>
-                    <span className="text-gray-500">
-                      {post.fee.toLocaleString()}원/일
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </button>
+
+                  {/* 썸네일 이미지 */}
+                  {(post.thumbnailImageUrl || (post.images && post.images.length > 0)) && (
+                    <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
+                      <Image
+                        src={post.thumbnailImageUrl || post.images![0].file || post.images![0].url || ""}
+                        alt={post.title}
+                        fill
+                        className="object-cover"
+                      />
+                      {/* 카테고리 배지 (좌측 상단) */}
+                      <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
+                        {mainCategory && (
+                          <span className="rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
+                            {mainCategory.name}
+                          </span>
+                        )}
+                        {subCategory && subCategory.id !== mainCategory?.id && (
+                          <span className="rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
+                            {subCategory.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <CardContent className="p-4">
+                    <h3 className="mb-2 text-lg font-semibold line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <p className="mb-4 text-sm text-gray-600 line-clamp-2">
+                      {post.content}
+                    </p>
+
+                    {/* 수령/반납 방법 */}
+                    <div className="mb-3 flex items-center gap-2 text-xs text-gray-500">
+                      <span>
+                        수령: {RECEIVE_METHOD_LABELS[post.receiveMethod] || post.receiveMethod}
+                      </span>
+                      <span>•</span>
+                      <span>
+                        반납: {RECEIVE_METHOD_LABELS[post.returnMethod] || post.returnMethod}
+                      </span>
+                    </div>
+
+                    {/* 가격 정보 */}
+                    <div className="mb-3 flex items-center justify-between text-sm">
+                      <span className="font-semibold text-blue-600">
+                        {post.fee.toLocaleString()}원/일
+                      </span>
+                      <span className="text-gray-500">
+                        보증금: {post.deposit.toLocaleString()}원
+                      </span>
+                    </div>
+
+                    {/* 지역 표시 */}
+                    {regionNames.length > 0 && (
+                      <div className="mb-3 flex items-center gap-1 text-xs text-gray-500">
+                        <span>📍</span>
+                        <span className="line-clamp-1">
+                          {regionNames.slice(0, MAX_VISIBLE_REGIONS).join(", ")}
+                          {regionNames.length > MAX_VISIBLE_REGIONS &&
+                            ` +${regionNames.length - MAX_VISIBLE_REGIONS}`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 작성자 이름 및 작성일 (하단) */}
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      {post.authorNickname && (
+                        <span>{post.authorNickname}</span>
+                      )}
+                      {post.createdAt && (
+                        <span>
+                          {(() => {
+                            const date = new Date(post.createdAt);
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, "0");
+                            const day = String(date.getDate()).padStart(2, "0");
+                            return `${year}-${month}-${day}`;
+                          })()}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                </Link>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="py-12">

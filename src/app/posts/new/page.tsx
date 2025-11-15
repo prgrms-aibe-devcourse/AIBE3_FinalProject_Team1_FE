@@ -3,10 +3,10 @@
  */
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, X, Plus } from "lucide-react";
+import { Camera, X, Plus, Star, MapPin } from "lucide-react";
 
 import type { CreatePostDto, ReceiveMethod, PostOption, Region } from "@/types/domain";
 
@@ -37,15 +37,11 @@ export default function NewPostPage() {
   const { data: regions } = useRegionListQuery();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 대분류 카테고리 (parentId가 null인 것들)
-  const mainCategories = categories?.filter((cat) => !cat.parentId) || [];
-  // 소분류 카테고리 (parentId가 있는 것들)
-  const subCategories = categories?.filter((cat) => cat.parentId) || [];
-
-  // 시/도 지역 (parentId가 null인 것들)
-  const provinces = regions?.filter((region) => !region.parentId) || [];
-  // 시/군/구 지역 (parentId가 있는 것들)
-  const districts = regions?.filter((region) => region.parentId) || [];
+  // 대분류 카테고리 (child 배열을 가진 것들, 즉 최상위 카테고리)
+  const mainCategories = categories || [];
+  
+  // 시/도 지역 (child 배열을 가진 것들, 즉 최상위 지역)
+  const provinces = regions || [];
 
   const [formData, setFormData] = useState<Partial<CreatePostDto>>({
     title: "",
@@ -54,6 +50,8 @@ export default function NewPostPage() {
     fee: 0,
     receiveMethod: "DIRECT" as ReceiveMethod,
     returnMethod: "DIRECT" as ReceiveMethod,
+    returnAddress1: "",
+    returnAddress2: "",
     categoryId: 0,
     regionIds: [],
     imageUrls: [],
@@ -63,7 +61,11 @@ export default function NewPostPage() {
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
   const [selectedProvince, setSelectedProvince] = useState<number | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
-  const [images, setImages] = useState<File[]>([]);
+  interface ImageData {
+    file: File;
+    isPrimary: boolean;
+  }
+  const [images, setImages] = useState<ImageData[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [options, setOptions] = useState<PostOptionInput[]>([]);
   const [receiveMethods, setReceiveMethods] = useState<{
@@ -75,6 +77,79 @@ export default function NewPostPage() {
     direct: boolean;
   }>({ delivery: false, direct: true });
 
+  // 다음 주소 검색 스크립트 로드
+  useEffect(() => {
+    // 이미 로드되어 있는지 확인
+    if ((window as any).daum && (window as any).daum.Postcode) {
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      // 컴포넌트 언마운트 시 스크립트 제거 (다른 컴포넌트에서 사용 중일 수 있으므로 확인 필요)
+      try {
+        if (document.head.contains(script)) {
+          document.head.removeChild(script);
+        }
+      } catch (error) {
+        // 스크립트가 이미 제거되었을 수 있음
+      }
+    };
+  }, []);
+
+  // 다음 주소 검색 팝업 열기
+  const handleOpenAddressSearch = () => {
+    if (typeof window === "undefined" || !(window as any).daum) {
+      alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    const daum = (window as any).daum;
+    new daum.Postcode({
+      oncomplete: function (data: {
+        address: string;
+        addressType: string;
+        bname: string;
+        buildingName: string;
+      }) {
+        // 도로명 주소 선택 시
+        let fullAddress = data.address;
+        let extraAddress = "";
+
+        // 주소 타입에 따라 추가 정보 구성
+        if (data.addressType === "R") {
+          // 도로명 주소인 경우
+          if (data.bname !== "") {
+            extraAddress += data.bname;
+          }
+          if (data.buildingName !== "") {
+            extraAddress +=
+              extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+          }
+          // 추가 정보가 있으면 주소에 추가
+          fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
+        }
+
+        // 도로명 주소 필드에 값 설정
+        setFormData({
+          ...formData,
+          returnAddress1: fullAddress,
+        });
+      },
+      width: "100%",
+      height: "100%",
+    }).open({
+      q: formData.returnAddress1 || "",
+      left: window.screen.width / 2 - 300,
+      top: window.screen.height / 2 - 300,
+    });
+  };
+
   // 이미지 선택 핸들러
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -83,7 +158,22 @@ export default function NewPostPage() {
       return;
     }
 
-    const newImages = [...images, ...files];
+    // 첫 번째 이미지는 자동으로 대표 이미지로 설정 (현재 이미지가 없을 경우)
+    const isFirstImage = images.length === 0;
+    const newImageData: ImageData[] = files.map((file, fileIndex) => ({
+      file,
+      isPrimary: isFirstImage && fileIndex === 0,
+    }));
+
+    // 기존 이미지들 중 대표 이미지가 있으면 새 이미지는 모두 false
+    const hasPrimary = images.some((img) => img.isPrimary);
+    if (hasPrimary) {
+      newImageData.forEach((img) => {
+        img.isPrimary = false;
+      });
+    }
+
+    const newImages = [...images, ...newImageData];
     setImages(newImages);
 
     // 미리보기 생성
@@ -93,10 +183,26 @@ export default function NewPostPage() {
 
   // 이미지 삭제 핸들러
   const handleImageRemove = (index: number) => {
+    const imageToRemove = images[index];
     const newImages = images.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    
+    // 삭제된 이미지가 대표 이미지였던 경우, 첫 번째 이미지를 대표로 설정
+    if (imageToRemove.isPrimary && newImages.length > 0) {
+      newImages[0].isPrimary = true;
+    }
+    
     setImages(newImages);
     setImagePreviews(newPreviews);
+  };
+
+  // 대표 이미지 설정 핸들러
+  const handleSetPrimaryImage = (index: number) => {
+    const newImages = images.map((img, i) => ({
+      ...img,
+      isPrimary: i === index,
+    }));
+    setImages(newImages);
   };
 
   // 옵션 추가 핸들러
@@ -116,9 +222,21 @@ export default function NewPostPage() {
     value: string | number,
   ) => {
     const newOptions = [...options];
+    let processedValue: string | number = value;
+    
+    if (field === "deposit" || field === "fee") {
+      const numValue = Number(value);
+      // 음수 값은 0으로 제한
+      processedValue = numValue < 0 ? 0 : numValue;
+    } else if (field === "name") {
+      processedValue = value;
+    } else {
+      processedValue = Number(value);
+    }
+    
     newOptions[index] = {
       ...newOptions[index],
-      [field]: field === "name" ? value : Number(value),
+      [field]: processedValue,
     };
     setOptions(newOptions);
   };
@@ -128,9 +246,9 @@ export default function NewPostPage() {
     const newMethods = { ...receiveMethods, [type]: checked };
     setReceiveMethods(newMethods);
 
-    // 둘 다 선택되면 BOTH, 하나만 선택되면 해당 값, 둘 다 안 선택되면 DIRECT
+    // 둘 다 선택되면 ANY, 택배만 선택되면 DELIVERY, 직거래만 선택되면 DIRECT, 둘 다 안 선택되면 DIRECT
     if (newMethods.delivery && newMethods.direct) {
-      setFormData({ ...formData, receiveMethod: "BOTH" as ReceiveMethod });
+      setFormData({ ...formData, receiveMethod: "ANY" as ReceiveMethod });
     } else if (newMethods.delivery) {
       setFormData({ ...formData, receiveMethod: "DELIVERY" as ReceiveMethod });
     } else if (newMethods.direct) {
@@ -145,27 +263,40 @@ export default function NewPostPage() {
     const newMethods = { ...returnMethods, [type]: checked };
     setReturnMethods(newMethods);
 
-    // 둘 다 선택되면 BOTH, 하나만 선택되면 해당 값, 둘 다 안 선택되면 DIRECT
-    if (newMethods.delivery && newMethods.direct) {
-      setFormData({ ...formData, returnMethod: "BOTH" as ReceiveMethod });
-    } else if (newMethods.delivery) {
-      setFormData({ ...formData, returnMethod: "DELIVERY" as ReceiveMethod });
-    } else if (newMethods.direct) {
-      setFormData({ ...formData, returnMethod: "DIRECT" as ReceiveMethod });
-    } else {
-      setFormData({ ...formData, returnMethod: "DIRECT" as ReceiveMethod });
+    // 둘 다 선택되면 ANY, 택배만 선택되면 DELIVERY, 직거래만 선택되면 DIRECT, 둘 다 안 선택되면 DIRECT
+    const newReturnMethod =
+      newMethods.delivery && newMethods.direct
+        ? ("ANY" as ReceiveMethod)
+        : newMethods.delivery
+          ? ("DELIVERY" as ReceiveMethod)
+          : newMethods.direct
+            ? ("DIRECT" as ReceiveMethod)
+            : ("DIRECT" as ReceiveMethod);
+
+    setFormData({ ...formData, returnMethod: newReturnMethod });
+    
+    // 택배 방식이 없으면 반납 주소 초기화
+    if (!newMethods.delivery) {
+      setFormData((prev) => ({
+        ...prev,
+        returnMethod: newReturnMethod,
+        returnAddress1: "",
+        returnAddress2: "",
+      }));
     }
   };
 
-  // 대분류 선택 시 소분류 필터링
-  const filteredSubCategories = selectedMainCategory
-    ? subCategories.filter((cat) => cat.parentId === selectedMainCategory)
-    : [];
+  // 대분류 선택 시 소분류 필터링 (child 배열 사용)
+  const selectedMainCategoryData = mainCategories.find(
+    (cat) => cat.id === selectedMainCategory,
+  );
+  const filteredSubCategories = selectedMainCategoryData?.child || selectedMainCategoryData?.children || [];
 
-  // 시/도 선택 시 시/군/구 필터링
-  const filteredDistricts = selectedProvince
-    ? districts.filter((district) => district.parentId === selectedProvince)
-    : [];
+  // 시/도 선택 시 시/군/구 필터링 (child 배열 사용)
+  const selectedProvinceData = provinces.find(
+    (province) => province.id === selectedProvince,
+  );
+  const filteredDistricts = selectedProvinceData?.child || selectedProvinceData?.children || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,14 +311,31 @@ export default function NewPostPage() {
       return;
     }
 
+    // 요금과 보증금 음수 검증
+    const deposit = Math.max(0, formData.deposit ?? 0);
+    const fee = Math.max(0, formData.fee ?? 0);
+
     // FormData 생성
     const formDataToSend = new FormData();
     formDataToSend.append("title", formData.title || "");
     formDataToSend.append("content", formData.content || "");
-    formDataToSend.append("deposit", String(formData.deposit || 0));
-    formDataToSend.append("fee", String(formData.fee || 0));
+    // deposit과 fee는 0이어도 항상 보냄 (음수는 0으로 처리)
+    formDataToSend.append("deposit", String(deposit));
+    formDataToSend.append("fee", String(fee));
     formDataToSend.append("receiveMethod", formData.receiveMethod || "DIRECT");
     formDataToSend.append("returnMethod", formData.returnMethod || "DIRECT");
+    
+    // 반납 방식에 택배가 포함되면 반납 주소 추가
+    const returnMethod = formData.returnMethod || "DIRECT";
+    if (returnMethod === "DELIVERY" || returnMethod === "ANY") {
+      if (formData.returnAddress1) {
+        formDataToSend.append("returnAddress1", formData.returnAddress1);
+      }
+      if (formData.returnAddress2) {
+        formDataToSend.append("returnAddress2", formData.returnAddress2);
+      }
+    }
+    
     formDataToSend.append("categoryId", String(selectedSubCategory || formData.categoryId || 0));
 
     // 지역 ID 배열 추가
@@ -195,18 +343,25 @@ export default function NewPostPage() {
       formDataToSend.append("regionIds", String(regionId));
     });
 
-    // 이미지 파일 추가
-    images.forEach((image) => {
-      formDataToSend.append("images", image);
+    // 이미지 파일 추가 (file과 isPrimary를 객체 형태로)
+    images.forEach((imageData, index) => {
+      formDataToSend.append(`images[${index}].file`, imageData.file);
+      formDataToSend.append(
+        `images[${index}].isPrimary`,
+        String(imageData.isPrimary),
+      );
     });
 
     // 옵션 추가 (옵션이 있는 경우)
     if (options.length > 0) {
       options.forEach((option, index) => {
         if (option.name.trim()) {
+          // 옵션의 deposit과 fee도 음수 검증
+          const optionDeposit = Math.max(0, option.deposit ?? 0);
+          const optionFee = Math.max(0, option.fee ?? 0);
           formDataToSend.append(`options[${index}].name`, option.name);
-          formDataToSend.append(`options[${index}].deposit`, String(option.deposit));
-          formDataToSend.append(`options[${index}].fee`, String(option.fee));
+          formDataToSend.append(`options[${index}].deposit`, String(optionDeposit));
+          formDataToSend.append(`options[${index}].fee`, String(optionFee));
         }
       });
     }
@@ -227,12 +382,19 @@ export default function NewPostPage() {
     >,
   ) => {
     const { name, value } = e.target;
+    let processedValue: string | number = value;
+    
+    if (name === "deposit" || name === "fee") {
+      const numValue = Number(value);
+      // 음수 값은 0으로 제한
+      processedValue = numValue < 0 ? 0 : numValue;
+    } else if (name === "categoryId") {
+      processedValue = Number(value);
+    }
+    
     setFormData({
       ...formData,
-      [name]:
-        name === "deposit" || name === "fee" || name === "categoryId"
-          ? Number(value)
-          : value,
+      [name]: processedValue,
     });
   };
 
@@ -396,6 +558,8 @@ export default function NewPostPage() {
                   id="fee"
                   name="fee"
                   type="number"
+                  min="0"
+                  step="1"
                   value={formData.fee || 0}
                   onChange={handleChange}
                   required
@@ -410,6 +574,8 @@ export default function NewPostPage() {
                   id="deposit"
                   name="deposit"
                   type="number"
+                  min="0"
+                  step="1"
                   value={formData.deposit || 0}
                   onChange={handleChange}
                   disabled={createPostMutation.isPending}
@@ -432,6 +598,24 @@ export default function NewPostPage() {
                           fill
                           className="rounded-lg object-cover"
                         />
+                        {/* 대표 이미지 표시 */}
+                        {images[index]?.isPrimary && (
+                          <div className="absolute left-2 top-2 rounded-full bg-yellow-400 p-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-600" />
+                          </div>
+                        )}
+                        {/* 대표 이미지 설정 버튼 */}
+                        {!images[index]?.isPrimary && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetPrimaryImage(index)}
+                            className="absolute left-2 top-2 rounded-full bg-gray-800 bg-opacity-50 p-1 text-white hover:bg-opacity-70"
+                            title="대표 이미지로 설정"
+                          >
+                            <Star className="h-4 w-4" />
+                          </button>
+                        )}
+                        {/* 이미지 삭제 버튼 */}
                         <button
                           type="button"
                           onClick={() => handleImageRemove(index)}
@@ -497,6 +681,8 @@ export default function NewPostPage() {
                     <label className="text-sm font-medium">추가 요금</label>
                     <Input
                       type="number"
+                      min="0"
+                      step="1"
                       placeholder="0"
                       value={option.fee}
                       onChange={(e) =>
@@ -581,6 +767,57 @@ export default function NewPostPage() {
                 </div>
               </div>
             </div>
+
+            {/* 반납 주소 입력 (택배 방식 선택 시, 전체 너비) */}
+            {(returnMethods.delivery || formData.returnMethod === "ANY") && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  반납 주소 <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="도로명 주소를 검색해주세요"
+                    value={formData.returnAddress1 || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        returnAddress1: e.target.value,
+                      })
+                    }
+                    disabled={createPostMutation.isPending}
+                    required={
+                      returnMethods.delivery || formData.returnMethod === "ANY"
+                    }
+                    className="flex-1"
+                    readOnly
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleOpenAddressSearch}
+                    disabled={createPostMutation.isPending}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    주소 검색
+                  </Button>
+                </div>
+                <Input
+                  type="text"
+                  placeholder="상세 주소 (예: 123-45, 101호)"
+                  value={formData.returnAddress2 || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      returnAddress2: e.target.value,
+                    })
+                  }
+                  disabled={createPostMutation.isPending}
+                  className="w-full"
+                />
+              </div>
+            )}
 
             {createPostMutation.isError && (
               <p className="text-sm text-red-600">

@@ -1,12 +1,15 @@
 /**
  * 게시글 즐겨찾기 관련 API 엔드포인트
  */
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiResponse, PaginatedApiResponse } from "@/types/api";
 import type { Post, PostFavorite } from "@/types/domain";
 
 import { buildQueryParams } from "@/lib/utils/api-params";
 
 import { apiClient } from "@/api/client";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 /**
  * 즐겨찾기한 게시글 목록 조회
@@ -20,17 +23,33 @@ export async function getFavoritePosts(
 }
 
 /**
- * 게시글 즐겨찾기 추가
+ * 게시글 즐겨찾기 토글 (등록/해제)
+ * POST 요청으로 토글 방식 동작
+ * 응답: { status, msg, data: boolean }
  */
-export async function addFavorite(postId: number): Promise<PostFavorite> {
-  return apiClient.post<PostFavorite>(`/api/v1/posts/${postId}/favorites`, {});
-}
+export async function toggleFavorite(
+  postId: number,
+): Promise<ApiResponse<boolean>> {
+  const url = `${API_BASE_URL}/api/v1/posts/favorites/${postId}`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
 
-/**
- * 게시글 즐겨찾기 제거
- */
-export async function removeFavorite(postId: number): Promise<void> {
-  return apiClient.delete<void>(`/api/v1/posts/${postId}/favorites`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw {
+      message: error.msg || error.message || "즐겨찾기 토글에 실패했습니다.",
+      status: response.status,
+      errors: error.errors,
+    };
+  }
+
+  return (await response.json()) as ApiResponse<boolean>;
 }
 
 /**

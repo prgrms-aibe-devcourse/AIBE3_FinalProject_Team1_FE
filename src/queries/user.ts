@@ -3,10 +3,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type { MemberResponse, UpdateMemberDto } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   banUser,
@@ -126,6 +128,7 @@ export function useUserListQuery(filters?: Record<string, unknown>) {
 export function useUpdateUserMutation() {
   const queryClient = useQueryClient();
   const { user, setUser } = useAuthStore();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (data: UpdateMemberDto) => updateUser(data),
@@ -141,9 +144,13 @@ export function useUpdateUserMutation() {
       if (user) {
         setUser(response);
       }
+      showToast("사용자 정보가 수정되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Update user error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "사용자 정보 수정에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -153,6 +160,7 @@ export function useUpdateUserMutation() {
  */
 export function useUpdateUserByAdminMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({ userId, data }: { userId: number; data: UpdateMemberDto }) =>
@@ -167,9 +175,13 @@ export function useUpdateUserByAdminMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.user.all),
       });
+      showToast("사용자 정보가 수정되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Update user by admin error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "사용자 정보 수정에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -179,6 +191,7 @@ export function useUpdateUserByAdminMutation() {
  */
 export function useDeleteUserMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (userId: number) => deleteUser(userId),
@@ -191,9 +204,13 @@ export function useDeleteUserMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.user.all),
       });
+      showToast("사용자가 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete user error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "사용자 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -203,6 +220,7 @@ export function useDeleteUserMutation() {
  */
 export function useBanUserMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (userId: number) => banUser(userId),
@@ -216,9 +234,13 @@ export function useBanUserMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.user.all),
       });
+      showToast("사용자가 제재되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Ban user error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "사용자 제재에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -228,6 +250,7 @@ export function useBanUserMutation() {
  */
 export function useUnbanUserMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (userId: number) => unbanUser(userId),
@@ -241,9 +264,13 @@ export function useUnbanUserMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.user.all),
       });
+      showToast("사용자 제재가 해제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Unban user error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "사용자 제재 해제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }

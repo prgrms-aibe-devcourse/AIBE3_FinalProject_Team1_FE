@@ -8,7 +8,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
+import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type {
   ChatMessage,
   ChatRoom,
@@ -16,6 +16,8 @@ import type {
 } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+
+import { useUIStore } from "@/store/uiStore";
 
 import {
   createChatMessage,
@@ -127,6 +129,7 @@ export function useChatRoomQuery(roomId: number) {
  */
 export function useCreateChatRoomMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (postId: number) => createChatRoom(postId),
@@ -140,9 +143,13 @@ export function useCreateChatRoomMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.room(result.id)),
       });
+      showToast("채팅방이 생성되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create chat room error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "채팅방 생성에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -227,6 +234,7 @@ export function useChatMessagesQuery(
  */
 export function useCreateChatMessageMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (data: CreateChatMessageDto) => createChatMessage(data),
@@ -243,9 +251,13 @@ export function useCreateChatMessageMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.room(response.chatRoomId)),
       });
+      showToast("메시지가 전송되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Create chat message error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "메시지 전송에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -255,6 +267,7 @@ export function useCreateChatMessageMutation() {
  */
 export function useDeleteChatMessageMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: ({
@@ -269,9 +282,13 @@ export function useDeleteChatMessageMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.messages(variables.roomId)),
       });
+      showToast("메시지가 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete chat message error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "메시지 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
@@ -281,6 +298,7 @@ export function useDeleteChatMessageMutation() {
  */
 export function useDeleteChatRoomMutation() {
   const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
     mutationFn: (roomId: number) => deleteChatRoom(roomId),
@@ -297,9 +315,13 @@ export function useDeleteChatRoomMutation() {
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.rooms),
       });
+      showToast("채팅방이 삭제되었습니다.", "success");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Delete chat room error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "채팅방 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
     },
   });
 }
