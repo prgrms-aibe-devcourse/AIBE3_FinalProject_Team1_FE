@@ -273,11 +273,23 @@ export interface PostFavorite extends BaseEntity {
  * 예약 상태
  */
 export enum ReservationStatus {
-  PENDING = "PENDING", // 대기중
-  APPROVED = "APPROVED", // 승인됨
-  REJECTED = "REJECTED", // 거절됨
-  COMPLETED = "COMPLETED", // 완료됨
-  CANCELLED = "CANCELLED", // 취소됨
+  PENDING_APPROVAL = "PENDING_APPROVAL", // 승인 대기
+  PENDING_PAYMENT = "PENDING_PAYMENT", // 결제 대기
+  PENDING_PICKUP = "PENDING_PICKUP", // 수령 대기
+  SHIPPING = "SHIPPING", // 배송 중
+  INSPECTING_RENTAL = "INSPECTING_RENTAL", // 대여 검수
+  RENTING = "RENTING", // 대여 중
+  PENDING_RETURN = "PENDING_RETURN", // 반납 대기
+  RETURNING = "RETURNING", // 반납 중
+  RETURN_COMPLETED = "RETURN_COMPLETED", // 반납 완료
+  INSPECTING_RETURN = "INSPECTING_RETURN", // 반납 검수
+  PENDING_REFUND = "PENDING_REFUND", // 환급 예정
+  REFUND_COMPLETED = "REFUND_COMPLETED", // 환급 완료
+  LOST_OR_UNRETURNED = "LOST_OR_UNRETURNED", // 미반납/분실
+  CLAIMING = "CLAIMING", // 청구 진행
+  CLAIM_COMPLETED = "CLAIM_COMPLETED", // 청구 완료
+  REJECTED = "REJECTED", // 승인 거절
+  CANCELLED = "CANCELLED", // 예약 취소
 }
 
 /**
@@ -327,7 +339,8 @@ export interface CreateReservationDto {
  * 예약 수정 DTO (상태 변경 등)
  */
 export interface UpdateReservationDto {
-  status?: ReservationStatus;
+  // 백엔드 ReservationStatus enum이 확장될 수 있어 string 허용
+  status?: ReservationStatus | string;
   receiveMethod?: ReceiveMethod;
   receiveCarrier?: string;
   receiveTrackingNumber?: string;

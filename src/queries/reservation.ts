@@ -27,6 +27,7 @@ import {
   getReservationsByStatus,
   rejectReservation,
   updateReservation,
+  updateReservationStatus,
 } from "@/api/endpoints/reservation";
 
 /**
@@ -152,9 +153,13 @@ export function useCreateReservationMutation() {
   return useMutation({
     mutationFn: (data: CreateReservationDto) => createReservation(data),
     onSuccess: (response) => {
-      // 예약 목록 쿼리 무효화
+      // 전체 예약 목록 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
+      });
+      // 내 예약 목록 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.reservation.myReservations),
       });
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.myReservations),
@@ -201,9 +206,13 @@ export function useUpdateReservationMutation() {
         getQueryKey(queryKeys.reservation.detail(variables.reservationId)),
         response,
       );
-      // 예약 목록 쿼리 무효화
+      // 전체 예약 목록 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
+      });
+      // 내 예약 목록 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.reservation.myReservations),
       });
       showToast("예약이 수정되었습니다.", "success");
     },
@@ -213,6 +222,68 @@ export function useUpdateReservationMutation() {
       const errorMessage = apiError.message || "예약 수정에 실패했습니다.";
       showToast(errorMessage, "error");
     },
+  });
+}
+
+/**
+ * 예약 상태 변경 mutation (/api/v1/reservations/{id}/status)
+ */
+export function useUpdateReservationStatusMutation() {
+  const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: ({
+      reservationId,
+      data,
+    }: {
+      reservationId: number;
+      data: UpdateReservationDto;
+    }) => updateReservationStatus(reservationId, data),
+    onSuccess: (response, variables) => {
+      // 예약 상세 쿼리 업데이트
+      queryClient.setQueryData(
+        getQueryKey(queryKeys.reservation.detail(variables.reservationId)),
+        response,
+      );
+      // 전체 예약 목록 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.reservation.all),
+      });
+      // 내 예약 목록 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.reservation.myReservations),
+      });
+      // 게시글별 예약 목록 무효화 (모든 게시글)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return (
+            Array.isArray(key) &&
+            key.length >= 2 &&
+            key[0] === "reservation" &&
+            key[1] === "byPost"
+          );
+        },
+      });
+      // 상태별 예약 목록 무효화
+      if (response.status) {
+        queryClient.invalidateQueries({
+          queryKey: getQueryKey(
+            queryKeys.reservation.byStatus(response.status),
+          ),
+        });
+      }
+      showToast("예약 상태가 변경되었습니다.", "success");
+    },
+    onError: (error: unknown) => {
+      console.error("Update reservation status error:", error);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError.message || "예약 상태 변경에 실패했습니다.";
+      showToast(errorMessage, "error");
+    },
+    retry: false, // 상태 변경은 재시도하지 않음
   });
 }
 
@@ -260,9 +331,13 @@ export function useApproveReservationMutation() {
         getQueryKey(queryKeys.reservation.detail(reservationId)),
         response,
       );
-      // 예약 목록 쿼리 무효화
+      // 전체 예약 목록 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
+      });
+      // 내 예약 목록 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.reservation.myReservations),
       });
       // 게시글별 예약 목록 무효화 (모든 게시글)
       queryClient.invalidateQueries({

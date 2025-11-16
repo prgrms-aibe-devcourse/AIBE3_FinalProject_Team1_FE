@@ -3,52 +3,95 @@
  */
 "use client";
 
-import { useState, useMemo } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import {
-  ChevronDown,
-  ChevronUp,
-  MapPin,
-  User,
-  Truck,
-  CheckCircle,
-  X,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+
+import Image from "next/image";
+import Link from "next/link";
 
 import type { Post, Reservation } from "@/types/domain";
-import { ReceiveMethod } from "@/types/domain";
+import { ReceiveMethod, ReservationStatus } from "@/types/domain";
+
+import { getImageUrl } from "@/lib/utils/image";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
-import { getImageUrl } from "@/lib/utils/image";
+
+import { useUIStore } from "@/store/uiStore";
 
 import { useMyPostsQuery } from "@/queries/post";
 import {
-  useReservationsByPostQuery,
   useApproveReservationMutation,
   useRejectReservationMutation,
+  useReservationsByPostQuery,
+  useUpdateReservationStatusMutation,
 } from "@/queries/reservation";
-import { useUIStore } from "@/store/uiStore";
+
+import {
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Truck,
+  User,
+  X,
+} from "lucide-react";
+
+/**
+ * 마이페이지 - 내 게시글
+ */
+
+/**
+ * 마이페이지 - 내 게시글
+ */
 
 const statusLabels: Record<string, string> = {
-  PENDING: "승인 대기",
   PENDING_APPROVAL: "승인 대기",
-  APPROVED: "승인됨",
-  REJECTED: "거절됨",
-  COMPLETED: "대여 완료",
-  CANCELLED: "취소됨",
+  PENDING_PAYMENT: "결제 대기",
+  PENDING_PICKUP: "수령 대기",
+  SHIPPING: "배송 중",
+  INSPECTING_RENTAL: "대여 검수",
+  RENTING: "대여중",
+  PENDING_RETURN: "반납 대기",
+  RETURNING: "반납 중",
+  RETURN_COMPLETED: "반납 완료",
+  INSPECTING_RETURN: "반납 검수",
+  PENDING_REFUND: "환급 예정",
+  REFUND_COMPLETED: "환급 완료",
+  LOST_OR_UNRETURNED: "미반납/분실",
+  CLAIMING: "청구 진행",
+  CLAIM_COMPLETED: "청구 완료",
+  REJECTED: "승인 거절",
+  CANCELLED: "예약 취소",
 };
 
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  PENDING_APPROVAL: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-blue-100 text-blue-800",
-  REJECTED: "bg-red-100 text-red-800",
-  COMPLETED: "bg-gray-100 text-gray-800",
+  PENDING_APPROVAL: "bg-orange-100 text-orange-800",
+  PENDING_PAYMENT: "bg-orange-100 text-orange-800",
+  PENDING_PICKUP: "bg-yellow-100 text-yellow-800",
+  SHIPPING: "bg-blue-100 text-blue-800",
+  INSPECTING_RENTAL: "bg-purple-100 text-purple-800",
+  RENTING: "bg-green-100 text-green-800",
+  PENDING_RETURN: "bg-yellow-100 text-yellow-800",
+  RETURNING: "bg-blue-100 text-blue-800",
+  RETURN_COMPLETED: "bg-green-100 text-green-800",
+  INSPECTING_RETURN: "bg-purple-100 text-purple-800",
+  PENDING_REFUND: "bg-blue-100 text-blue-800",
+  REFUND_COMPLETED: "bg-green-100 text-green-800",
+  LOST_OR_UNRETURNED: "bg-red-100 text-red-800",
+  CLAIMING: "bg-orange-100 text-orange-800",
+  CLAIM_COMPLETED: "bg-gray-100 text-gray-800",
+  REJECTED: "bg-gray-100 text-gray-800",
   CANCELLED: "bg-gray-100 text-gray-800",
 };
 
@@ -66,13 +109,24 @@ function PostCard({ post }: { post: Post }) {
   const showToast = useUIStore((state) => state.showToast);
   const approveMutation = useApproveReservationMutation();
   const rejectMutation = useRejectReservationMutation();
+  const updateStatusMutation = useUpdateReservationStatusMutation();
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+  const [shippingDialogOpen, setShippingDialogOpen] = useState(false);
+  const [shippingMode, setShippingMode] = useState<"receive" | "return">(
+    "receive",
+  );
+  const [shippingTarget, setShippingTarget] = useState<Reservation | null>(
+    null,
+  );
+  const [shippingCarrier, setShippingCarrier] = useState("");
+  const [shippingTrackingNumber, setShippingTrackingNumber] = useState("");
 
-  const {
-    data: reservationsData,
-    isLoading: reservationsLoading,
-  } = useReservationsByPostQuery(post.id, {
-    enabled: isExpanded, // 펼쳐졌을 때만 조회
-  });
+  const { data: reservationsData, isLoading: reservationsLoading } =
+    useReservationsByPostQuery(post.id, {
+      enabled: isExpanded, // 펼쳐졌을 때만 조회
+    });
 
   const reservations = useMemo(() => {
     if (!reservationsData) return [];
@@ -90,23 +144,74 @@ function PostCard({ post }: { post: Post }) {
     }
   };
 
-  const handleReject = async (reservationId: number) => {
-    const reason = prompt("거절 사유를 입력해주세요:");
-    if (!reason || !reason.trim()) {
+  const handleReject = async () => {
+    if (!rejectTargetId) return;
+    if (!rejectReason.trim()) {
       showToast("거절 사유를 입력해주세요.", "error");
       return;
     }
     try {
       await rejectMutation.mutateAsync({
-        reservationId,
-        reason,
+        reservationId: rejectTargetId,
+        reason: rejectReason.trim(),
       });
       showToast("예약이 거절되었습니다.", "success");
+      setRejectDialogOpen(false);
+      setRejectReason("");
+      setRejectTargetId(null);
     } catch (error) {
       console.error("Failed to reject reservation:", error);
     }
   };
 
+  const openShippingDialog = (
+    reservation: Reservation,
+    mode: "receive" | "return",
+  ) => {
+    setShippingTarget(reservation);
+    setShippingMode(mode);
+    setShippingCarrier("");
+    setShippingTrackingNumber("");
+    setShippingDialogOpen(true);
+  };
+
+  const handleConfirmShipping = async () => {
+    if (!shippingTarget) return;
+    if (!shippingCarrier.trim() || !shippingTrackingNumber.trim()) {
+      showToast("택배사와 송장번호를 모두 입력해주세요.", "error");
+      return;
+    }
+
+    try {
+      if (shippingMode === "receive") {
+        await updateStatusMutation.mutateAsync({
+          reservationId: shippingTarget.id,
+          data: {
+            status: ReservationStatus.SHIPPING,
+            receiveCarrier: shippingCarrier.trim(),
+            receiveTrackingNumber: shippingTrackingNumber.trim(),
+          },
+        });
+        showToast("배송 정보가 등록되었습니다.", "success");
+      } else {
+        await updateStatusMutation.mutateAsync({
+          reservationId: shippingTarget.id,
+          data: {
+            status: ReservationStatus.RETURNING,
+            returnCarrier: shippingCarrier.trim(),
+            returnTrackingNumber: shippingTrackingNumber.trim(),
+          },
+        });
+        showToast("반납 배송 정보가 등록되었습니다.", "success");
+      }
+      setShippingDialogOpen(false);
+      setShippingTarget(null);
+      setShippingCarrier("");
+      setShippingTrackingNumber("");
+    } catch (error) {
+      console.error("Failed to update shipping info:", error);
+    }
+  };
 
   return (
     <Card className="mb-6">
@@ -114,12 +219,12 @@ function PostCard({ post }: { post: Post }) {
         {/* 게시글 정보 */}
         <div className="flex gap-4 mb-4">
           {/* 이미지 */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <Image
               src={getImageUrl(
                 post.thumbnailImageUrl ||
-                post.images?.[0]?.file ||
-                post.images?.[0]?.url,
+                  post.images?.[0]?.file ||
+                  post.images?.[0]?.url,
               )}
               alt={post.title}
               width={120}
@@ -248,21 +353,24 @@ function PostCard({ post }: { post: Post }) {
                         fee: ro.option?.fee || 0,
                         deposit: ro.option?.deposit || 0,
                       })) ||
-                      (reservation.option?.map((opt: unknown, index: number) => {
-                        if (
-                          opt &&
-                          typeof opt === "object" &&
-                          ("name" in opt || "id" in opt)
-                        ) {
-                          return {
-                            id: ("id" in opt && opt.id) || index,
-                            name: ("name" in opt && opt.name) || `옵션 #${index}`,
-                            fee: ("fee" in opt && opt.fee) || 0,
-                            deposit: ("deposit" in opt && opt.deposit) || 0,
-                          };
-                        }
-                        return null;
-                      }).filter(Boolean) as Array<{
+                      (reservation.option
+                        ?.map((opt: unknown, index: number) => {
+                          if (
+                            opt &&
+                            typeof opt === "object" &&
+                            ("name" in opt || "id" in opt)
+                          ) {
+                            return {
+                              id: ("id" in opt && opt.id) || index,
+                              name:
+                                ("name" in opt && opt.name) || `옵션 #${index}`,
+                              fee: ("fee" in opt && opt.fee) || 0,
+                              deposit: ("deposit" in opt && opt.deposit) || 0,
+                            };
+                          }
+                          return null;
+                        })
+                        .filter(Boolean) as Array<{
                         id: number;
                         name: string;
                         fee: number;
@@ -287,6 +395,11 @@ function PostCard({ post }: { post: Post }) {
                     const totalAmount = totalRentalFee + totalDeposit;
 
                     const status = reservation.status as string;
+                    const canConfirmReturnReceive = status === "RETURNING";
+                    const canCompleteReturnInspection =
+                      status === "INSPECTING_RETURN";
+                    const canRequestRefund = status === "RETURN_COMPLETED";
+                    const canMarkLostOrUnreturned = status === "RENTING";
 
                     return (
                       <Card key={reservation.id} className="bg-gray-50">
@@ -386,78 +499,285 @@ function PostCard({ post }: { post: Post }) {
                             </p>
                           </div>
 
-                          {/* 수령/반납 방식 */}
-                          <div className="mb-4 flex items-center gap-4 text-sm text-gray-700">
-                            {reservation.receiveMethod && (
-                              <div className="flex items-center gap-1">
-                                <span>수령:</span>
-                                {reservation.receiveMethod ===
-                                ReceiveMethod.DIRECT ? (
-                                  <User className="h-4 w-4" />
-                                ) : (
-                                  <Truck className="h-4 w-4" />
-                                )}
-                                <span>
-                                  {
-                                    RECEIVE_METHOD_LABELS[
-                                      reservation.receiveMethod
-                                    ]
-                                  }
+                          {/* 수령/반납 방식 + 취소/거절 사유 + 액션 버튼 (한 줄 배치) */}
+                          <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200 text-sm">
+                            <div className="flex-1 flex flex-wrap items-center gap-2 text-gray-700">
+                              {reservation.receiveMethod && (
+                                <span className="inline-flex items-center gap-1">
+                                  <span>수령:</span>
+                                  {reservation.receiveMethod ===
+                                  ReceiveMethod.DIRECT ? (
+                                    <User className="h-4 w-4 text-gray-500" />
+                                  ) : (
+                                    <Truck className="h-4 w-4 text-gray-500" />
+                                  )}
+                                  <span>
+                                    {
+                                      RECEIVE_METHOD_LABELS[
+                                        reservation.receiveMethod
+                                      ]
+                                    }
+                                  </span>
                                 </span>
-                              </div>
-                            )}
-                            {reservation.returnMethod && (
-                              <div className="flex items-center gap-1">
-                                <span>반납:</span>
-                                {reservation.returnMethod ===
-                                ReceiveMethod.DIRECT ? (
-                                  <User className="h-4 w-4" />
-                                ) : (
-                                  <Truck className="h-4 w-4" />
-                                )}
-                                <span>
-                                  {
-                                    RECEIVE_METHOD_LABELS[
-                                      reservation.returnMethod
-                                    ]
-                                  }
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                              )}
+                              {reservation.returnMethod && (
+                                <>
+                                  <span className="text-gray-300">|</span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <span>반납:</span>
+                                    {reservation.returnMethod ===
+                                    ReceiveMethod.DIRECT ? (
+                                      <User className="h-4 w-4 text-gray-500" />
+                                    ) : (
+                                      <Truck className="h-4 w-4 text-gray-500" />
+                                    )}
+                                    <span>
+                                      {
+                                        RECEIVE_METHOD_LABELS[
+                                          reservation.returnMethod
+                                        ]
+                                      }
+                                    </span>
+                                  </span>
+                                </>
+                              )}
+                              {(status === "CANCELLED" &&
+                                reservation.cancelReason) ||
+                              (status === "REJECTED" &&
+                                reservation.rejectReason) ? (
+                                <>
+                                  <span className="text-gray-300">|</span>
+                                  <span
+                                    className={
+                                      status === "CANCELLED"
+                                        ? "text-red-600"
+                                        : "text-orange-600"
+                                    }
+                                  >
+                                    {status === "CANCELLED"
+                                      ? "취소 사유: "
+                                      : "거절 사유: "}
+                                    {status === "CANCELLED"
+                                      ? reservation.cancelReason
+                                      : reservation.rejectReason}
+                                  </span>
+                                </>
+                              ) : null}
+                            </div>
 
-                          {/* 액션 버튼 */}
-                          <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-200">
-                            <Link href={`/reservations/${reservation.id}`}>
-                              <Button variant="outline" size="sm">
-                                상세보기
-                              </Button>
-                            </Link>
-                            {(status === "PENDING" ||
-                              status === "PENDING_APPROVAL") && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleApprove(reservation.id)}
-                                  disabled={approveMutation.isPending}
-                                  className="text-green-600 border-green-600 hover:bg-green-50"
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  승인
+                            <div className="flex items-center justify-end gap-2 shrink-0">
+                              <Link href={`/reservations/${reservation.id}`}>
+                                <Button variant="outline" size="sm">
+                                  상세보기
                                 </Button>
+                              </Link>
+
+                              {(status === "PENDING" ||
+                                status === "PENDING_APPROVAL") && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleApprove(reservation.id)
+                                    }
+                                    disabled={approveMutation.isPending}
+                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    승인
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setRejectTargetId(reservation.id);
+                                      setRejectReason("");
+                                      setRejectDialogOpen(true);
+                                    }}
+                                    disabled={rejectMutation.isPending}
+                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    거절
+                                  </Button>
+                                </>
+                              )}
+
+                              {status === "PENDING_PICKUP" &&
+                                reservation.receiveMethod ===
+                                  ReceiveMethod.DELIVERY && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      openShippingDialog(reservation, "receive")
+                                    }
+                                    disabled={updateStatusMutation.isPending}
+                                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  >
+                                    <Truck className="h-4 w-4 mr-1" />
+                                    배송 보내기
+                                  </Button>
+                                )}
+
+                              {/* 호스트 - 반납 중일 때 수령완료 (RETURNING → INSPECTING_RETURN) */}
+                              {canConfirmReturnReceive && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleReject(reservation.id)}
-                                  disabled={rejectMutation.isPending}
+                                  onClick={async () => {
+                                    try {
+                                      await updateStatusMutation.mutateAsync({
+                                        reservationId: reservation.id,
+                                        data: {
+                                          status:
+                                            ReservationStatus.INSPECTING_RETURN,
+                                        },
+                                      });
+                                      showToast(
+                                        "반납 수령 완료 처리되었습니다. (반납 검수 단계로 이동)",
+                                        "success",
+                                      );
+                                    } catch (error) {
+                                      console.error(
+                                        "Failed to confirm return receive:",
+                                        error,
+                                      );
+                                    }
+                                  }}
+                                  disabled={updateStatusMutation.isPending}
+                                  className="text-purple-600 border-purple-600 hover:bg-purple-50"
+                                >
+                                  수령완료
+                                </Button>
+                              )}
+
+                              {/* 호스트 - 반납 검수 단계에서 검수완료 / 청구 요청 (INSPECTING_RETURN → RETURN_COMPLETED / CLAIMING) */}
+                              {canCompleteReturnInspection && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={async () => {
+                                      try {
+                                        await updateStatusMutation.mutateAsync({
+                                          reservationId: reservation.id,
+                                          data: {
+                                            status:
+                                              ReservationStatus.RETURN_COMPLETED,
+                                          },
+                                        });
+                                        showToast(
+                                          "반납 검수가 완료되었습니다.",
+                                          "success",
+                                        );
+                                      } catch (error) {
+                                        console.error(
+                                          "Failed to complete return inspection:",
+                                          error,
+                                        );
+                                      }
+                                    }}
+                                    disabled={updateStatusMutation.isPending}
+                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                  >
+                                    검수완료
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={async () => {
+                                      try {
+                                        await updateStatusMutation.mutateAsync({
+                                          reservationId: reservation.id,
+                                          data: {
+                                            status: ReservationStatus.CLAIMING,
+                                          },
+                                        });
+                                        showToast(
+                                          "청구 진행 상태로 변경되었습니다.",
+                                          "success",
+                                        );
+                                      } catch (error) {
+                                        console.error(
+                                          "Failed to request claim:",
+                                          error,
+                                        );
+                                      }
+                                    }}
+                                    disabled={updateStatusMutation.isPending}
+                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                  >
+                                    청구 요청
+                                  </Button>
+                                </>
+                              )}
+
+                              {/* 호스트 - 반납 완료 상태에서 환급 요청 (RETURN_COMPLETED → PENDING_REFUND) */}
+                              {canRequestRefund && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await updateStatusMutation.mutateAsync({
+                                        reservationId: reservation.id,
+                                        data: {
+                                          status:
+                                            ReservationStatus.PENDING_REFUND,
+                                        },
+                                      });
+                                      showToast(
+                                        "환급 요청이 접수되었습니다.",
+                                        "success",
+                                      );
+                                    } catch (error) {
+                                      console.error(
+                                        "Failed to request refund:",
+                                        error,
+                                      );
+                                    }
+                                  }}
+                                  disabled={updateStatusMutation.isPending}
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                >
+                                  환급 요청
+                                </Button>
+                              )}
+
+                              {/* 호스트 - 대여 중일 때 미반납/분실 처리 (RENTING → LOST_OR_UNRETURNED) */}
+                              {canMarkLostOrUnreturned && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await updateStatusMutation.mutateAsync({
+                                        reservationId: reservation.id,
+                                        data: {
+                                          status:
+                                            ReservationStatus.LOST_OR_UNRETURNED,
+                                        },
+                                      });
+                                      showToast(
+                                        "미반납/분실 상태로 변경되었습니다.",
+                                        "success",
+                                      );
+                                    } catch (error) {
+                                      console.error(
+                                        "Failed to mark lost or unreturned:",
+                                        error,
+                                      );
+                                    }
+                                  }}
+                                  disabled={updateStatusMutation.isPending}
                                   className="text-red-600 border-red-600 hover:bg-red-50"
                                 >
-                                  <X className="h-4 w-4 mr-1" />
-                                  거절
+                                  미반납/분실 처리
                                 </Button>
-                              </>
-                            )}
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -468,6 +788,123 @@ function PostCard({ post }: { post: Post }) {
             )}
           </div>
         )}
+
+        {/* 배송 / 반납 송장 입력 다이얼로그 */}
+        <Dialog
+          open={shippingDialogOpen}
+          onOpenChange={(open) => {
+            setShippingDialogOpen(open);
+            if (!open) {
+              setShippingTarget(null);
+              setShippingCarrier("");
+              setShippingTrackingNumber("");
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {shippingMode === "receive" ? "배송 보내기" : "반납 보내기"}
+              </DialogTitle>
+              <DialogDescription>
+                {shippingMode === "receive"
+                  ? "게스트에게 보낼 택배의 정보를 입력해주세요."
+                  : "반납 택배 정보를 입력해주세요."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  택배사
+                </label>
+                <input
+                  type="text"
+                  value={shippingCarrier}
+                  onChange={(e) => setShippingCarrier(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  placeholder="예: CJ대한통운"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  송장번호
+                </label>
+                <input
+                  type="text"
+                  value={shippingTrackingNumber}
+                  onChange={(e) => setShippingTrackingNumber(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  placeholder="송장번호를 입력해주세요"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShippingDialogOpen(false)}
+                disabled={updateStatusMutation.isPending}
+              >
+                닫기
+              </Button>
+              <Button
+                onClick={handleConfirmShipping}
+                disabled={
+                  updateStatusMutation.isPending ||
+                  !shippingCarrier.trim() ||
+                  !shippingTrackingNumber.trim()
+                }
+              >
+                {updateStatusMutation.isPending ? "저장 중..." : "등록하기"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 예약 거절 다이얼로그 */}
+        <Dialog
+          open={rejectDialogOpen}
+          onOpenChange={(open) => {
+            setRejectDialogOpen(open);
+            if (!open) {
+              setRejectReason("");
+              setRejectTargetId(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>예약 거절</DialogTitle>
+              <DialogDescription>
+                예약을 거절하려면 거절 사유를 입력해주세요.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-4 space-y-4">
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="거절 사유를 입력해주세요"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none text-sm"
+                rows={4}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setRejectDialogOpen(false)}
+                disabled={rejectMutation.isPending}
+              >
+                닫기
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleReject}
+                disabled={rejectMutation.isPending || !rejectReason.trim()}
+              >
+                {rejectMutation.isPending ? "거절 중..." : "거절하기"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -489,9 +926,7 @@ export default function MyPostsPage() {
 
   const posts = useMemo(() => {
     if (!myPostsData) return [];
-    return Array.isArray(myPostsData)
-      ? myPostsData
-      : myPostsData.content || [];
+    return Array.isArray(myPostsData) ? myPostsData : myPostsData.content || [];
   }, [myPostsData]);
 
   const totalPages = useMemo(() => {
@@ -581,7 +1016,9 @@ export default function MyPostsPage() {
           </select>
           <select
             value={sort?.[0]?.split(",")[1]?.toLowerCase() || "desc"}
-            onChange={(e) => handleOrderChange(e.target.value as "asc" | "desc")}
+            onChange={(e) =>
+              handleOrderChange(e.target.value as "asc" | "desc")
+            }
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="desc">내림차순</option>

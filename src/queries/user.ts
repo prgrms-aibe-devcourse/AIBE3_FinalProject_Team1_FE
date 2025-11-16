@@ -29,6 +29,7 @@ import { useAuthStore } from "@/store/authStore";
  */
 export function useUserQuery(userId?: number) {
   const { setUser, logout } = useAuthStore();
+  const isBrowser = typeof window !== "undefined";
 
   return useQuery({
     queryKey: userId
@@ -44,8 +45,9 @@ export function useUserQuery(userId?: number) {
         setUser(user);
         return user;
       } catch (error: unknown) {
-        // 인증 실패 시 (401, 403) 로그아웃 처리
+        // 브라우저 환경에서만 인증 실패 시 로그아웃 처리
         if (
+          isBrowser &&
           error &&
           typeof error === "object" &&
           "status" in error &&
@@ -58,7 +60,8 @@ export function useUserQuery(userId?: number) {
         return null;
       }
     },
-    // 쿠키 기반 인증: 항상 API 호출 시도 (쿠키가 없으면 에러 발생)
+    // 서버 사이드에서는 쿠키가 없으므로 브라우저에서만 실행
+    enabled: isBrowser,
     retry: false, // 인증 실패 시 재시도하지 않음
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
   });
@@ -69,6 +72,7 @@ export function useUserQuery(userId?: number) {
  */
 export function useMeQuery() {
   const { setUser, logout } = useAuthStore();
+  const isBrowser = typeof window !== "undefined";
 
   return useQuery({
     queryKey: getQueryKey(queryKeys.user.me),
@@ -79,8 +83,9 @@ export function useMeQuery() {
         setUser(user);
         return user;
       } catch (error: unknown) {
-        // 인증 실패 시 (401, 403) 로그아웃 처리
+        // 브라우저 환경에서만 인증 실패 시 로그아웃 처리
         if (
+          isBrowser &&
           error &&
           typeof error === "object" &&
           "status" in error &&
@@ -93,7 +98,8 @@ export function useMeQuery() {
         return null;
       }
     },
-    // 쿠키 기반 인증: 항상 API 호출 시도 (쿠키가 없으면 에러 발생)
+    // 서버 사이드에서는 쿠키가 없으므로 브라우저에서만 실행
+    enabled: isBrowser,
     retry: false, // 인증 실패 시 재시도하지 않음
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
   });

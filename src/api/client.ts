@@ -142,6 +142,39 @@ class ApiClient {
   }
 
   /**
+   * PATCH 요청
+   * 응답은 { status, msg, data } 형식으로 래핑되어 반환됨
+   */
+  async patch<T>(
+    endpoint: string,
+    data: unknown,
+    options?: { isFormData?: boolean },
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+    const isFormData = options?.isFormData || data instanceof FormData;
+
+    const headers: Record<string, string> = {};
+
+    if (!isFormData) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    const response = await fetch(url, {
+      method: "PATCH",
+      credentials: "include",
+      headers,
+      body: isFormData ? (data as FormData) : JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw await this.handleError(response);
+    }
+
+    const result: ApiResponse<T> = await response.json();
+    return result.data;
+  }
+
+  /**
    * DELETE 요청
    * 응답은 { status, msg, data } 형식으로 래핑되어 반환됨 (void인 경우 data가 없을 수 있음)
    */

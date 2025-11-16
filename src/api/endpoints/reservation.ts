@@ -5,9 +5,10 @@ import type { PaginatedApiResponse } from "@/types/api";
 import type {
   CreateReservationDto,
   Reservation,
-  ReservationStatus,
   UpdateReservationDto,
 } from "@/types/domain";
+
+import { ReservationStatus } from "@/types/domain";
 
 import { buildQueryParams } from "@/lib/utils/api-params";
 
@@ -58,6 +59,20 @@ export async function updateReservation(
 }
 
 /**
+ * 예약 상태 변경 (단일 엔드포인트)
+ * /api/v1/reservations/{id}/status
+ */
+export async function updateReservationStatus(
+  reservationId: number,
+  data: UpdateReservationDto,
+): Promise<Reservation> {
+  return apiClient.patch<Reservation>(
+    `/api/v1/reservations/${reservationId}/status`,
+    data,
+  );
+}
+
+/**
  * 예약 삭제
  */
 export async function deleteReservation(reservationId: number): Promise<void> {
@@ -95,10 +110,10 @@ export async function getReservationsByPost(
 export async function approveReservation(
   reservationId: number,
 ): Promise<Reservation> {
-  return apiClient.put<Reservation>(
-    `/api/v1/reservations/${reservationId}/approve`,
-    {},
-  );
+  // 승인 시 플로우차트 기준으로 "승인 대기 -> 결제 대기"로 이동
+  return updateReservationStatus(reservationId, {
+    status: ReservationStatus.PENDING_PAYMENT,
+  });
 }
 
 /**
@@ -108,12 +123,10 @@ export async function rejectReservation(
   reservationId: number,
   reason: string,
 ): Promise<Reservation> {
-  return apiClient.put<Reservation>(
-    `/api/v1/reservations/${reservationId}/reject`,
-    {
-      rejectReason: reason,
-    },
-  );
+  return updateReservationStatus(reservationId, {
+    status: ReservationStatus.REJECTED,
+    rejectReason: reason,
+  });
 }
 
 /**
@@ -123,12 +136,10 @@ export async function cancelReservation(
   reservationId: number,
   reason?: string,
 ): Promise<Reservation> {
-  return apiClient.put<Reservation>(
-    `/api/v1/reservations/${reservationId}/cancel`,
-    {
-      cancelReason: reason,
-    },
-  );
+  return updateReservationStatus(reservationId, {
+    status: ReservationStatus.CANCELLED,
+    cancelReason: reason,
+  });
 }
 
 /**

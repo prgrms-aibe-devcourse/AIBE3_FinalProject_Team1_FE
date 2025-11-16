@@ -30,12 +30,15 @@ import { ReceiveMethod, ReservationStatus } from "@/types/domain";
 import { getImageUrl } from "@/lib/utils/image";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
@@ -49,20 +52,42 @@ import {
 import { usePostQuery } from "@/queries/post";
 
 const statusLabels: Record<string, string> = {
-  PENDING: "대기중",
   PENDING_APPROVAL: "승인 대기",
-  APPROVED: "승인됨",
-  REJECTED: "거절됨",
-  COMPLETED: "완료됨",
-  CANCELLED: "취소됨",
+  PENDING_PAYMENT: "결제 대기",
+  PENDING_PICKUP: "수령 대기",
+  SHIPPING: "배송 중",
+  INSPECTING_RENTAL: "대여 검수",
+  RENTING: "대여 중",
+  PENDING_RETURN: "반납 대기",
+  RETURNING: "반납 중",
+  RETURN_COMPLETED: "반납 완료",
+  INSPECTING_RETURN: "반납 검수",
+  PENDING_REFUND: "환급 예정",
+  REFUND_COMPLETED: "환급 완료",
+  LOST_OR_UNRETURNED: "미반납/분실",
+  CLAIMING: "청구 진행",
+  CLAIM_COMPLETED: "청구 완료",
+  REJECTED: "승인 거절",
+  CANCELLED: "예약 취소",
 };
 
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  PENDING_APPROVAL: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-blue-100 text-blue-800",
+  PENDING_APPROVAL: "bg-orange-100 text-orange-800",
+  PENDING_PAYMENT: "bg-orange-100 text-orange-800",
+  PENDING_PICKUP: "bg-yellow-100 text-yellow-800",
+  SHIPPING: "bg-blue-100 text-blue-800",
+  INSPECTING_RENTAL: "bg-purple-100 text-purple-800",
+  RENTING: "bg-green-100 text-green-800",
+  PENDING_RETURN: "bg-yellow-100 text-yellow-800",
+  RETURNING: "bg-blue-100 text-blue-800",
+  RETURN_COMPLETED: "bg-green-100 text-green-800",
+  INSPECTING_RETURN: "bg-purple-100 text-purple-800",
+  PENDING_REFUND: "bg-blue-100 text-blue-800",
+  REFUND_COMPLETED: "bg-green-100 text-green-800",
+  LOST_OR_UNRETURNED: "bg-red-100 text-red-800",
+  CLAIMING: "bg-red-100 text-red-800",
+  CLAIM_COMPLETED: "bg-gray-100 text-gray-800",
   REJECTED: "bg-red-100 text-red-800",
-  COMPLETED: "bg-green-100 text-green-800",
   CANCELLED: "bg-gray-100 text-gray-800",
 };
 
@@ -100,20 +125,32 @@ function ReservationDetailPageContent() {
 
   const [activeTab, setActiveTab] = useState<TabType>("info");
   const [rejectReason, setRejectReason] = useState("");
-  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const [showCancelForm, setShowCancelForm] = useState(false);
 
-  // 예약 소유자 또는 게시글 작성자만 접근 가능
+  // 예약 소유자(게스트) 또는 게시글 작성자(호스트)만 접근 가능
   useEffect(() => {
     if (reservationLoading) return;
     if (!reservation) return;
     if (!user) return;
 
-    const reservationAuthorId = reservation.author?.id || reservation.authorId;
+    const reservationAuthorId = reservation.author?.id ?? reservation.authorId;
     const isReservationOwner = reservationAuthorId === user.id;
-    const postAuthorId = reservation.post?.authorId || post?.authorId;
-    const isPostOwner = postAuthorId === user.id;
+
+    // 호스트(게시글 작성자) 식별: 예약 응답 안에 포함된 post 정보 또는 별도 조회한 post 정보 모두 사용
+    const postAuthorIdFromReservation =
+      reservation.post?.author?.id ?? reservation.post?.authorId;
+    const postAuthorIdFromPost =
+      post?.author?.id ?? post?.authorId;
+    const postAuthorId = postAuthorIdFromReservation ?? postAuthorIdFromPost;
+
+    const isPostOwner = postAuthorId !== undefined && postAuthorId === user.id;
+
+    // 게스트/호스트 어느 쪽도 아니고, 아직 호스트 정보를 알 수 없는 상태라면 post가 로드될 때까지 대기
+    if (!isReservationOwner && postAuthorId === undefined) {
+      return;
+    }
 
     if (!isReservationOwner && !isPostOwner) {
       showToast("예약 상세 정보를 볼 권한이 없습니다.", "error");
@@ -131,6 +168,11 @@ function ReservationDetailPageContent() {
     }
   };
 
+  const handlePayment = () => {
+    if (!reservation) return;
+    router.push(`/payments/toss/${reservation.id}`);
+  };
+
   const handleReject = async () => {
     if (!reservation || !rejectReason.trim()) {
       showToast("거절 사유를 입력해주세요.", "error");
@@ -142,7 +184,7 @@ function ReservationDetailPageContent() {
         reason: rejectReason,
       });
       showToast("예약이 거절되었습니다.", "success");
-      setShowRejectForm(false);
+      setIsRejectDialogOpen(false);
       setRejectReason("");
     } catch (error) {
       console.error("Failed to reject reservation:", error);
@@ -150,17 +192,19 @@ function ReservationDetailPageContent() {
   };
 
   const handleCancel = async () => {
-    if (!reservation || !cancelReason.trim()) {
+    if (!reservation) return;
+    if (!cancelReason.trim()) {
       showToast("취소 사유를 입력해주세요.", "error");
       return;
     }
+
     try {
       await cancelMutation.mutateAsync({
         reservationId: reservation.id,
-        reason: cancelReason,
+        reason: cancelReason.trim(),
       });
       showToast("예약이 취소되었습니다.", "success");
-      setShowCancelForm(false);
+      setIsCancelDialogOpen(false);
       setCancelReason("");
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
@@ -183,11 +227,23 @@ function ReservationDetailPageContent() {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-gray-500 mb-4">예약을 찾을 수 없습니다.</p>
-            <Button onClick={() => router.push("/profile/reservations")}>
-              예약 목록으로
-            </Button>
+          <CardContent className="p-6 text-center space-y-4">
+            {!user ? (
+              <>
+                <p className="text-gray-700 font-semibold">로그인이 필요합니다</p>
+                <p className="text-sm text-gray-500">
+                  예약 상세 정보를 확인하려면 먼저 로그인해주세요.
+                </p>
+                <Button onClick={() => router.push("/login")}>로그인하러 가기</Button>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-500 mb-4">예약을 찾을 수 없습니다.</p>
+                <Button onClick={() => router.push("/profile/reservations")}>
+                  예약 목록으로
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -200,16 +256,13 @@ function ReservationDetailPageContent() {
   const isPostOwner = postAuthorId === user?.id;
   const status = reservation.status as string;
   const canApprove =
-    isPostOwner &&
-    (status === ReservationStatus.PENDING || status === "PENDING_APPROVAL");
+    isPostOwner && status === ReservationStatus.PENDING_APPROVAL;
   const canReject =
-    isPostOwner &&
-    (status === ReservationStatus.PENDING || status === "PENDING_APPROVAL");
+    isPostOwner && status === ReservationStatus.PENDING_APPROVAL;
   const canCancel =
     isReservationOwner &&
-    (status === ReservationStatus.PENDING ||
-      status === "PENDING_APPROVAL" ||
-      status === ReservationStatus.APPROVED);
+    (status === ReservationStatus.PENDING_APPROVAL ||
+      status === ReservationStatus.PENDING_PAYMENT);
 
   // 대여 기간 계산
   const startDate =
@@ -725,8 +778,8 @@ function ReservationDetailPageContent() {
                   </div>
                 )}
 
-                {/* 예약 승인 */}
-                {status === ReservationStatus.APPROVED && (
+                {/* 예약 승인 (승인 대기 → 결제 대기) */}
+                {status === ReservationStatus.PENDING_PAYMENT && (
                   <div className="flex gap-4">
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -753,8 +806,8 @@ function ReservationDetailPageContent() {
                   </div>
                 )}
 
-                {/* 결제 완료 */}
-                {status === ReservationStatus.APPROVED && (
+                {/* 결제 완료 (결제 대기 → 수령 대기/배송 등) */}
+                {status === ReservationStatus.PENDING_PICKUP && (
                   <div className="flex gap-4">
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -953,15 +1006,20 @@ function ReservationDetailPageContent() {
 
       {/* 하단 액션 버튼들 */}
       <div className="mt-8 flex gap-3">
-        {status === ReservationStatus.APPROVED && (
-          <Button className="flex-1" variant="outline">
+        {status === "PENDING_PAYMENT" && isReservationOwner && (
+          <Button className="flex-1" variant="outline" onClick={handlePayment}>
             <CreditCard className="h-4 w-4 mr-2" />
             결제하기
           </Button>
         )}
-        {isReservationOwner && canCancel && (
+        {/* 승인 대기 상태에서만 예약 수정 가능 */}
+        {isReservationOwner && status === "PENDING_APPROVAL" && (
           <Button
-            onClick={() => setShowCancelForm(!showCancelForm)}
+            onClick={() =>
+              router.push(
+                `/reservations/new?postId=${reservation.postId}&reservationId=${reservation.id}`,
+              )
+            }
             variant="outline"
             className="flex-1"
           >
@@ -969,12 +1027,13 @@ function ReservationDetailPageContent() {
             예약 수정
           </Button>
         )}
+        {/* 예약 취소 / 거절 */}
         {(canCancel || (isPostOwner && canReject)) && (
           <Button
             onClick={
               isReservationOwner && canCancel
-                ? () => setShowCancelForm(!showCancelForm)
-                : () => setShowRejectForm(!showRejectForm)
+                ? () => setIsCancelDialogOpen(true)
+                : () => setIsRejectDialogOpen(true)
             }
             variant="outline"
             className="flex-1"
@@ -992,13 +1051,24 @@ function ReservationDetailPageContent() {
         </Button>
       </div>
 
-      {/* 취소 폼 */}
-      {showCancelForm && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle>예약 취소 사유</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {/* 예약 취소 다이얼로그 */}
+      <Dialog
+        open={isCancelDialogOpen}
+        onOpenChange={(open) => {
+          setIsCancelDialogOpen(open);
+          if (!open) {
+            setCancelReason("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>예약 취소</DialogTitle>
+            <DialogDescription>
+              예약을 취소하려면 취소 사유를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
             <textarea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -1006,37 +1076,44 @@ function ReservationDetailPageContent() {
               className="w-full p-3 border border-gray-300 rounded-lg resize-none"
               rows={4}
             />
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCancel}
-                disabled={cancelMutation.isPending || !cancelReason.trim()}
-                variant="danger"
-                className="flex-1"
-              >
-                {cancelMutation.isPending ? "취소 중..." : "취소하기"}
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowCancelForm(false);
-                  setCancelReason("");
-                }}
-                variant="outline"
-                className="flex-1"
-              >
-                닫기
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelDialogOpen(false)}
+              disabled={cancelMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleCancel}
+              disabled={cancelMutation.isPending || !cancelReason.trim()}
+            >
+              {cancelMutation.isPending ? "취소 중..." : "취소하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* 거절 폼 */}
-      {showRejectForm && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle>예약 거절 사유</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {/* 예약 거절 다이얼로그 */}
+      <Dialog
+        open={isRejectDialogOpen}
+        onOpenChange={(open) => {
+          setIsRejectDialogOpen(open);
+          if (!open) {
+            setRejectReason("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>예약 거절</DialogTitle>
+            <DialogDescription>
+              예약을 거절하려면 거절 사유를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
@@ -1044,29 +1121,25 @@ function ReservationDetailPageContent() {
               className="w-full p-3 border border-gray-300 rounded-lg resize-none"
               rows={4}
             />
-            <div className="flex gap-2">
-              <Button
-                onClick={handleReject}
-                disabled={rejectMutation.isPending || !rejectReason.trim()}
-                variant="danger"
-                className="flex-1"
-              >
-                {rejectMutation.isPending ? "거절 중..." : "거절하기"}
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowRejectForm(false);
-                  setRejectReason("");
-                }}
-                variant="outline"
-                className="flex-1"
-              >
-                닫기
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRejectDialogOpen(false)}
+              disabled={rejectMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleReject}
+              disabled={rejectMutation.isPending || !rejectReason.trim()}
+            >
+              {rejectMutation.isPending ? "거절 중..." : "거절하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 승인 버튼 (호스트만) */}
       {isPostOwner && canApprove && (

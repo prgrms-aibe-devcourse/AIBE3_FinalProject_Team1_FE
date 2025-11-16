@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -9,18 +10,23 @@ import { MemberRole } from "@/types/domain";
 
 import { useAuthStore } from "@/store/authStore";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+type AdminLayoutProps = {
+  children: ReactNode;
+};
+
+export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
 
   useEffect(() => {
-    // 관리자만 접근 가능
-    if (user && user.role !== MemberRole.ADMIN) {
+    // 로그인하지 않았으면 로그인 페이지로 이동
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    // 로그인은 했지만 관리자가 아니면 홈으로
+    if (user.role !== MemberRole.ADMIN) {
       router.push("/");
     }
   }, [user, router]);

@@ -120,10 +120,20 @@ export function CalendarRangePicker({
 
   return (
     <div className="option-list-area calendar-area">
+      {/* 고정 요일 헤더 */}
+      <div className="calendar-weekdays">
+        <span className="weekday weekday-sun">일</span>
+        <span className="weekday">월</span>
+        <span className="weekday">화</span>
+        <span className="weekday">수</span>
+        <span className="weekday">목</span>
+        <span className="weekday">금</span>
+        <span className="weekday weekday-sat">토</span>
+      </div>
       <div className="calendar-wrap">
         <table className="calendar-table-area calendar-scroll">
           <caption className="blind">달력 테이블</caption>
-            <thead className="calendar-header">
+            <thead className="calendar-header sr-only">
               <tr>
                 <th>일</th>
                 <th>월</th>
