@@ -17,6 +17,17 @@ body {
   color: var(--foreground);
 }
 
+/* 기본 버튼 커서 스타일 - 모든 버튼에 포인터 적용 */
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* 일정 입력 박스 스타일 */
 .el-input-box.el-input-schedule-box,
 .el-input-box.el-input-option-box {
@@ -98,17 +109,47 @@ body {
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  /* 뷰포트 안에서 전체 달력이 하나의 스크롤 영역으로 동작하도록 설정 */
+  max-height: min(640px, calc(100vh - 200px));
+  overflow-y: auto;
 }
 
 .search-option-area.calendar-option-area .option-list-area.calendar-area {
   background-color: white;
-  overflow: hidden;
+  /* 달력 상단 요일과 바로 이어지도록 위쪽 패딩 제거 */
+  padding-top: 0;
+}
+
+.search-option-area.calendar-option-area .calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.search-option-area.calendar-option-area .calendar-weekdays .weekday {
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.search-option-area.calendar-option-area .calendar-weekdays .weekday-sun {
+  color: #ef4444;
+}
+
+.search-option-area.calendar-option-area .calendar-weekdays .weekday-sat {
+  color: #2563eb;
 }
 
 .search-option-area.calendar-option-area .calendar-wrap {
   overflow-x: auto;
-  overflow-y: auto;
-  max-height: 600px;
+  /* 세로 스크롤은 상위 컨테이너에서 처리 */
+  overflow-y: visible;
 }
 
 .search-option-area.calendar-option-area .calendar-table-area {
@@ -122,6 +163,9 @@ body {
 }
 
 .search-option-area.calendar-option-area .calendar-header th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: 0.75rem 0.5rem;
   text-align: center;
   font-weight: 500;
@@ -155,7 +199,8 @@ body {
 }
 
 .search-option-area.calendar-option-area .calendar-date-wrap.empty {
-  /* 빈 셀 스타일 */
+  /* 빈 셀: 배경만 유지하고 테두리는 제거 */
+  background-color: white;
 }
 
 .search-option-area.calendar-option-area .calendar-date-wrap.scheduled {

@@ -6,20 +6,31 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Star, X } from "lucide-react";
 
 import type { Reservation } from "@/types/domain";
+import { ReceiveMethod, ReservationStatus } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { getImageUrl } from "@/lib/utils/image";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import {
   useMyReservationsQuery,
   useCancelReservationMutation,
+  useUpdateReservationStatusMutation,
 } from "@/queries/reservation";
 import { useUIStore } from "@/store/uiStore";
 
@@ -93,11 +104,28 @@ const statusTabs: Array<{ key: StatusFilter; label: string }> = [
 ];
 
 export default function MyReservationsPage() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const showToast = useUIStore((state) => state.showToast);
   const cancelMutation = useCancelReservationMutation();
+  const updateStatusMutation = useUpdateReservationStatusMutation();
+  const [inspectCancelDialogOpen, setInspectCancelDialogOpen] =
+    useState(false);
+  const [inspectCancelReason, setInspectCancelReason] = useState("");
+  const [inspectCancelTargetId, setInspectCancelTargetId] = useState<
+    number | null
+  >(null);
+  const [returnShipDialogOpen, setReturnShipDialogOpen] = useState(false);
+  const [returnShipCarrier, setReturnShipCarrier] = useState("");
+  const [returnShipTracking, setReturnShipTracking] = useState("");
+  const [returnShipTargetId, setReturnShipTargetId] = useState<number | null>(
+    null,
+  );
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
 
   const { data: myReservations, isLoading: reservationsLoading } =
     useMyReservationsQuery({
@@ -148,18 +176,21 @@ export default function MyReservationsPage() {
     return counts;
   }, [myReservations, totalElements, reservations]);
 
-  const handleCancel = async (reservationId: number) => {
-    const reason = prompt("취소 사유를 입력해주세요:");
-    if (!reason || !reason.trim()) {
+  const handleCancel = async () => {
+    if (!cancelTargetId) return;
+    if (!cancelReason.trim()) {
       showToast("취소 사유를 입력해주세요.", "error");
       return;
     }
     try {
       await cancelMutation.mutateAsync({
-        reservationId,
-        reason,
+        reservationId: cancelTargetId,
+        reason: cancelReason.trim(),
       });
       showToast("예약이 취소되었습니다.", "success");
+      setCancelDialogOpen(false);
+      setCancelReason("");
+      setCancelTargetId(null);
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
     }
@@ -265,6 +296,15 @@ export default function MyReservationsPage() {
               // 결제 가능 여부 확인
               const canPay = status === "PENDING_PAYMENT";
 
+              // 게스트 측 상태 변경 가능 여부
+              const canConfirmReceive = status === "SHIPPING";
+              const canCompleteInspection =
+                status === "INSPECTING_RENTAL" || status === "PENDING_PICKUP";
+              const canStartReturn = status === "RENTING";
+              const canSendReturnShipping =
+                status === "PENDING_RETURN" &&
+                reservation.returnMethod === ReceiveMethod.DELIVERY;
+
               return (
                 <Card key={reservation.id} className="transition-shadow hover:shadow-md">
                   <CardContent className="p-6">
@@ -332,24 +372,146 @@ export default function MyReservationsPage() {
                         </div>
 
                         {/* 액션 버튼 */}
-                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-200">
                           <Link href={`/reservations/${reservation.id}`}>
                             <Button variant="outline" size="sm">
                               상세보기
                             </Button>
                           </Link>
+
                           {canPay && (
-                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                            <Button
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700"
+                              onClick={() =>
+                                router.push(`/payments/toss/${reservation.id}`)
+                              }
+                            >
                               결제하기
                             </Button>
                           )}
+
+                          {/* 게스트 - 배송 받았을 때 수령하기 (SHIPPING → PENDING_RETURN or INSPECTING_RENTAL) */}
+                          {canConfirmReceive && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await updateStatusMutation.mutateAsync({
+                                    reservationId: reservation.id,
+                                    data: {
+                                      status: ReservationStatus.INSPECTING_RENTAL,
+                                    },
+                                  });
+                                  showToast("수령 완료 처리되었습니다.", "success");
+                                } catch (error) {
+                                  console.error("Failed to confirm receive:", error);
+                                }
+                              }}
+                              disabled={updateStatusMutation.isPending}
+                              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                            >
+                              수령완료
+                            </Button>
+                          )}
+
+                          {/* 게스트 - 대여 검수 단계에서 검수 완료 (INSPECTING_RENTAL → RENTING) */}
+                          {canCompleteInspection && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    await updateStatusMutation.mutateAsync({
+                                      reservationId: reservation.id,
+                                      data: {
+                                        status: ReservationStatus.RENTING,
+                                      },
+                                    });
+                                    showToast("검수가 완료되었습니다.", "success");
+                                  } catch (error) {
+                                    console.error(
+                                      "Failed to complete inspection:",
+                                      error,
+                                    );
+                                  }
+                                }}
+                                disabled={updateStatusMutation.isPending}
+                                className="border-green-600 text-green-600 hover:bg-green-50"
+                              >
+                                검수완료
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setInspectCancelTargetId(reservation.id);
+                                  setInspectCancelReason("");
+                                  setInspectCancelDialogOpen(true);
+                                }}
+                                disabled={updateStatusMutation.isPending}
+                                className="border-red-600 text-red-600 hover:bg-red-50"
+                              >
+                                대여 취소
+                              </Button>
+                            </>
+                          )}
+
+                          {/* 게스트 - 대여 중일 때 반납하기 (RENTING → PENDING_RETURN) */}
+                          {canStartReturn && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await updateStatusMutation.mutateAsync({
+                                    reservationId: reservation.id,
+                                    data: {
+                                      status: ReservationStatus.PENDING_RETURN,
+                                    },
+                                  });
+                                  showToast("반납 대기 상태로 변경되었습니다.", "success");
+                                } catch (error) {
+                                  console.error("Failed to start return:", error);
+                                }
+                              }}
+                              disabled={updateStatusMutation.isPending}
+                              className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                            >
+                              반납하기
+                            </Button>
+                          )}
+
+
+                          {/* 게스트 - 반납 대기(택배)일 때 반납 보내기 (PENDING_RETURN → RETURNING) */}
+                          {canSendReturnShipping && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setReturnShipTargetId(reservation.id);
+                                setReturnShipCarrier("");
+                                setReturnShipTracking("");
+                                setReturnShipDialogOpen(true);
+                              }}
+                              disabled={updateStatusMutation.isPending}
+                              className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                            >
+                              반납 보내기
+                            </Button>
+                          )}
+
                           {canCancel && (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={(e) => {
                                 e.preventDefault();
-                                handleCancel(reservation.id);
+                                setCancelTargetId(reservation.id);
+                                setCancelReason("");
+                                setCancelDialogOpen(true);
                               }}
                               disabled={cancelMutation.isPending}
                               className="text-red-600 border-red-600 hover:bg-red-50"
@@ -358,6 +520,7 @@ export default function MyReservationsPage() {
                               취소
                             </Button>
                           )}
+
                           {canWriteReview && (
                             <Link href={`/reservations/${reservation.id}/review`}>
                               <Button
@@ -389,6 +552,215 @@ export default function MyReservationsPage() {
           </div>
         </>
       )}
+
+      {/* 대여 검수 단계 취소 다이얼로그 */}
+      <Dialog
+        open={inspectCancelDialogOpen}
+        onOpenChange={(open) => {
+          setInspectCancelDialogOpen(open);
+          if (!open) {
+            setInspectCancelReason("");
+            setInspectCancelTargetId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>대여 취소</DialogTitle>
+            <DialogDescription>
+              대여 검수 단계에서 대여를 진행하지 않고 반납만 진행하려는 경우,
+              취소 사유를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <textarea
+              value={inspectCancelReason}
+              onChange={(e) => setInspectCancelReason(e.target.value)}
+              placeholder="취소 사유를 입력해주세요"
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none text-sm"
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setInspectCancelDialogOpen(false)}
+              disabled={updateStatusMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (!inspectCancelTargetId) return;
+                if (!inspectCancelReason.trim()) {
+                  showToast("취소 사유를 입력해주세요.", "error");
+                  return;
+                }
+                try {
+                  await updateStatusMutation.mutateAsync({
+                    reservationId: inspectCancelTargetId,
+                    data: {
+                      status: ReservationStatus.PENDING_RETURN,
+                      cancelReason: inspectCancelReason.trim(),
+                    },
+                  });
+                  showToast("대여 취소 및 반납 대기 상태로 변경되었습니다.", "success");
+                  setInspectCancelDialogOpen(false);
+                  setInspectCancelReason("");
+                  setInspectCancelTargetId(null);
+                } catch (error) {
+                  console.error("Failed to cancel during inspection:", error);
+                }
+              }}
+              disabled={
+                updateStatusMutation.isPending || !inspectCancelReason.trim()
+              }
+            >
+              {updateStatusMutation.isPending ? "처리 중..." : "대여 취소"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 반납 택배 발송 다이얼로그 */}
+      <Dialog
+        open={returnShipDialogOpen}
+        onOpenChange={(open) => {
+          setReturnShipDialogOpen(open);
+          if (!open) {
+            setReturnShipCarrier("");
+            setReturnShipTracking("");
+            setReturnShipTargetId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>반납 보내기</DialogTitle>
+            <DialogDescription>
+              반납 택배를 보낼 때 택배사와 송장번호를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                택배사
+              </label>
+              <input
+                type="text"
+                value={returnShipCarrier}
+                onChange={(e) => setReturnShipCarrier(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                placeholder="예: CJ대한통운"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                송장번호
+              </label>
+              <input
+                type="text"
+                value={returnShipTracking}
+                onChange={(e) => setReturnShipTracking(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                placeholder="송장번호를 입력해주세요"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setReturnShipDialogOpen(false)}
+              disabled={updateStatusMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!returnShipTargetId) return;
+                if (!returnShipCarrier.trim() || !returnShipTracking.trim()) {
+                  showToast(
+                    "택배사와 송장번호를 모두 입력해주세요.",
+                    "error",
+                  );
+                  return;
+                }
+                try {
+                  await updateStatusMutation.mutateAsync({
+                    reservationId: returnShipTargetId,
+                    data: {
+                      status: ReservationStatus.RETURNING,
+                      returnCarrier: returnShipCarrier.trim(),
+                      returnTrackingNumber: returnShipTracking.trim(),
+                    },
+                  });
+                  showToast("반납 중 상태로 변경되었습니다.", "success");
+                  setReturnShipDialogOpen(false);
+                  setReturnShipCarrier("");
+                  setReturnShipTracking("");
+                  setReturnShipTargetId(null);
+                } catch (error) {
+                  console.error("Failed to send return shipping:", error);
+                }
+              }}
+              disabled={
+                updateStatusMutation.isPending ||
+                !returnShipCarrier.trim() ||
+                !returnShipTracking.trim()
+              }
+            >
+              {updateStatusMutation.isPending ? "처리 중..." : "등록하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 일반 예약 취소 다이얼로그 (게스트용) */}
+      <Dialog
+        open={cancelDialogOpen}
+        onOpenChange={(open) => {
+          setCancelDialogOpen(open);
+          if (!open) {
+            setCancelReason("");
+            setCancelTargetId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>예약 취소</DialogTitle>
+            <DialogDescription>
+              예약을 취소하려면 취소 사유를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="취소 사유를 입력해주세요"
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none text-sm"
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialogOpen(false)}
+              disabled={cancelMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleCancel}
+              disabled={cancelMutation.isPending || !cancelReason.trim()}
+            >
+              {cancelMutation.isPending ? "취소 중..." : "취소하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

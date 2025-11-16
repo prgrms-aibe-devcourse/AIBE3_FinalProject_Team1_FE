@@ -25,7 +25,11 @@ import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 
 import { usePostQuery } from "@/queries/post";
-import { useCreateReservationMutation } from "@/queries/reservation";
+import {
+  useCreateReservationMutation,
+  useReservationQuery,
+  useUpdateReservationMutation,
+} from "@/queries/reservation";
 
 /**
  * 예약 생성 페이지 (내부 컴포넌트)
@@ -34,11 +38,17 @@ function NewReservationPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const postId = Number(searchParams.get("postId"));
+  const reservationIdParam = searchParams.get("reservationId");
+  const reservationId = reservationIdParam ? Number(reservationIdParam) : null;
   const { isAuthenticated } = useAuthStore();
   const showToast = useUIStore((state) => state.showToast);
 
   const { data: post, isLoading: postLoading } = usePostQuery(postId);
   const createReservationMutation = useCreateReservationMutation();
+  const updateReservationMutation = useUpdateReservationMutation();
+  const { data: existingReservation } = useReservationQuery(
+    reservationId ?? 0,
+  );
 
   const [formData, setFormData] = useState<Partial<CreateReservationDto>>({
     postId: postId || 0,
@@ -56,33 +66,88 @@ function NewReservationPageContent() {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isOptionPickerOpen, setIsOptionPickerOpen] = useState(false);
 
-  // 게시글 정보가 로드되면 기본값 설정
+  // 게시글 정보가 로드되면 기본값 설정 (새 예약일 때만)
   useEffect(() => {
-    if (post) {
-      // 게시글의 수령/반납 방법에 따라 기본값 설정
-      // ANY인 경우 DIRECT를 기본값으로 설정
-      if (post.receiveMethod) {
-        const defaultReceiveMethod =
-          post.receiveMethod === ReceiveMethod.ANY
-            ? ReceiveMethod.DIRECT
-            : (post.receiveMethod as ReceiveMethod);
-        setFormData((prev) => ({
-          ...prev,
-          receiveMethod: defaultReceiveMethod,
-        }));
-      }
-      if (post.returnMethod) {
-        const defaultReturnMethod =
-          post.returnMethod === ReceiveMethod.ANY
-            ? ReceiveMethod.DIRECT
-            : (post.returnMethod as ReceiveMethod);
-        setFormData((prev) => ({
-          ...prev,
-          returnMethod: defaultReturnMethod,
-        }));
-      }
+    if (reservationId || !post) return;
+    // 게시글의 수령/반납 방법에 따라 기본값 설정
+    // ANY인 경우 DIRECT를 기본값으로 설정
+    if (post.receiveMethod) {
+      const defaultReceiveMethod =
+        post.receiveMethod === ReceiveMethod.ANY
+          ? ReceiveMethod.DIRECT
+          : (post.receiveMethod as ReceiveMethod);
+      setFormData((prev) => ({
+        ...prev,
+        receiveMethod: defaultReceiveMethod,
+      }));
     }
-  }, [post]);
+    if (post.returnMethod) {
+      const defaultReturnMethod =
+        post.returnMethod === ReceiveMethod.ANY
+          ? ReceiveMethod.DIRECT
+          : (post.returnMethod as ReceiveMethod);
+      setFormData((prev) => ({
+        ...prev,
+        returnMethod: defaultReturnMethod,
+      }));
+    }
+  }, [post, reservationId]);
+
+  // 기존 예약이 있을 경우(수정 모드) 기본값을 예약 값으로 설정
+  useEffect(() => {
+    if (!existingReservation || !reservationId) return;
+
+    // 승인 대기 상태가 아니면 수정 불가
+    if (existingReservation.status !== "PENDING_APPROVAL") {
+      showToast("승인 대기 상태의 예약만 수정할 수 있습니다.", "error");
+      router.push(`/reservations/${existingReservation.id}`);
+      return;
+    }
+
+    const start =
+      existingReservation.reservationStartAt &&
+      new Date(
+        typeof existingReservation.reservationStartAt === "string"
+          ? existingReservation.reservationStartAt
+          : existingReservation.reservationStartAt,
+      );
+    const end =
+      existingReservation.reservationEndAt &&
+      new Date(
+        typeof existingReservation.reservationEndAt === "string"
+          ? existingReservation.reservationEndAt
+          : existingReservation.reservationEndAt,
+      );
+
+    setStartDate(start || null);
+    setEndDate(end || null);
+
+    setFormData((prev) => ({
+      ...prev,
+      postId: existingReservation.postId,
+      receiveMethod:
+        (existingReservation.receiveMethod as ReceiveMethod) ??
+        ReceiveMethod.DIRECT,
+      returnMethod:
+        (existingReservation.returnMethod as ReceiveMethod) ??
+        ReceiveMethod.DIRECT,
+      reservationStartAt: start
+        ? start.toISOString().split("T")[0]
+        : prev.reservationStartAt,
+      reservationEndAt: end
+        ? end.toISOString().split("T")[0]
+        : prev.reservationEndAt,
+      optionIds:
+        existingReservation.options?.map((o) => o.optionId) ??
+        prev.optionIds ??
+        [],
+    }));
+
+    if (existingReservation.receiveMethod === ReceiveMethod.DELIVERY) {
+      setReceiveAddress1(existingReservation.receiveAddress1 || "");
+      setReceiveAddress2(existingReservation.receiveAddress2 || "");
+    }
+  }, [existingReservation, reservationId, router, showToast]);
 
   // 인증 확인
   useEffect(() => {
@@ -91,12 +156,13 @@ function NewReservationPageContent() {
     }
   }, [isAuthenticated, router]);
 
-  // postId가 없으면 게시글 목록으로 리다이렉트
+  // postId가 없으면 게시글 목록으로 리다이렉트 (단, 수정 모드에서는 existingReservation 기준)
   useEffect(() => {
+    if (reservationId) return;
     if (!postId || postId === 0) {
       router.push("/posts");
     }
-  }, [postId, router]);
+  }, [postId, reservationId, router]);
 
   // 다음 주소 검색 스크립트 로드
   useEffect(() => {
@@ -279,9 +345,10 @@ function NewReservationPageContent() {
       returnMethod: formData.returnMethod!,
       reservationStartAt,
       reservationEndAt,
-      optionIds: formData.optionIds && formData.optionIds.length > 0
-        ? formData.optionIds
-        : undefined,
+      optionIds:
+        formData.optionIds && formData.optionIds.length > 0
+          ? formData.optionIds
+          : undefined,
     };
 
     // 주소 추가 (수령 주소만)
@@ -291,11 +358,30 @@ function NewReservationPageContent() {
     }
 
     try {
-      const response = await createReservationMutation.mutateAsync(submitData);
-      // 예약 생성 성공 시 상세 페이지로 이동
-      router.push(`/reservations/${response.id}`);
+      if (reservationId) {
+        // 수정 모드: 업데이트 요청
+        await updateReservationMutation.mutateAsync({
+          reservationId,
+          data: {
+            receiveMethod: submitData.receiveMethod,
+            returnMethod: submitData.returnMethod,
+            reservationStartAt: startDate,
+            reservationEndAt: endDate,
+            optionIds: submitData.optionIds,
+            receiveAddress1: submitData.receiveAddress1,
+            receiveAddress2: submitData.receiveAddress2,
+          },
+        });
+        showToast("예약이 수정되었습니다.", "success");
+        router.push(`/reservations/${reservationId}`);
+      } else {
+        // 생성 모드
+        const response =
+          await createReservationMutation.mutateAsync(submitData);
+        router.push(`/reservations/${response.id}`);
+      }
     } catch (error) {
-      console.error("Failed to create reservation:", error);
+      console.error(reservationId ? "Failed to update reservation:" : "Failed to create reservation:", error);
     }
   };
 
@@ -328,7 +414,9 @@ function NewReservationPageContent() {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">대여 신청</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {reservationId ? "예약 수정" : "대여 신청"}
+          </CardTitle>
           <CardDescription>{post.title}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -641,11 +729,15 @@ function NewReservationPageContent() {
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={createReservationMutation.isPending}
+                disabled={createReservationMutation.isPending || updateReservationMutation.isPending}
               >
-                {createReservationMutation.isPending
-                  ? "예약 중..."
-                  : "예약하기"}
+                {reservationId
+                  ? updateReservationMutation.isPending
+                    ? "수정 중..."
+                    : "수정하기"
+                  : createReservationMutation.isPending
+                    ? "예약 중..."
+                    : "예약하기"}
               </Button>
             </div>
           </form>
