@@ -8,17 +8,18 @@ import type { CreateReviewDto, Review, UpdateReviewDto } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
-import { useUIStore } from "@/store/uiStore";
-
 import {
   createReview,
   deleteReview,
   getReview,
   getReviewByReservation,
   getReviewList,
+  getReviewsByMember,
   getReviewsByPost,
   updateReview,
 } from "@/api/endpoints/review";
+
+import { useUIStore } from "@/store/uiStore";
 
 /**
  * 후기 목록 조회 query
@@ -61,6 +62,23 @@ export function useReviewsByPostQuery(
       return getReviewsByPost(postId, filters);
     },
     enabled: !!postId, // postId가 있을 때만 쿼리 실행
+    staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지
+  });
+}
+
+/**
+ * 회원별 후기 목록 조회 query
+ */
+export function useReviewsByMemberQuery(
+  memberId: number,
+  filters?: Record<string, unknown>,
+) {
+  return useQuery({
+    queryKey: getQueryKey(queryKeys.review.byMember(memberId)),
+    queryFn: async (): Promise<PaginatedApiResponse<Review>> => {
+      return getReviewsByMember(memberId, filters);
+    },
+    enabled: !!memberId, // memberId가 있을 때만 쿼리 실행
     staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지
   });
 }

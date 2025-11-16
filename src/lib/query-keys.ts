@@ -59,6 +59,7 @@ export const reviewKeys = createQueryKeys("review", {
   all: null,
   detail: (reviewId: number) => [reviewId],
   byPost: (postId: number) => [postId],
+  byMember: (memberId: number) => [memberId],
   byReservation: (reservationId: number) => [reservationId],
 });
 

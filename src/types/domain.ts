@@ -385,7 +385,8 @@ export interface Review extends BaseEntity {
   reservationId: number;
   // 관계 데이터
   reservation?: Reservation;
-  member?: MemberResponse; // 작성자 (예약자)
+  member?: MemberResponse; // 작성자 (예약자) - 기존 필드 (호환용)
+  author?: MemberResponse; // 작성자 (백엔드 신규 응답 필드)
 }
 
 /**

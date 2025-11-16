@@ -439,9 +439,25 @@ export function useCancelReservationMutation() {
         getQueryKey(queryKeys.reservation.detail(variables.reservationId)),
         response,
       );
-      // 예약 목록 쿼리 무효화
+      // 전체 예약 목록 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.reservation.all),
+      });
+      // 내 예약 목록 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.reservation.myReservations),
+      });
+      // 게시글별 예약 목록 무효화 (모든 게시글)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return (
+            Array.isArray(key) &&
+            key.length >= 2 &&
+            key[0] === "reservation" &&
+            key[1] === "byPost"
+          );
+        },
       });
       // 상태별 예약 목록 무효화
       queryClient.invalidateQueries({

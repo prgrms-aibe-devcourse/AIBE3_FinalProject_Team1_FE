@@ -28,9 +28,11 @@ export async function getReview(reviewId: number): Promise<Review> {
 
 /**
  * 후기 생성
+ * 백엔드 스펙: POST /api/v1/reviews/{reservationId}
  */
 export async function createReview(data: CreateReviewDto): Promise<Review> {
-  return apiClient.post<Review>("/api/v1/reviews", data);
+  const { reservationId, ...body } = data;
+  return apiClient.post<Review>(`/api/v1/reviews/${reservationId}`, body);
 }
 
 /**
@@ -59,6 +61,19 @@ export async function getReviewsByPost(
 ): Promise<PaginatedApiResponse<Review>> {
   const params = buildQueryParams(filters);
   const endpoint = `/api/v1/posts/${postId}/reviews${params.toString() ? `?${params.toString()}` : ""}`;
+  return apiClient.get<PaginatedApiResponse<Review>>(endpoint);
+}
+
+/**
+ * 회원별 후기 목록 조회
+ * GET /api/v1/members/{memberId}/reviews
+ */
+export async function getReviewsByMember(
+  memberId: number,
+  filters?: Record<string, unknown>,
+): Promise<PaginatedApiResponse<Review>> {
+  const params = buildQueryParams(filters);
+  const endpoint = `/api/v1/members/${memberId}/reviews${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Review>>(endpoint);
 }
 
