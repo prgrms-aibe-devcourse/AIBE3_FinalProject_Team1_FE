@@ -32,6 +32,7 @@ import {
   useCancelReservationMutation,
   useUpdateReservationStatusMutation,
 } from "@/queries/reservation";
+import { useCreateReviewMutation } from "@/queries/review";
 import { useUIStore } from "@/store/uiStore";
 
 type StatusFilter =
@@ -126,6 +127,13 @@ export default function MyReservationsPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewTargetId, setReviewTargetId] = useState<number | null>(null);
+  const [equipmentScore, setEquipmentScore] = useState(5);
+  const [kindnessScore, setKindnessScore] = useState(5);
+  const [responseTimeScore, setResponseTimeScore] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const createReviewMutation = useCreateReviewMutation();
 
   const { data: myReservations, isLoading: reservationsLoading } =
     useMyReservationsQuery({
@@ -286,12 +294,16 @@ export default function MyReservationsPage() {
 
               // 후기 작성 가능 여부 확인
               const canWriteReview =
-                status === "REFUND_COMPLETED" ||
-                status === "RETURN_COMPLETED";
+                status === "RETURN_COMPLETED" ||
+                status === "INSPECTING_RETURN" ||
+                status === "PENDING_REFUND" ||
+                status === "REFUND_COMPLETED";
 
-              // 취소 가능 여부 확인
+              // 취소 가능 여부 확인 (승인 대기, 결제 대기, 수령 대기에서 가능)
               const canCancel =
-                status === "PENDING_APPROVAL" || status === "PENDING_PAYMENT";
+                status === "PENDING_APPROVAL" ||
+                status === "PENDING_PAYMENT" ||
+                status === "PENDING_PICKUP";
 
               // 결제 가능 여부 확인
               const canPay = status === "PENDING_PAYMENT";
@@ -299,7 +311,7 @@ export default function MyReservationsPage() {
               // 게스트 측 상태 변경 가능 여부
               const canConfirmReceive = status === "SHIPPING";
               const canCompleteInspection =
-                status === "INSPECTING_RENTAL" || status === "PENDING_PICKUP";
+                status === "INSPECTING_RENTAL";
               const canStartReturn = status === "RENTING";
               const canSendReturnShipping =
                 status === "PENDING_RETURN" &&
@@ -517,21 +529,27 @@ export default function MyReservationsPage() {
                               className="text-red-600 border-red-600 hover:bg-red-50"
                             >
                               <X className="h-4 w-4 mr-1" />
-                              취소
+                              예약 취소
                             </Button>
                           )}
 
                           {canWriteReview && (
-                            <Link href={`/reservations/${reservation.id}/review`}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-green-600 border-green-600 hover:bg-green-50"
-                              >
-                                <Star className="h-4 w-4 mr-1" />
-                                후기 작성
-                              </Button>
-                            </Link>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => {
+                                setReviewTargetId(reservation.id);
+                                setEquipmentScore(5);
+                                setKindnessScore(5);
+                                setResponseTimeScore(5);
+                                setReviewComment("");
+                                setReviewDialogOpen(true);
+                              }}
+                            >
+                              <Star className="h-4 w-4 mr-1" />
+                              후기 작성
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -711,6 +729,152 @@ export default function MyReservationsPage() {
               }
             >
               {updateStatusMutation.isPending ? "처리 중..." : "등록하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 후기 작성 다이얼로그 */}
+      <Dialog
+        open={reviewDialogOpen}
+        onOpenChange={(open) => {
+          setReviewDialogOpen(open);
+          if (!open) {
+            setReviewTargetId(null);
+            setEquipmentScore(0);
+            setKindnessScore(0);
+            setResponseTimeScore(0);
+            setReviewComment("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>후기 작성</DialogTitle>
+            <DialogDescription>
+              장비 상태, 호스트 친절도, 응답 속도에 대해 평가하고 후기를 남겨주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            {/* 장비 상태 */}
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-700">장비 상태</p>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setEquipmentScore(idx + 1)}
+                    className="p-1"
+                  >
+                    <Star
+                      className={`h-5 w-5 ${
+                        idx < equipmentScore
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 친절도 */}
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-700">친절도</p>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setKindnessScore(idx + 1)}
+                    className="p-1"
+                  >
+                    <Star
+                      className={`h-5 w-5 ${
+                        idx < kindnessScore
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 응답 속도 */}
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-700">응답 속도</p>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setResponseTimeScore(idx + 1)}
+                    className="p-1"
+                  >
+                    <Star
+                      className={`h-5 w-5 ${
+                        idx < responseTimeScore
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 코멘트 */}
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-700">코멘트</p>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="후기를 입력해주세요 (최소 1자 이상)"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none text-sm"
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setReviewDialogOpen(false)}
+              disabled={createReviewMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!reviewTargetId) return;
+                if (!reviewComment.trim()) {
+                  showToast("후기 내용을 입력해주세요.", "error");
+                  return;
+                }
+                try {
+                  await createReviewMutation.mutateAsync({
+                    reservationId: reviewTargetId,
+                    equipmentScore,
+                    kindnessScore,
+                    responseTimeScore,
+                    comment: reviewComment.trim(),
+                  });
+                  setReviewDialogOpen(false);
+                  setReviewTargetId(null);
+                  setEquipmentScore(0);
+                  setKindnessScore(0);
+                  setResponseTimeScore(0);
+                  setReviewComment("");
+                } catch (error) {
+                  console.error("Failed to create review:", error);
+                }
+              }}
+              disabled={
+                createReviewMutation.isPending || !reviewComment.trim()
+              }
+            >
+              {createReviewMutation.isPending ? "작성 중..." : "작성하기"}
             </Button>
           </DialogFooter>
         </DialogContent>

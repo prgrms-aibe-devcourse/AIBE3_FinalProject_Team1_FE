@@ -11,6 +11,9 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Pagination } from "@/components/ui/pagination";
+
+import { ProfileReviewDialog } from "@/components/profile/profile-review-dialog";
 
 import { useAuthStore } from "@/store/authStore";
 
@@ -26,8 +29,49 @@ import {
   Heart,
   MapPin,
   RotateCcw,
+  Star,
   Truck,
 } from "lucide-react";
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
 
 /**
  * 게시글 상세 페이지
@@ -53,11 +97,17 @@ export default function PostDetailPage() {
   const router = useRouter();
   const postId = Number(params.id);
   const { data: post, isLoading } = usePostQuery(postId);
-  const { data: reviewsData } = useReviewsByPostQuery(postId);
+  const [reviewPage, setReviewPage] = useState(1);
+  const reviewPageSize = 5;
+  const { data: reviewsData } = useReviewsByPostQuery(postId, {
+    page: reviewPage - 1,
+    size: reviewPageSize,
+  });
   const { isAuthenticated, user } = useAuthStore();
   const toggleFavoriteMutation = useToggleFavoriteMutation();
   const deletePostMutation = useDeletePostMutation();
   const createChatRoomMutation = useCreateChatRoomMutation();
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   // post.isFavorite를 사용 (optimistic update가 이미 적용됨)
   const isFavorite = post?.isFavorite ?? false;
@@ -129,10 +179,19 @@ export default function PostDetailPage() {
   const thumbnailStartIndex = thumbnailScrollIndex;
 
   const reviews = reviewsData?.content || [];
+  const totalReviewPages = reviewsData?.page?.totalPages || 1;
+  const totalReviewCount = reviewsData?.page?.totalElements || reviews.length;
   const averageRating =
     reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + review.equipmentScore, 0) /
-        reviews.length
+      ? reviews.reduce(
+          (sum, review) =>
+            sum +
+            (review.equipmentScore +
+              review.kindnessScore +
+              review.responseTimeScore) /
+              3,
+          0,
+        ) / reviews.length
       : 0;
 
   const handleFavorite = () => {
@@ -240,7 +299,7 @@ export default function PostDetailPage() {
                         <div
                           key={actualIndex}
                           onClick={() => setSelectedImageIndex(actualIndex)}
-                          className={`relative flex-shrink-0 w-20 h-20 overflow-hidden rounded-lg cursor-pointer transition-all ${
+                          className={`relative shrink-0 w-20 h-20 overflow-hidden rounded-lg cursor-pointer transition-all ${
                             selectedImageIndex === actualIndex
                               ? "ring-2 ring-blue-500 ring-offset-2"
                               : "hover:opacity-80"
@@ -291,7 +350,7 @@ export default function PostDetailPage() {
                   {/* 작성자 프로필 섹션 */}
                   <div className="flex items-start gap-4 pb-4 bg-gray-50 rounded-lg p-4 mb-4">
                     {post.author?.profileImgUrl ? (
-                      <div className="relative h-16 w-16 rounded-full overflow-hidden flex-shrink-0">
+                      <div className="relative h-16 w-16 rounded-full overflow-hidden shrink-0">
                         <Image
                           src={post.author.profileImgUrl}
                           alt={post.author.nickname || "작성자"}
@@ -300,7 +359,7 @@ export default function PostDetailPage() {
                         />
                       </div>
                     ) : (
-                      <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                      <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center shrink-0">
                         <span className="text-gray-600 text-xl font-semibold">
                           {
                             (post.author?.nickname ||
@@ -311,9 +370,13 @@ export default function PostDetailPage() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-lg">
+                      <button
+                        type="button"
+                        onClick={() => setProfileDialogOpen(true)}
+                        className="font-semibold text-lg text-left text-gray-900 hover:text-blue-600"
+                      >
                         {post.author?.nickname || post.authorNickname || "익명"}
-                      </p>
+                      </button>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                         <span>★4.9</span>
                         <span>응답률 98%</span>
@@ -333,7 +396,7 @@ export default function PostDetailPage() {
                   {(post.returnAddress1 || post.returnAddress2) && (
                     <div className="pb-4 mb-4 bg-gray-50 rounded-lg p-4">
                       <div className="flex items-start gap-2 mb-2">
-                        <MapPin className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                         <p className="text-sm font-medium">반납 주소</p>
                       </div>
                       <div className="bg-white rounded p-2 text-sm space-y-1">
@@ -456,7 +519,7 @@ export default function PostDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed break-words">
+                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed wrap-break-word">
                   {post.content}
                 </p>
               </div>
@@ -534,78 +597,95 @@ export default function PostDetailPage() {
                   후기{" "}
                   {reviews.length > 0 && (
                     <span className="text-base font-normal text-gray-500">
-                      ★{averageRating.toFixed(1)} ({reviews.length}개 후기)
+                      ★{averageRating.toFixed(1)} ({totalReviewCount}개 후기)
                     </span>
                   )}
                 </CardTitle>
-                {reviews.length > 5 && (
-                  <Button variant="ghost" size="sm">
-                    전체보기
-                  </Button>
-                )}
               </div>
             </CardHeader>
             <CardContent>
               {reviews.length > 0 ? (
                 <div className="space-y-6">
-                  {reviews.slice(0, 5).map((review) => (
-                    <div
-                      key={review.id}
-                      className="border-b pb-6 last:border-0"
-                    >
-                      <div className="flex items-start gap-4 mb-3">
-                        <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-gray-600">
-                            {review.member?.nickname?.[0] || "U"}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold">
-                              {review.member?.nickname || "익명"}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              완료된 대여
+                  {reviews.map((review) => {
+                    const overallScore =
+                      (review.equipmentScore +
+                        review.kindnessScore +
+                        review.responseTimeScore) /
+                      3;
+                    return (
+                      <div
+                        key={review.id}
+                        className="border-b pb-6 last:border-0"
+                      >
+                        <div className="flex items-start gap-4 mb-3">
+                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                            <span className="text-gray-600">
+                              {review.author?.nickname?.[0] || "U"}
                             </span>
                           </div>
-                          <div className="text-sm text-gray-500 mb-2">
-                            {review.reservation?.reservationStartAt &&
-                              review.reservation?.reservationEndAt && (
-                                <>
-                                  대여 기간:{" "}
-                                  {(() => {
-                                    const start = new Date(
-                                      review.reservation.reservationStartAt,
-                                    );
-                                    const end = new Date(
-                                      review.reservation.reservationEndAt,
-                                    );
-                                    const startStr = `${start.getFullYear()}.${String(start.getMonth() + 1).padStart(2, "0")}.${String(start.getDate()).padStart(2, "0")}`;
-                                    const endStr = `${end.getFullYear()}.${String(end.getMonth() + 1).padStart(2, "0")}.${String(end.getDate()).padStart(2, "0")}`;
-                                    return `${startStr} - ${endStr}`;
-                                  })()}
-                                </>
-                              )}
-                            {review.createdAt && (
-                              <span className="ml-2">
-                                후기 작성일:{" "}
-                                {(() => {
-                                  const date = new Date(review.createdAt);
-                                  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
-                                })()}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold">
+                                {review.author?.nickname || "익명"}
                               </span>
-                            )}
+                              {review.createdAt && (
+                                <span className="text-xs text-gray-500">
+                                  작성일:{" "}
+                                  {(() => {
+                                    const date = new Date(review.createdAt);
+                                    const yyyy = date.getFullYear();
+                                    const mm = String(
+                                      date.getMonth() + 1,
+                                    ).padStart(2, "0");
+                                    const dd = String(date.getDate()).padStart(
+                                      2,
+                                      "0",
+                                    );
+                                    return `${yyyy}-${mm}-${dd}`;
+                                  })()}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* 전체 평균 + 항목별 점수 */}
+                            <div className="mb-2 flex flex-wrap items-center gap-3 text-sm">
+                              <span className="flex items-center gap-1 text-yellow-500">
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                <span className="font-semibold text-gray-900">
+                                  {overallScore.toFixed(1)}
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-2 text-gray-600">
+                                <span className="flex items-center gap-1">
+                                  장비
+                                  <span className="flex items-center gap-0.5 text-yellow-500">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span>{review.equipmentScore}</span>
+                                  </span>
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  친절도
+                                  <span className="flex items-center gap-0.5 text-yellow-500">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span>{review.kindnessScore}</span>
+                                  </span>
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  응답시간
+                                  <span className="flex items-center gap-0.5 text-yellow-500">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span>{review.responseTimeScore}</span>
+                                  </span>
+                                </span>
+                              </span>
+                            </div>
+
+                            <p className="text-gray-700">{review.comment}</p>
                           </div>
-                          <div className="mb-2">
-                            <span className="text-yellow-500">
-                              {"★".repeat(review.equipmentScore)}
-                            </span>
-                          </div>
-                          <p className="text-gray-700">{review.comment}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-center text-gray-500 py-8">
@@ -614,8 +694,26 @@ export default function PostDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {totalReviewPages > 1 && (
+            <div className="mt-4 flex justify-center">
+              <Pagination
+                currentPage={reviewPage}
+                totalPages={totalReviewPages}
+                onPageChange={setReviewPage}
+              />
+            </div>
+          )}
         </div>
       </div>
+
+      {/* 작성자 프로필 & 받은 후기 다이얼로그 */}
+      <ProfileReviewDialog
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
+        author={post?.author ?? null}
+        memberId={post?.author?.id}
+      />
     </div>
   );
 }
