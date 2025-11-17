@@ -1,3 +1,4 @@
+// src/api/endpoints/chat.ts
 /**
  * 채팅 관련 API 엔드포인트
  */
@@ -21,12 +22,10 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
     PaginatedApiResponse<ChatRoomListDto> | ChatRoomListDto[]
   >("/api/v1/chats");
 
-  // 개발 중에는 응답 형태를 로그로 확인
   if (process.env.NODE_ENV === "development") {
     console.log("[API] getChatRoomList response:", response);
   }
 
-  // 서버가 페이징 형태로 반환하는 경우(content)와 단순 배열을 반환하는 경우 둘 다 처리
   let rawList: any[] = [];
   if (Array.isArray(response)) {
     rawList = response as any[];
@@ -37,7 +36,6 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
     rawList = (response as any).content as any[];
   }
 
-  // 안전하게 필드 매핑: 여러 케이스(스네이크 케이스, 배열 내 메시지 등)를 처리
   const mapped: ChatRoomListDto[] = rawList.map((item) => {
     const lastMsgCandidates = [
       item.lastMessage,
@@ -56,7 +54,6 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
       }
     }
 
-    // messages 배열이 있으면 마지막 요소 내용을 우선으로 사용
     if (
       !lastMessage &&
       Array.isArray(item.messages) &&
@@ -66,7 +63,6 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
       lastMessage = last?.content ?? last?.message ?? last?.body ?? null;
     }
 
-    // lastMessageTime 후보들
     const lastTimeCandidates = [
       item.lastMessageTime,
       item.last_message_time,
@@ -81,7 +77,6 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
       }
     }
 
-    // 메시지 배열에서 시간 추출 우선순위
     if (
       !lastMessageTime &&
       Array.isArray(item.messages) &&
@@ -122,7 +117,6 @@ export async function getChatRoom(roomId: number): Promise<ChatRoomDto> {
 
 /**
  * 채팅방 생성 또는 조회
- * 응답: { message: string, chatRoomId: number }
  */
 export async function createChatRoom(
   postId: number,
@@ -155,7 +149,7 @@ export async function getChatMessages(
 }
 
 /**
- * 채팅 메시지 전송
+ * 채팅 메시지 전송 (HTTP fallback)
  */
 export async function sendChatMessage(
   roomId: number,

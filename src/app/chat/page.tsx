@@ -67,7 +67,6 @@ export default function ChatPage() {
 
   /* ⭐ 채팅 페이지 처음 들어올 때 목록 강제 refetch
      - 이 페이지(unmount → mount) 들어올 때마다 1번 실행
-     - 내부에서 리렌더링될 때는 다시 실행 X
   */
   useEffect(() => {
     const key = getQueryKey(queryKeys.chat.rooms);
@@ -109,6 +108,7 @@ export default function ChatPage() {
 
   const handleFetchNextPage = () => {
     if (!selectedRoomId) return;
+    if (!hasNextPage || isFetchingNextPage) return;
     fetchNextPage();
   };
 
@@ -143,6 +143,7 @@ export default function ChatPage() {
   const lastMarkedMessageIdByRoom = useRef<Record<number, number | null>>({});
   const prevRoomRef = useRef<number | null>(null);
   const selectedRoomIdRef = useRef<number | null>(selectedRoomId);
+  const hasEnterReadRunRef = useRef(false); // 현재 방에 대해 "입장 읽음" 한번만 실행
 
   useEffect(() => {
     selectedRoomIdRef.current = selectedRoomId;
@@ -172,7 +173,7 @@ export default function ChatPage() {
 
       lastMarkedMessageIdByRoom.current[roomId] = lastId;
 
-      // 서버로 읽음 처리 (ENTER 시점에서도, EXIT/언마운트 시점에서도 이 함수만 호출)
+      // 서버로 읽음 처리
       markAsReadMutation.mutate({ roomId, lastMessageId: lastId });
     },
     [markAsReadMutation],
@@ -180,9 +181,8 @@ export default function ChatPage() {
 
   /* ======================
      ENTER / EXIT 방 처리
-     - 요구사항 2번: 방 들어가고 나올 때 읽음 처리
-       👉 ENTER: 최신 메시지까지 읽은 것으로 처리
-       👉 EXIT: ENTER 이후 새로 쌓인 메시지가 있으면 한 번 더 READ
+     - ENTER: UI 상 unreadCount 0 처리
+     - EXIT: 새로 쌓인 메시지가 있으면 READ
   ====================== */
   useEffect(() => {
     const prev = prevRoomRef.current;
@@ -205,31 +205,50 @@ export default function ChatPage() {
         ),
       );
 
-      // 이미 메시지가 로딩되어 있다면 바로 읽음 처리
-      const lastId = lastMessageIdByRoom.current[curr];
-      if (lastId) {
-        markRoomAsRead(curr);
-      }
+      // 새 방으로 들어올 때마다 "입장 읽음" 플래그 초기화
+      hasEnterReadRunRef.current = false;
     }
 
     prevRoomRef.current = curr ?? null;
   }, [selectedRoomId, markRoomAsRead]);
 
   /* ======================
+     ENTER 시점 읽음 처리 (메시지가 로딩된 뒤 1번만)
+  ====================== */
+  useEffect(() => {
+    if (!selectedRoomId) return;
+    if (messages.length === 0) return;
+    if (hasEnterReadRunRef.current) return;
+
+    // 현재 방에 대해 "입장 읽음" 딱 1번만 수행
+    hasEnterReadRunRef.current = true;
+    console.log("👁️ ENTER READ after messages loaded", {
+      roomId: selectedRoomId,
+    });
+    markRoomAsRead(selectedRoomId);
+  }, [selectedRoomId, messages.length, markRoomAsRead]);
+
+  /* ======================
      언마운트 fallback
      - 페이지를 떠날 때 현재 방 기준으로 한 번 더 READ
-       (ENTER 이후 새로 온 메시지가 있고, EXIT 훅이 못 탄 경우 대비)
+       (EXIT 훅이 못 탄 경우 대비)
   ====================== */
   useEffect(() => {
     return () => {
+      // 🔥 Fast Refresh(HMR)일 때는 fallback 실행 금지
+      if (typeof import.meta !== "undefined" && import.meta.hot) return;
+
       const roomId = prevRoomRef.current;
       if (!roomId) return;
 
       const lastId = lastMessageIdByRoom.current[roomId];
-      if (lastId) {
-        console.log("🔥 READ (unmount fallback)", { roomId, lastId });
-        markChatRoomAsRead(roomId, lastId).catch(console.error);
-      }
+      const prevMarked = lastMarkedMessageIdByRoom.current[roomId];
+
+      if (!lastId) return;
+      if (prevMarked && prevMarked >= lastId) return;
+
+      console.log("🔥 READ (unmount fallback)", { roomId, lastId });
+      markChatRoomAsRead(roomId, lastId).catch(console.error);
     };
   }, []);
 
@@ -240,10 +259,7 @@ export default function ChatPage() {
   const { isConnected, subscribe, publish } = useStomp();
 
   /* ⭐ 메시지 실시간 수신 — "구독한 방 ID" 기준으로만 처리
-     - ChatMessageDto 안에 chatRoomId 없어도 상관 없음
-     - STOMP 토픽 /sub/chat/{roomId} 자체가 room 단위라서
-       subscribedRoomId === roomId 로 보는 게 맞음
-  */
+   */
   const handleIncomingMessage = useCallback(
     (msg: any, subscribedRoomId: number) => {
       const parsed = JSON.parse(msg.body) as ChatMessageDto;
@@ -265,9 +281,9 @@ export default function ChatPage() {
           if (exists) return old;
 
           const pages = [...old.pages];
-          pages[pages.length - 1] = {
-            ...pages[pages.length - 1],
-            content: [...pages[pages.length - 1].content, parsed],
+          pages[0] = {
+            ...pages[0],
+            content: [parsed, ...(pages[0].content || [])],
           };
 
           return { ...old, pages };
@@ -505,7 +521,12 @@ export default function ChatPage() {
               className="flex-1 overflow-y-auto p-4 space-y-4"
               onScroll={(e) => {
                 const t = e.currentTarget;
-                if (t.scrollTop < 100 && hasNextPage && !isFetchingNextPage) {
+
+                // 초기 렌더 시 scrollTop === 0 이라서 바로 호출되는 것 방지
+                if (t.scrollTop === 0) return;
+
+                // 위로 충분히 스크롤 올렸을 때만 다음 페이지 호출
+                if (t.scrollTop < 80 && hasNextPage && !isFetchingNextPage) {
                   handleFetchNextPage();
                 }
               }}

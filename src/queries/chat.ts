@@ -1,3 +1,4 @@
+// src/queries/chat.ts
 /**
  * 채팅 관련 React Query 쿼리
  */
@@ -47,10 +48,12 @@ export function useChatRoomListQuery() {
         return [];
       }
     },
+    // ChatPage 들어올 때마다 invalidateQueries로 1번 새로 가져오고
+    // 그 이후에는 staleTime 무한 + refetch X 로 유지
     staleTime: Infinity,
-    gcTime: 1000 * 60 * 30, // 30분간 메모리에 유지
-    refetchOnWindowFocus: false, // 창 포커스 시 refetch 안함
-    refetchOnReconnect: false, // 재연결 시 refetch 안함
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
 }
@@ -84,6 +87,7 @@ export function useCreateChatRoomMutation() {
   return useMutation({
     mutationFn: (postId: number) => createChatRoom(postId),
     onSuccess: () => {
+      // 새 채팅방 생겼으니 목록은 다시 불러오기
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.rooms),
       });
@@ -100,9 +104,7 @@ export function useCreateChatRoomMutation() {
 export function useChatMessagesQuery(roomId: number | null) {
   return useInfiniteQuery({
     queryKey: getQueryKey(queryKeys.chat.messages(roomId || 0)),
-    queryFn: async ({
-      pageParam = 0,
-    }): Promise<PaginatedApiResponse<ChatMessageDto>> => {
+    queryFn: async ({ pageParam = 0 }) => {
       try {
         return await getChatMessages(roomId!, pageParam, 20);
       } catch (error) {
@@ -123,20 +125,22 @@ export function useChatMessagesQuery(roomId: number | null) {
         };
       }
     },
+    initialPageParam: 0,
     getNextPageParam: (lastPage) =>
       lastPage.page.hasNext ? lastPage.page.page + 1 : undefined,
-    initialPageParam: 0,
     enabled: !!roomId && roomId > 0,
-    staleTime: Infinity, // 최초 1회만 로드, 그 후는 실시간 업데이트만
-    gcTime: 1000 * 60 * 30, // 30분간 메모리에 유지
-    refetchOnWindowFocus: false, // 창 포커스 시 refetch 안함
-    refetchOnReconnect: false, // 재연결 시 refetch 안함
+    // 메시지는 방 들어올 때마다 새로 가져오기 (staleTime=0)
+    staleTime: 0,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
 }
 
 /**
  * 채팅 메시지 전송 mutation
+ * (웹소켓 publish 실패 시 HTTP fallback 용)
  */
 export function useSendChatMessageMutation() {
   const queryClient = useQueryClient();
@@ -145,6 +149,7 @@ export function useSendChatMessageMutation() {
     mutationFn: ({ roomId, content }: { roomId: number; content: string }) =>
       sendChatMessage(roomId, { content } as SendChatMessageDto),
     onSuccess: (_, variables) => {
+      // HTTP 전송일 때만 messages refetch
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.messages(variables.roomId)),
       });
@@ -201,11 +206,11 @@ export function useDeleteChatRoomMutation() {
 }
 
 /**
- * ⭐ 채팅방 읽음 처리 mutation (개선된 버전)
+ * 채팅방 읽음 처리 mutation
+ * ✅ 읽음 처리는 서버에만 반영하고,
+ *    목록(unreadCount)은 프론트에서 직접 수정 or 알림으로만 갱신
  */
 export function useMarkAsReadMutation() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({
       roomId,
@@ -224,10 +229,6 @@ export function useMarkAsReadMutation() {
     },
     onSuccess: (_, variables) => {
       console.log("[Mark as read SUCCESS] roomId:", variables.roomId);
-      // 채팅방 목록을 무효화하여 unreadCount 업데이트
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.chat.rooms),
-      });
     },
     onError: (error) => {
       console.error("Mark as read error:", error);
@@ -235,7 +236,7 @@ export function useMarkAsReadMutation() {
   });
 }
 
-// 간단한 채팅방 목록 쿼리 (기존 호환)
+// 기존 이름 유지용 alias
 export function useChatRoomsQuery() {
   return useChatRoomListQuery();
 }

@@ -1,4 +1,4 @@
-// useStomp.ts
+// src/hooks/useStomp.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 
@@ -18,12 +18,15 @@ export function useStomp() {
       const sub = client.subscribe(destination, callback);
       return () => sub.unsubscribe();
     },
-    []
+    [],
   );
 
   const publish = useCallback((destination: string, body: any) => {
     const client = clientRef.current;
-    if (!client || !client.connected) return;
+    if (!client || !client.connected) {
+      console.warn("[STOMP] publish before connected:", destination);
+      return;
+    }
     client.publish({ destination, body: JSON.stringify(body) });
   }, []);
 
@@ -36,7 +39,8 @@ export function useStomp() {
     }
 
     const client = new Client({
-      brokerURL: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws-chat",
+      brokerURL:
+        process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws-chat",
       reconnectDelay: 3000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
