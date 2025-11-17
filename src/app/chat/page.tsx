@@ -65,9 +65,12 @@ export default function ChatPage() {
 
   const queryClient = useQueryClient();
 
-  /* ⭐ 채팅 페이지 처음 들어올 때 목록 강제 refetch
-     - 이 페이지(unmount → mount) 들어올 때마다 1번 실행
-  */
+  // ⭐ 자동 스크롤 제어용
+  const initialScrollDone = useRef(false);
+  const isUserScrollingUpRef = useRef(false);
+  const shouldAutoScrollRef = useRef(true);
+
+  /* ⭐ 채팅 페이지 처음 들어올 때 목록 강제 refetch */
   useEffect(() => {
     const key = getQueryKey(queryKeys.chat.rooms);
     console.log("[ChatPage] invalidate chat rooms on mount:", key);
@@ -91,7 +94,6 @@ export default function ChatPage() {
 
   const [chatRooms, setChatRooms] = useState<ChatRoomListDto[]>([]);
 
-  // Query 결과를 로컬 상태에 반영 (알림/실시간 업데이트는 이 로컬 상태만 수정)
   useEffect(() => {
     setChatRooms(chatRoomsInitial);
   }, [chatRoomsInitial]);
@@ -143,13 +145,12 @@ export default function ChatPage() {
   const lastMarkedMessageIdByRoom = useRef<Record<number, number | null>>({});
   const prevRoomRef = useRef<number | null>(null);
   const selectedRoomIdRef = useRef<number | null>(selectedRoomId);
-  const hasEnterReadRunRef = useRef(false); // 현재 방에 대해 "입장 읽음" 한번만 실행
+  const hasEnterReadRunRef = useRef(false);
 
   useEffect(() => {
     selectedRoomIdRef.current = selectedRoomId;
   }, [selectedRoomId]);
 
-  // 현재 방의 마지막 메시지 ID 갱신 (읽음 처리용 데이터만 업데이트)
   useEffect(() => {
     if (!selectedRoomId || messages.length === 0) return;
     const lastId = messages[messages.length - 1].id;
@@ -173,7 +174,6 @@ export default function ChatPage() {
 
       lastMarkedMessageIdByRoom.current[roomId] = lastId;
 
-      // 서버로 읽음 처리
       markAsReadMutation.mutate({ roomId, lastMessageId: lastId });
     },
     [markAsReadMutation],
@@ -181,31 +181,25 @@ export default function ChatPage() {
 
   /* ======================
      ENTER / EXIT 방 처리
-     - ENTER: UI 상 unreadCount 0 처리
-     - EXIT: 새로 쌓인 메시지가 있으면 READ
   ====================== */
   useEffect(() => {
     const prev = prevRoomRef.current;
     const curr = selectedRoomId;
 
-    // 이전 방에서 나갈 때: 읽음 처리
     if (prev && prev !== curr) {
       console.log("🚪 EXIT ROOM", prev);
       markRoomAsRead(prev);
     }
 
-    // 새로운 방으로 들어갈 때
     if (curr && prev !== curr) {
       console.log("👀 ENTER ROOM", curr);
 
-      // UI에서 먼저 뱃지 제거
       setChatRooms((prevRooms) =>
         prevRooms.map((room) =>
           room.id === curr ? { ...room, unreadCount: 0 } : room,
         ),
       );
 
-      // 새 방으로 들어올 때마다 "입장 읽음" 플래그 초기화
       hasEnterReadRunRef.current = false;
     }
 
@@ -213,14 +207,13 @@ export default function ChatPage() {
   }, [selectedRoomId, markRoomAsRead]);
 
   /* ======================
-     ENTER 시점 읽음 처리 (메시지가 로딩된 뒤 1번만)
+     ENTER 시 읽음 처리 1번만
   ====================== */
   useEffect(() => {
     if (!selectedRoomId) return;
     if (messages.length === 0) return;
     if (hasEnterReadRunRef.current) return;
 
-    // 현재 방에 대해 "입장 읽음" 딱 1번만 수행
     hasEnterReadRunRef.current = true;
     console.log("👁️ ENTER READ after messages loaded", {
       roomId: selectedRoomId,
@@ -230,12 +223,9 @@ export default function ChatPage() {
 
   /* ======================
      언마운트 fallback
-     - 페이지를 떠날 때 현재 방 기준으로 한 번 더 READ
-       (EXIT 훅이 못 탄 경우 대비)
   ====================== */
   useEffect(() => {
     return () => {
-      // 🔥 Fast Refresh(HMR)일 때는 fallback 실행 금지
       if (typeof import.meta !== "undefined" && import.meta.hot) return;
 
       const roomId = prevRoomRef.current;
@@ -258,8 +248,6 @@ export default function ChatPage() {
   const sendMessageMutation = useSendChatMessageMutation();
   const { isConnected, subscribe, publish } = useStomp();
 
-  /* ⭐ 메시지 실시간 수신 — "구독한 방 ID" 기준으로만 처리
-   */
   const handleIncomingMessage = useCallback(
     (msg: any, subscribedRoomId: number) => {
       const parsed = JSON.parse(msg.body) as ChatMessageDto;
@@ -290,13 +278,15 @@ export default function ChatPage() {
         },
       );
 
-      // 읽음 처리용 마지막 메시지 ID 갱신
       lastMessageIdByRoom.current[roomId] = parsed.id;
+
+      // 새 메시지를 받을 때, 사용자가 맨 아래에 있으면 자동 스크롤 가능
+      shouldAutoScrollRef.current = true;
     },
     [queryClient],
   );
 
-  /* 채팅방 구독 */
+  /* 메시지 구독 */
   useEffect(() => {
     if (!selectedRoomId || !isConnected) return;
 
@@ -314,8 +304,7 @@ export default function ChatPage() {
   }, [selectedRoomId, isConnected, subscribe, handleIncomingMessage]);
 
   /* ======================
-     알림 구독 (/sub/notifications/{me.id})
-     - 여기서는 목록만 갱신 (읽음 처리는 별도)
+     알림 구독
   ====================== */
   const handleNewRoom = useCallback((room: NewRoomNotiDto) => {
     setChatRooms((prev) => {
@@ -403,11 +392,24 @@ export default function ChatPage() {
     if (roomIdParam) setSelectedRoomId(Number(roomIdParam));
   }, [roomIdParam]);
 
-  /* 자동 스크롤 */
+  /* ======================
+     자동 스크롤 (🔥 수정된 부분)
+  ====================== */
   useEffect(() => {
-    if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length === 0) return;
+
+    // 1) 최초 1회 → 무조건 맨 아래
+    if (!initialScrollDone.current) {
+      initialScrollDone.current = true;
+      messagesEndRef.current?.scrollIntoView();
+      return;
     }
+
+    // 2) 사용자가 위로 스크롤하면 자동 스크롤 금지
+    if (!shouldAutoScrollRef.current) return;
+
+    // 3) 새 메시지 오면 부드럽게 이동
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
   /* ======================
@@ -522,10 +524,19 @@ export default function ChatPage() {
               onScroll={(e) => {
                 const t = e.currentTarget;
 
-                // 초기 렌더 시 scrollTop === 0 이라서 바로 호출되는 것 방지
+                // ⭐ 사용자가 위로 스크롤했는지 감지
+                if (t.scrollTop < t.scrollHeight - t.clientHeight - 50) {
+                  isUserScrollingUpRef.current = true;
+                  shouldAutoScrollRef.current = false;
+                } else {
+                  isUserScrollingUpRef.current = false;
+                  shouldAutoScrollRef.current = true;
+                }
+
+                // 초기 scrollTop === 0 방지
                 if (t.scrollTop === 0) return;
 
-                // 위로 충분히 스크롤 올렸을 때만 다음 페이지 호출
+                // 위로 충분히 올렸을 때 page=1 요청
                 if (t.scrollTop < 80 && hasNextPage && !isFetchingNextPage) {
                   handleFetchNextPage();
                 }

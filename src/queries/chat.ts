@@ -104,36 +104,29 @@ export function useCreateChatRoomMutation() {
 export function useChatMessagesQuery(roomId: number | null) {
   return useInfiniteQuery({
     queryKey: getQueryKey(queryKeys.chat.messages(roomId || 0)),
+
+    // ⭐ 초기엔 page=0만 호출됨
     queryFn: async ({ pageParam = 0 }) => {
-      try {
-        return await getChatMessages(roomId!, pageParam, 20);
-      } catch (error) {
-        console.error("Failed to fetch chat messages:", error);
-        return {
-          content: [],
-          page: {
-            page: pageParam,
-            size: 0,
-            totalElements: 0,
-            totalPages: 0,
-            first: true,
-            last: true,
-            hasNext: false,
-            hasPrevious: false,
-            sort: [],
-          },
-        };
-      }
+      return await getChatMessages(roomId!, pageParam, 20);
     },
+
+    // ⭐ 초기 page
     initialPageParam: 0,
-    getNextPageParam: (lastPage) =>
-      lastPage.page.hasNext ? lastPage.page.page + 1 : undefined,
-    enabled: !!roomId && roomId > 0,
-    // 메시지는 방 들어올 때마다 새로 가져오기 (staleTime=0)
-    staleTime: 0,
+
+    // ⭐ "서버 absolute page 번호" 기반으로 다음 페이지 계산
+    //    → pages.length 기반으로 계산하면 절대 안 됨 (자동 prefetch 발생)
+    getNextPageParam: (lastPage) => {
+      return lastPage.page.hasNext ? lastPage.page.page + 1 : undefined;
+    },
+
+    enabled: !!roomId, // roomId 있을 때만 작동
+
+    // ⭐ 핵심: prefetch 방지!!
+    staleTime: Infinity,
     gcTime: 1000 * 60 * 30,
-    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
     retry: false,
   });
 }
