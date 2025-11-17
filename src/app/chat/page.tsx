@@ -226,7 +226,8 @@ export default function ChatPage() {
   ====================== */
   useEffect(() => {
     return () => {
-      if (typeof import.meta !== "undefined" && import.meta.hot) return;
+      const hot = (import.meta as any).hot;
+      if (hot) return; // HMR 중이면 실행하지 않음
 
       const roomId = prevRoomRef.current;
       if (!roomId) return;
@@ -376,6 +377,20 @@ export default function ChatPage() {
       });
       setMessage("");
     }
+
+    // ⭐ 내가 보낸 메시지를 채팅 목록에서도 즉시 업데이트 (방법 A)
+    setChatRooms((prev) =>
+      prev.map((room) =>
+        room.id === selectedRoomId
+          ? ({
+              ...room,
+              lastMessage: trimmed,
+              lastMessageTime: new Date(), // 🔥 타입 맞춤
+              unreadCount: 0,
+            } as unknown as ChatRoomListDto) // ⭐ unknown → ChatRoomListDto 캐스팅
+          : room,
+      ),
+    );
   };
 
   /* URL sync */
