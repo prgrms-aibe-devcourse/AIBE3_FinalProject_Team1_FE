@@ -101,6 +101,15 @@ export default function ChatPage() {
   /* ======================
      메시지 페이지네이션
   ====================== */
+  useEffect(() => {
+    if (!selectedRoomId) return;
+
+    // 🔥 메시지 페이지 캐시 리셋 (중요!)
+    queryClient.removeQueries({
+      queryKey: getQueryKey(queryKeys.chat.messages(selectedRoomId)),
+    });
+  }, [selectedRoomId, queryClient]);
+
   const {
     data: messagesData,
     fetchNextPage,
@@ -108,11 +117,12 @@ export default function ChatPage() {
     isFetchingNextPage,
   } = useChatMessagesQuery(selectedRoomId);
 
-  const handleFetchNextPage = () => {
+  // ⭐ 다시 정의해줘야 하는 부분
+  const handleFetchNextPage = useCallback(() => {
     if (!selectedRoomId) return;
     if (!hasNextPage || isFetchingNextPage) return;
     fetchNextPage();
-  };
+  }, [selectedRoomId, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   /* ======================
      메시지 정리
