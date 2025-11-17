@@ -1,4 +1,3 @@
-// src/api/endpoints/chat.ts
 /**
  * 채팅 관련 API 엔드포인트
  */
@@ -14,6 +13,49 @@ import type {
 
 import { apiClient } from "@/api/client";
 
+/** 🔥 ChatRoomListRaw — 백엔드 응답을 안전하게 처리하기 위한 raw 타입 */
+interface ChatRoomListRaw {
+  id?: number;
+  createdAt?: string | Date;
+  post?: { title?: string };
+  title?: string;
+
+  otherMember?: {
+    id?: number;
+    nickname?: string;
+    profileImgUrl?: string | null;
+  };
+  other_member?: {
+    id?: number;
+    nickname?: string;
+    profileImgUrl?: string | null;
+  };
+
+  lastMessage?: string;
+  last_message?: string;
+  latestMessage?: string;
+  latest_message?: string;
+  lastMessageText?: string;
+  last_message_text?: string;
+
+  lastMessageTime?: string | Date;
+  last_message_time?: string | Date;
+  latestMessageTime?: string | Date;
+  latest_message_time?: string | Date;
+
+  unreadCount?: number;
+  unread_count?: number;
+  unread?: number;
+
+  messages?: Array<{
+    content?: string;
+    message?: string;
+    body?: string;
+    createdAt?: string | Date;
+    created_at?: string | Date;
+  }>;
+}
+
 /**
  * 채팅방 목록 조회
  */
@@ -26,18 +68,26 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
     console.log("[API] getChatRoomList response:", response);
   }
 
-  let rawList: any[] = [];
+  /* 🔥 any 제거 + 타입 가드 */
+  let rawList: unknown[] = [];
+
   if (Array.isArray(response)) {
-    rawList = response as any[];
+    rawList = response;
   } else if (
-    (response as any)?.content &&
-    Array.isArray((response as any).content)
+    typeof response === "object" &&
+    response !== null &&
+    Array.isArray((response as { content?: unknown }).content)
   ) {
-    rawList = (response as any).content as any[];
+    rawList = (response as { content: unknown[] }).content;
   }
 
-  const mapped: ChatRoomListDto[] = rawList.map((item) => {
-    const lastMsgCandidates = [
+  const mapped: ChatRoomListDto[] = rawList.map((raw) => {
+    const item = raw as ChatRoomListRaw; // 🔥 raw 타입 좁히기
+
+    /** -------------------------
+     * lastMessage 후보 수집
+     * ------------------------- */
+    const lastMsgCandidates: unknown[] = [
       item.lastMessage,
       item.last_message,
       item.latestMessage,
@@ -54,6 +104,7 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
       }
     }
 
+    /** 메시지 배열 fallback */
     if (
       !lastMessage &&
       Array.isArray(item.messages) &&
@@ -63,46 +114,63 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
       lastMessage = last?.content ?? last?.message ?? last?.body ?? null;
     }
 
-    const lastTimeCandidates = [
+    /** -------------------------
+     * lastMessageTime 후보 수집
+     * ------------------------- */
+    const lastTimeCandidates: unknown[] = [
       item.lastMessageTime,
       item.last_message_time,
       item.latestMessageTime,
       item.latest_message_time,
     ];
-    let lastMessageTime: string | null = null;
+
+    let lastMessageTime: Date | null = null;
     for (const t of lastTimeCandidates) {
       if (t) {
-        lastMessageTime = t;
+        lastMessageTime = new Date(t as string);
         break;
       }
     }
 
+    /** 시간 fallback */
     if (
       !lastMessageTime &&
       Array.isArray(item.messages) &&
       item.messages.length > 0
     ) {
       const last = item.messages[item.messages.length - 1];
-      lastMessageTime = last?.createdAt ?? last?.created_at ?? null;
+      const t = last?.createdAt ?? last?.created_at;
+      lastMessageTime = t ? new Date(t as string) : null;
     }
 
-    const unreadCount =
-      item.unreadCount ?? item.unread_count ?? item.unread ?? 0;
+    /** -------------------------
+     * otherMember 처리
+     * ------------------------- */
+    const other = item.otherMember ??
+      item.other_member ?? {
+        id: 0,
+        nickname: "",
+        profileImgUrl: null,
+      };
 
+    /** -------------------------
+     * 최종 조립
+     * ------------------------- */
     return {
-      id: item.id,
-      createdAt: item.createdAt,
-      post: item.post ?? { title: item.title ?? "" },
-      otherMember: item.otherMember ??
-        item.other_member ?? {
-          id: item.otherMember?.id ?? 0,
-          nickname: item.otherMember?.nickname ?? "",
-          profileImgUrl: item.otherMember?.profileImgUrl ?? null,
-        },
+      id: item.id ?? 0,
+      createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+      post: {
+        title: item.post?.title ?? item.title ?? "",
+      },
+      otherMember: {
+        id: other.id ?? 0,
+        nickname: other.nickname ?? "",
+        profileImgUrl: other.profileImgUrl ?? null,
+      },
       lastMessage,
       lastMessageTime,
-      unreadCount,
-    } as ChatRoomListDto;
+      unreadCount: item.unreadCount ?? item.unread_count ?? item.unread ?? 0,
+    };
   });
 
   return mapped;
@@ -121,11 +189,9 @@ export async function getChatRoom(roomId: number): Promise<ChatRoomDto> {
 export async function createChatRoom(
   postId: number,
 ): Promise<CreateChatRoomResBody> {
-  const response = await apiClient.post<CreateChatRoomResBody>(
-    "/api/v1/chats",
-    { postId } as CreateChatRoomReqBody,
-  );
-  return response;
+  return apiClient.post<CreateChatRoomResBody>("/api/v1/chats", {
+    postId,
+  } as CreateChatRoomReqBody);
 }
 
 /**
@@ -143,7 +209,7 @@ export async function getChatMessages(
   page: number = 0,
   size: number = 20,
 ): Promise<PaginatedApiResponse<ChatMessageDto>> {
-  return await apiClient.get<PaginatedApiResponse<ChatMessageDto>>(
+  return apiClient.get<PaginatedApiResponse<ChatMessageDto>>(
     `/api/v1/chats/${roomId}/messages?page=${page}&size=${size}&sort=createdAt,DESC`,
   );
 }

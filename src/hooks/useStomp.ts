@@ -21,7 +21,8 @@ export function useStomp() {
     [],
   );
 
-  const publish = useCallback((destination: string, body: any) => {
+ const publish = useCallback(
+  (destination: string, body: Record<string, unknown>) => {
     const client = clientRef.current;
     if (!client || !client.connected) {
       console.warn("[STOMP] publish before connected:", destination);

@@ -1,8 +1,10 @@
 "use client";
 
+import type { IMessage } from "@stomp/stompjs";
 import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { differenceInMinutes, format, isToday } from "date-fns";
 import { ko } from "date-fns/locale";
+import { Suspense } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
@@ -55,10 +57,18 @@ function formatLastMessageTime(date?: Date | string | null): string {
   return format(d, "yyyy.MM.dd", { locale: ko });
 }
 
+export default function ChatPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatPage />
+    </Suspense>
+  );
+}
+
 /* ======================
    ChatPage
 ====================== */
-export default function ChatPage() {
+function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomIdParam = searchParams.get("roomId");
@@ -236,8 +246,10 @@ export default function ChatPage() {
   ====================== */
   useEffect(() => {
     return () => {
-      const hot = (import.meta as any).hot;
-      if (hot) return; // HMR 중이면 실행하지 않음
+      const hot =
+        "hot" in import.meta ? (import.meta as { hot?: unknown }).hot : false;
+
+      if (hot) return;
 
       const roomId = prevRoomRef.current;
       if (!roomId) return;
@@ -260,7 +272,7 @@ export default function ChatPage() {
   const { isConnected, subscribe, publish } = useStomp();
 
   const handleIncomingMessage = useCallback(
-    (msg: any, subscribedRoomId: number) => {
+    (msg: IMessage, subscribedRoomId: number) => {
       const parsed = JSON.parse(msg.body) as ChatMessageDto;
       const roomId = subscribedRoomId;
 
@@ -271,7 +283,7 @@ export default function ChatPage() {
 
       queryClient.setQueryData(
         getQueryKey(queryKeys.chat.messages(roomId)),
-        (old: InfiniteData<any> | null) => {
+        (old: InfiniteData<{ content: ChatMessageDto[] }> | null) => {
           if (!old) return old;
 
           const exists = old.pages.some((pg) =>
