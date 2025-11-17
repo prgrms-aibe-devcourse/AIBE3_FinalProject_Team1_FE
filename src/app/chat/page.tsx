@@ -484,6 +484,7 @@ export default function ChatPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
+                    {/* 상단: 닉네임 + 읽지 않음 카운트 */}
                     <div className="flex justify-between items-center">
                       <span className="font-medium text-sm truncate">
                         {room.otherMember?.nickname}
@@ -497,16 +498,25 @@ export default function ChatPage() {
                         )}
                     </div>
 
-                    <div className="text-xs text-gray-500 flex gap-2 truncate">
-                      <span className="truncate">
-                        {room.lastMessage ?? room.post.title}
-                      </span>
-                      <span className="text-[10px] text-gray-400">
-                        {formatLastMessageTime(
-                          room.lastMessageTime ?? room.createdAt,
-                        )}
-                      </span>
-                    </div>
+                    {/* 🔵 게시글 제목 (항상 표시) */}
+                    <span className="text-[11px] text-blue-500 font-medium block truncate mt-[2px]">
+                      {room.post.title}
+                    </span>
+
+                    {/* 최근 메시지가 있을 때만 */}
+                    {room.lastMessage && (
+                      <div className="flex gap-2 items-center mt-[4px]">
+                        {/* 🟣 최근 메시지 내용: 더 크고 조금 더 진하게 */}
+                        <span className="text-sm text-gray-800 font-medium truncate">
+                          {room.lastMessage}
+                        </span>
+
+                        {/* ⏱ 시간 */}
+                        <span className="text-[10px] text-gray-400 shrink-0">
+                          {formatLastMessageTime(room.lastMessageTime)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>
