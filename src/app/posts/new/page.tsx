@@ -829,7 +829,7 @@ export default function NewPostPage() {
                 <div className="space-y-4">
                   {options.map((option, index) => (
                     <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
-                      <div className="grid gap-4 md:grid-cols-3">
+                      <div className="grid gap-4 md:grid-cols-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-gray-700">옵션명</label>
                           <Input
@@ -851,6 +851,20 @@ export default function NewPostPage() {
                             value={option.fee}
                             onChange={(e) =>
                               handleOptionChange(index, "fee", e.target.value)
+                            }
+                            disabled={createPostMutation.isPending}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">추가 보증금</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="0"
+                            value={option.deposit}
+                            onChange={(e) =>
+                              handleOptionChange(index, "deposit", e.target.value)
                             }
                             disabled={createPostMutation.isPending}
                           />

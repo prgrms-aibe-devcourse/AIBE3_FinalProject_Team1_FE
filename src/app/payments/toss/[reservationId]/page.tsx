@@ -7,11 +7,13 @@ import {
   loadTossPayments,
   type TossPaymentsWidgets,
 } from "@tosspayments/tosspayments-sdk";
+import { CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { useReservationQuery } from "@/queries/reservation";
+import { usePostQuery } from "@/queries/post";
 
 const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "";
 
@@ -21,20 +23,84 @@ export default function TossWidgetsPaymentPage() {
   const reservationId = Number(params.reservationId);
 
   const { data: reservation } = useReservationQuery(reservationId);
+  const { data: post } = usePostQuery(reservation?.postId || 0);
 
   const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 대여 기간 계산
+  const startDate =
+    reservation?.reservationStartAt &&
+    new Date(
+      typeof reservation.reservationStartAt === "string"
+        ? reservation.reservationStartAt
+        : reservation.reservationStartAt,
+    );
+  const endDate =
+    reservation?.reservationEndAt &&
+    new Date(
+      typeof reservation.reservationEndAt === "string"
+        ? reservation.reservationEndAt
+        : reservation.reservationEndAt,
+    );
+  const daysDiff =
+    startDate && endDate
+      ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      : 0;
+
+  // 옵션 목록 (예약에는 id와 이름만 있고, 가격은 post의 options에서 가져옴)
+  const reservationOptions =
+    reservation?.options?.map((ro) => ({
+      id: ro.optionId || ro.id,
+      name: ro.option?.name || `옵션 #${ro.optionId || ro.id}`,
+    })) ||
+    (reservation?.option?.map((opt: unknown, index: number) => {
+      if (
+        opt &&
+        typeof opt === "object" &&
+        ("name" in opt || "id" in opt)
+      ) {
+        return {
+          id: ("id" in opt && typeof opt.id === "number" ? opt.id : null) || index,
+          name: ("name" in opt && typeof opt.name === "string" ? opt.name : `옵션 #${index}`) || `옵션 #${index}`,
+        };
+      }
+      return null;
+    }).filter(Boolean) as Array<{ id: number; name: string }>) ||
+    [];
+
+  // post의 options에서 가격 정보를 가져와서 매칭
+  const options = reservationOptions.map((resOpt) => {
+    const postOption = post?.options?.find((po) => po.id === resOpt.id);
+    return {
+      id: resOpt.id,
+      name: resOpt.name,
+      fee: postOption?.fee || 0,
+      deposit: postOption?.deposit || 0,
+    };
+  });
+
+  // 결제 금액 계산
+  const baseFee = post?.fee || 0;
+  const baseDeposit = post?.deposit || 0;
+  const rentalFee = baseFee * daysDiff;
+  const optionsFee = options.reduce((sum, opt) => sum + (opt.fee || 0) * daysDiff, 0);
+  const optionsDeposit = options.reduce((sum, opt) => sum + (opt.deposit || 0), 0);
+  const totalRentalFee = rentalFee + optionsFee;
+  const totalDeposit = baseDeposit + optionsDeposit;
+  const totalAmount = totalRentalFee + totalDeposit;
+
   useEffect(() => {
-    if (!reservation) return;
+    if (!reservation || !post) return;
     if (!clientKey) {
       setError("Toss Payments client key가 설정되지 않았습니다.");
       setLoading(false);
       return;
     }
 
-    const amount = reservation.totalAmount ?? 0;
+    // 계산된 총 금액 사용 (post 정보가 필요하므로 post가 로드된 후에만 실행)
+    const amount = totalAmount;
     if (amount <= 0) {
       setError("결제 금액이 올바르지 않습니다.");
       setLoading(false);
@@ -96,12 +162,12 @@ export default function TossWidgetsPaymentPage() {
     return () => {
       cancelled = true;
     };
-  }, [reservation]);
+  }, [reservation, post, totalAmount]);
 
   const handleRequestPayment = async () => {
     if (!reservation || !widgetsRef.current) return;
 
-    const amount = reservation.totalAmount ?? 0;
+    const amount = totalAmount;
     const origin =
       typeof window !== "undefined" ? window.location.origin : "";
 
@@ -144,15 +210,43 @@ export default function TossWidgetsPaymentPage() {
           <div className="border rounded-lg p-4 bg-gray-50">
             <p className="text-sm text-gray-600 mb-1">예약 정보</p>
             <p className="font-semibold text-gray-900">
-              {reservation.post?.title ?? "장비 대여"}
-            </p>
-            <p className="mt-2 text-sm text-gray-600 flex justify-between">
-              <span>총 결제 금액</span>
-              <span className="font-bold text-blue-600">
-                {(reservation.totalAmount ?? 0).toLocaleString()}원
-              </span>
+              {reservation.post?.title ?? post?.title ?? "장비 대여"}
             </p>
           </div>
+
+          {/* 결제 정보 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                결제 정보
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">
+                  대여료 ({daysDiff}일)
+                </span>
+                <span className="font-medium">
+                  {totalRentalFee.toLocaleString()}원
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">보증금</span>
+                <span className="font-medium">
+                  {totalDeposit.toLocaleString()}원
+                </span>
+              </div>
+              <div className="flex justify-between pt-3 border-t border-gray-200">
+                <span className="text-lg font-bold text-gray-900">
+                  총 결제금액
+                </span>
+                <span className="text-lg font-bold text-blue-600">
+                  {totalAmount.toLocaleString()}원
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
           {error && (
             <p className="text-sm text-red-600">
