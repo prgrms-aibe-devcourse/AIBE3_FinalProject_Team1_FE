@@ -395,11 +395,17 @@ function PostCard({ post }: { post: Post }) {
                     const totalAmount = totalRentalFee + totalDeposit;
 
                     const status = reservation.status as string;
-                    const canConfirmReturnReceive = status === "RETURNING";
+                    const canConfirmReturnReceive =
+                      status === "RETURNING" ||
+                      (status === "PENDING_RETURN" &&
+                        reservation.returnMethod != null &&
+                        reservation.returnMethod === ReceiveMethod.DIRECT);
                     const canCompleteReturnInspection =
                       status === "INSPECTING_RETURN";
                     const canRequestRefund = status === "RETURN_COMPLETED";
                     const canMarkLostOrUnreturned = status === "RENTING";
+                    const canRequestClaimForLost =
+                      status === "LOST_OR_UNRETURNED";
 
                     return (
                       <Card key={reservation.id} className="bg-gray-50">
@@ -605,6 +611,7 @@ function PostCard({ post }: { post: Post }) {
                               )}
 
                               {status === "PENDING_PICKUP" &&
+                                reservation.receiveMethod != null &&
                                 reservation.receiveMethod ===
                                   ReceiveMethod.DELIVERY && (
                                   <Button
@@ -622,6 +629,7 @@ function PostCard({ post }: { post: Post }) {
                                 )}
 
                               {/* 호스트 - 반납 중일 때 수령완료 (RETURNING → INSPECTING_RETURN) */}
+                              {/* 호스트 - 반납 대기(직거래)일 때 수령완료 (PENDING_RETURN + DIRECT → INSPECTING_RETURN) */}
                               {canConfirmReturnReceive && (
                                 <Button
                                   variant="outline"
@@ -775,6 +783,37 @@ function PostCard({ post }: { post: Post }) {
                                   className="text-red-600 border-red-600 hover:bg-red-50"
                                 >
                                   미반납/분실 처리
+                                </Button>
+                              )}
+
+                              {/* 호스트 - 미반납/분실 상태일 때 청구 요청 (LOST_OR_UNRETURNED → CLAIMING) */}
+                              {canRequestClaimForLost && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await updateStatusMutation.mutateAsync({
+                                        reservationId: reservation.id,
+                                        data: {
+                                          status: ReservationStatus.CLAIMING,
+                                        },
+                                      });
+                                      showToast(
+                                        "청구 진행 상태로 변경되었습니다.",
+                                        "success",
+                                      );
+                                    } catch (error) {
+                                      console.error(
+                                        "Failed to request claim:",
+                                        error,
+                                      );
+                                    }
+                                  }}
+                                  disabled={updateStatusMutation.isPending}
+                                  className="text-red-600 border-red-600 hover:bg-red-50"
+                                >
+                                  청구 요청
                                 </Button>
                               )}
                             </div>
