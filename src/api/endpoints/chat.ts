@@ -3,52 +3,134 @@
  */
 import type { PaginatedApiResponse } from "@/types/api";
 import type {
-  ChatMessage,
-  ChatRoom,
-  CreateChatMessageDto,
+  ChatMessageDto,
+  ChatRoomDto,
+  ChatRoomListDto,
+  CreateChatRoomReqBody,
+  CreateChatRoomResBody,
+  SendChatMessageDto,
 } from "@/types/domain";
-
-import { buildQueryParams } from "@/lib/utils/api-params";
 
 import { apiClient } from "@/api/client";
 
 /**
  * 채팅방 목록 조회
  */
-export async function getChatRoomList(
-  filters?: Record<string, unknown>,
-): Promise<ChatRoom[] | PaginatedApiResponse<ChatRoom>> {
-  const params = buildQueryParams(filters);
-  const endpoint = `/api/v1/chats${params.toString() ? `?${params.toString()}` : ""}`;
-  return apiClient.get<ChatRoom[] | PaginatedApiResponse<ChatRoom>>(endpoint);
+export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
+  const response = await apiClient.get<
+    PaginatedApiResponse<ChatRoomListDto> | ChatRoomListDto[]
+  >("/api/v1/chats");
+
+  // 개발 중에는 응답 형태를 로그로 확인
+  if (process.env.NODE_ENV === "development") {
+    console.log("[API] getChatRoomList response:", response);
+  }
+
+  // 서버가 페이징 형태로 반환하는 경우(content)와 단순 배열을 반환하는 경우 둘 다 처리
+  let rawList: any[] = [];
+  if (Array.isArray(response)) {
+    rawList = response as any[];
+  } else if (
+    (response as any)?.content &&
+    Array.isArray((response as any).content)
+  ) {
+    rawList = (response as any).content as any[];
+  }
+
+  // 안전하게 필드 매핑: 여러 케이스(스네이크 케이스, 배열 내 메시지 등)를 처리
+  const mapped: ChatRoomListDto[] = rawList.map((item) => {
+    const lastMsgCandidates = [
+      item.lastMessage,
+      item.last_message,
+      item.latestMessage,
+      item.latest_message,
+      item.lastMessageText,
+      item.last_message_text,
+    ];
+
+    let lastMessage: string | null = null;
+    for (const c of lastMsgCandidates) {
+      if (typeof c === "string" && c.trim().length > 0) {
+        lastMessage = c;
+        break;
+      }
+    }
+
+    // messages 배열이 있으면 마지막 요소 내용을 우선으로 사용
+    if (
+      !lastMessage &&
+      Array.isArray(item.messages) &&
+      item.messages.length > 0
+    ) {
+      const last = item.messages[item.messages.length - 1];
+      lastMessage = last?.content ?? last?.message ?? last?.body ?? null;
+    }
+
+    // lastMessageTime 후보들
+    const lastTimeCandidates = [
+      item.lastMessageTime,
+      item.last_message_time,
+      item.latestMessageTime,
+      item.latest_message_time,
+    ];
+    let lastMessageTime: string | null = null;
+    for (const t of lastTimeCandidates) {
+      if (t) {
+        lastMessageTime = t;
+        break;
+      }
+    }
+
+    // 메시지 배열에서 시간 추출 우선순위
+    if (
+      !lastMessageTime &&
+      Array.isArray(item.messages) &&
+      item.messages.length > 0
+    ) {
+      const last = item.messages[item.messages.length - 1];
+      lastMessageTime = last?.createdAt ?? last?.created_at ?? null;
+    }
+
+    const unreadCount =
+      item.unreadCount ?? item.unread_count ?? item.unread ?? 0;
+
+    return {
+      id: item.id,
+      createdAt: item.createdAt,
+      post: item.post ?? { title: item.title ?? "" },
+      otherMember: item.otherMember ??
+        item.other_member ?? {
+          id: item.otherMember?.id ?? 0,
+          nickname: item.otherMember?.nickname ?? "",
+          profileImgUrl: item.otherMember?.profileImgUrl ?? null,
+        },
+      lastMessage,
+      lastMessageTime,
+      unreadCount,
+    } as ChatRoomListDto;
+  });
+
+  return mapped;
 }
 
 /**
  * 채팅방 상세 조회
  */
-export async function getChatRoom(roomId: number): Promise<ChatRoom> {
-  return apiClient.get<ChatRoom>(`/api/v1/chats/${roomId}`);
+export async function getChatRoom(roomId: number): Promise<ChatRoomDto> {
+  return apiClient.get<ChatRoomDto>(`/api/v1/chats/${roomId}`);
 }
 
 /**
  * 채팅방 생성 또는 조회
- * 응답 형식:
- * - 새 채팅방 생성 시: { id, postId, ... } (ChatRoom 객체)
- * - 이미 존재하는 채팅방: { message: string, chatRoomId: number }
+ * 응답: { message: string, chatRoomId: number }
  */
 export async function createChatRoom(
   postId: number,
-): Promise<{ id: number } | ChatRoom> {
-  const response = await apiClient.post<
-    ChatRoom | { message: string; chatRoomId: number }
-  >("/api/v1/chats", { postId });
-
-  // 이미 존재하는 채팅방인 경우 chatRoomId를 id로 변환
-  if ("chatRoomId" in response && "message" in response) {
-    return { id: response.chatRoomId };
-  }
-
-  // 새로 생성된 채팅방인 경우 ChatRoom 객체 반환
+): Promise<CreateChatRoomResBody> {
+  const response = await apiClient.post<CreateChatRoomResBody>(
+    "/api/v1/chats",
+    { postId } as CreateChatRoomReqBody,
+  );
   return response;
 }
 
@@ -60,28 +142,28 @@ export async function deleteChatRoom(roomId: number): Promise<void> {
 }
 
 /**
- * 채팅 메시지 목록 조회
+ * 채팅 메시지 목록 조회 (페이지네이션)
  */
 export async function getChatMessages(
   roomId: number,
-  filters?: Record<string, unknown>,
-): Promise<ChatMessage[] | PaginatedApiResponse<ChatMessage>> {
-  const params = buildQueryParams(filters);
-  const endpoint = `/api/v1/chats/${roomId}/messages${params.toString() ? `?${params.toString()}` : ""}`;
-  return apiClient.get<ChatMessage[] | PaginatedApiResponse<ChatMessage>>(
-    endpoint,
+  page: number = 0,
+  size: number = 20,
+): Promise<PaginatedApiResponse<ChatMessageDto>> {
+  return await apiClient.get<PaginatedApiResponse<ChatMessageDto>>(
+    `/api/v1/chats/${roomId}/messages?page=${page}&size=${size}&sort=createdAt,DESC`,
   );
 }
 
 /**
- * 채팅 메시지 생성
+ * 채팅 메시지 전송
  */
-export async function createChatMessage(
-  data: CreateChatMessageDto,
-): Promise<ChatMessage> {
-  return apiClient.post<ChatMessage>(
-    `/api/v1/chats/${data.chatRoomId}/messages`,
-    { content: data.content },
+export async function sendChatMessage(
+  roomId: number,
+  data: SendChatMessageDto,
+): Promise<ChatMessageDto> {
+  return apiClient.post<ChatMessageDto>(
+    `/api/v1/chats/${roomId}/messages`,
+    data,
   );
 }
 
@@ -100,6 +182,19 @@ export async function deleteChatMessage(
 /**
  * 채팅방 읽음 처리
  */
-export async function markChatRoomAsRead(roomId: number): Promise<void> {
-  return apiClient.put<void>(`/api/v1/chats/${roomId}/read`, {});
+export async function markChatRoomAsRead(
+  roomId: number,
+  lastMessageId: number,
+): Promise<void> {
+  console.log(
+    `[API] Marking room ${roomId} as read up to message ${lastMessageId}`,
+  );
+
+  const result = await apiClient.patch<void>(
+    `/api/v1/chats/${roomId}/read?lastMessageId=${lastMessageId}`,
+    {},
+  );
+
+  console.log(`[API] Successfully marked room ${roomId} as read`);
+  return result;
 }
