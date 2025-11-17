@@ -309,12 +309,17 @@ export default function MyReservationsPage() {
               const canPay = status === "PENDING_PAYMENT";
 
               // 게스트 측 상태 변경 가능 여부
-              const canConfirmReceive = status === "SHIPPING";
+              const canConfirmReceive =
+                status === "SHIPPING" ||
+                (status === "PENDING_PICKUP" &&
+                  reservation.receiveMethod != null &&
+                  reservation.receiveMethod === ReceiveMethod.DIRECT);
               const canCompleteInspection =
                 status === "INSPECTING_RENTAL";
               const canStartReturn = status === "RENTING";
               const canSendReturnShipping =
                 status === "PENDING_RETURN" &&
+                reservation.returnMethod != null &&
                 reservation.returnMethod === ReceiveMethod.DELIVERY;
 
               return (

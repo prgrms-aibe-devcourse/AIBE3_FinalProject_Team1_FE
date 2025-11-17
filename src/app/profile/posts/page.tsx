@@ -395,7 +395,11 @@ function PostCard({ post }: { post: Post }) {
                     const totalAmount = totalRentalFee + totalDeposit;
 
                     const status = reservation.status as string;
-                    const canConfirmReturnReceive = status === "RETURNING";
+                    const canConfirmReturnReceive =
+                      status === "RETURNING" ||
+                      (status === "PENDING_RETURN" &&
+                        reservation.returnMethod != null &&
+                        reservation.returnMethod === ReceiveMethod.DIRECT);
                     const canCompleteReturnInspection =
                       status === "INSPECTING_RETURN";
                     const canRequestRefund = status === "RETURN_COMPLETED";
@@ -605,6 +609,7 @@ function PostCard({ post }: { post: Post }) {
                               )}
 
                               {status === "PENDING_PICKUP" &&
+                                reservation.receiveMethod != null &&
                                 reservation.receiveMethod ===
                                   ReceiveMethod.DELIVERY && (
                                   <Button
@@ -622,6 +627,7 @@ function PostCard({ post }: { post: Post }) {
                                 )}
 
                               {/* 호스트 - 반납 중일 때 수령완료 (RETURNING → INSPECTING_RETURN) */}
+                              {/* 호스트 - 반납 대기(직거래)일 때 수령완료 (PENDING_RETURN + DIRECT → INSPECTING_RETURN) */}
                               {canConfirmReturnReceive && (
                                 <Button
                                   variant="outline"
