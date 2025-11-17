@@ -317,7 +317,6 @@ export default function MyReservationsPage() {
               const canCompleteInspection =
                 status === "INSPECTING_RENTAL";
               const canStartReturn = status === "RENTING";
-              const canMarkLostOrUnreturned = status === "RENTING";
               const canSendReturnShipping =
                 status === "PENDING_RETURN" &&
                 reservation.returnMethod != null &&

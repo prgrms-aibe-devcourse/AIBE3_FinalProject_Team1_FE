@@ -14,13 +14,12 @@ import {
   Truck,
   MapPin,
   ArrowLeft,
-  DollarSign,
+  CreditCard,
   Wrench,
   CheckCircle2,
   Clock,
   Package,
   Info,
-  CreditCard,
   Pencil,
   X,
 } from "lucide-react";
@@ -284,13 +283,11 @@ function ReservationDetailPageContent() {
       ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
       : 0;
 
-  // 옵션 목록 (ReservationOption 또는 직접 옵션 객체)
-  const options =
+  // 옵션 목록 (예약에는 id와 이름만 있고, 가격은 post의 options에서 가져옴)
+  const reservationOptions =
     reservation.options?.map((ro) => ({
-      id: ro.id,
-      name: ro.option?.name || `옵션 #${ro.optionId}`,
-      fee: ro.option?.fee || 0,
-      deposit: ro.option?.deposit || 0,
+      id: ro.optionId || ro.id,
+      name: ro.option?.name || `옵션 #${ro.optionId || ro.id}`,
     })) ||
     (reservation.option?.map((opt: unknown, index: number) => {
       if (
@@ -299,15 +296,24 @@ function ReservationDetailPageContent() {
         ("name" in opt || "id" in opt)
       ) {
         return {
-          id: ("id" in opt && opt.id) || index,
-          name: ("name" in opt && opt.name) || `옵션 #${index}`,
-          fee: ("fee" in opt && opt.fee) || 0,
-          deposit: ("deposit" in opt && opt.deposit) || 0,
+          id: ("id" in opt && typeof opt.id === "number" ? opt.id : null) || index,
+          name: ("name" in opt && typeof opt.name === "string" ? opt.name : `옵션 #${index}`) || `옵션 #${index}`,
         };
       }
       return null;
-    }).filter(Boolean) as Array<{ id: number; name: string; fee: number; deposit: number }>) ||
+    }).filter(Boolean) as Array<{ id: number; name: string }>) ||
     [];
+
+  // post의 options에서 가격 정보를 가져와서 매칭
+  const options = reservationOptions.map((resOpt) => {
+    const postOption = post?.options?.find((po) => po.id === resOpt.id);
+    return {
+      id: resOpt.id,
+      name: resOpt.name,
+      fee: postOption?.fee || 0,
+      deposit: postOption?.deposit || 0,
+    };
+  });
 
   // 결제 금액 계산
   const baseFee = post?.fee || 0;
@@ -402,7 +408,7 @@ function ReservationDetailPageContent() {
 
                 {baseFee > 0 && (
                   <div className="flex items-center gap-2 text-gray-600">
-                    <DollarSign className="h-4 w-4" />
+                    <CreditCard className="h-4 w-4" />
                     <span>{baseFee.toLocaleString()}원</span>
                   </div>
                 )}
@@ -707,8 +713,8 @@ function ReservationDetailPageContent() {
             {/* 결제 정보 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
+                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
                   결제 정보
                 </CardTitle>
               </CardHeader>

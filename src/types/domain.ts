@@ -307,6 +307,7 @@ export interface Reservation extends BaseEntity {
   returnTrackingNumber: string | null; // 반납 택배번호
   cancelReason: string | null; // 예약 취소 사유
   rejectReason: string | null; // 승인 거절 사유
+  claimReason: string | null; // 청구 사유
   reservationStartAt: Date | string | null; // 대여시작일 (API 응답은 문자열)
   reservationEndAt: Date | string | null; // 대여종료일 (API 응답은 문자열)
   postId: number;
@@ -351,6 +352,7 @@ export interface UpdateReservationDto {
   returnTrackingNumber?: string;
   cancelReason?: string;
   rejectReason?: string;
+  claimReason?: string;
   reservationStartAt?: Date;
   reservationEndAt?: Date;
   optionIds?: number[];

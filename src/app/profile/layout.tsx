@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 
 import { useMeQuery } from "@/queries/user";
 
-import { Calendar, DollarSign, FileText, User } from "lucide-react";
+import { Calendar, Wallet, FileText, User } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 /**
@@ -116,7 +116,7 @@ export default function ProfileLayout({ children }: ProfileLayoutProps) {
     {
       id: "earnings" as TabType,
       label: "수익 현황",
-      icon: DollarSign,
+      icon: Wallet,
       path: "/profile/earnings",
     },
   ];

@@ -113,6 +113,9 @@ function PostCard({ post }: { post: Post }) {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [claimReason, setClaimReason] = useState("");
+  const [claimTargetId, setClaimTargetId] = useState<number | null>(null);
   const [shippingDialogOpen, setShippingDialogOpen] = useState(false);
   const [shippingMode, setShippingMode] = useState<"receive" | "return">(
     "receive",
@@ -161,6 +164,29 @@ function PostCard({ post }: { post: Post }) {
       setRejectTargetId(null);
     } catch (error) {
       console.error("Failed to reject reservation:", error);
+    }
+  };
+
+  const handleClaim = async () => {
+    if (!claimTargetId) return;
+    if (!claimReason.trim()) {
+      showToast("청구 사유를 입력해주세요.", "error");
+      return;
+    }
+    try {
+      await updateStatusMutation.mutateAsync({
+        reservationId: claimTargetId,
+        data: {
+          status: ReservationStatus.CLAIMING,
+          claimReason: claimReason.trim(),
+        },
+      });
+      showToast("청구 진행 상태로 변경되었습니다.", "success");
+      setClaimDialogOpen(false);
+      setClaimReason("");
+      setClaimTargetId(null);
+    } catch (error) {
+      console.error("Failed to request claim:", error);
     }
   };
 
@@ -695,24 +721,10 @@ function PostCard({ post }: { post: Post }) {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={async () => {
-                                      try {
-                                        await updateStatusMutation.mutateAsync({
-                                          reservationId: reservation.id,
-                                          data: {
-                                            status: ReservationStatus.CLAIMING,
-                                          },
-                                        });
-                                        showToast(
-                                          "청구 진행 상태로 변경되었습니다.",
-                                          "success",
-                                        );
-                                      } catch (error) {
-                                        console.error(
-                                          "Failed to request claim:",
-                                          error,
-                                        );
-                                      }
+                                    onClick={() => {
+                                      setClaimTargetId(reservation.id);
+                                      setClaimReason("");
+                                      setClaimDialogOpen(true);
                                     }}
                                     disabled={updateStatusMutation.isPending}
                                     className="text-red-600 border-red-600 hover:bg-red-50"
@@ -791,24 +803,10 @@ function PostCard({ post }: { post: Post }) {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={async () => {
-                                    try {
-                                      await updateStatusMutation.mutateAsync({
-                                        reservationId: reservation.id,
-                                        data: {
-                                          status: ReservationStatus.CLAIMING,
-                                        },
-                                      });
-                                      showToast(
-                                        "청구 진행 상태로 변경되었습니다.",
-                                        "success",
-                                      );
-                                    } catch (error) {
-                                      console.error(
-                                        "Failed to request claim:",
-                                        error,
-                                      );
-                                    }
+                                  onClick={() => {
+                                    setClaimTargetId(reservation.id);
+                                    setClaimReason("");
+                                    setClaimDialogOpen(true);
                                   }}
                                   disabled={updateStatusMutation.isPending}
                                   className="text-red-600 border-red-600 hover:bg-red-50"
@@ -940,6 +938,52 @@ function PostCard({ post }: { post: Post }) {
                 disabled={rejectMutation.isPending || !rejectReason.trim()}
               >
                 {rejectMutation.isPending ? "거절 중..." : "거절하기"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 청구 요청 다이얼로그 */}
+        <Dialog
+          open={claimDialogOpen}
+          onOpenChange={(open) => {
+            setClaimDialogOpen(open);
+            if (!open) {
+              setClaimReason("");
+              setClaimTargetId(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>청구 요청</DialogTitle>
+              <DialogDescription>
+                청구 요청하려면 청구 사유를 입력해주세요.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-4 space-y-4">
+              <textarea
+                value={claimReason}
+                onChange={(e) => setClaimReason(e.target.value)}
+                placeholder="청구 사유를 입력해주세요"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none text-sm"
+                rows={4}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setClaimDialogOpen(false)}
+                disabled={updateStatusMutation.isPending}
+              >
+                닫기
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleClaim}
+                disabled={updateStatusMutation.isPending || !claimReason.trim()}
+              >
+                {updateStatusMutation.isPending ? "요청 중..." : "청구 요청"}
               </Button>
             </DialogFooter>
           </DialogContent>
