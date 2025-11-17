@@ -317,6 +317,7 @@ export default function MyReservationsPage() {
               const canCompleteInspection =
                 status === "INSPECTING_RENTAL";
               const canStartReturn = status === "RENTING";
+              const canMarkLostOrUnreturned = status === "RENTING";
               const canSendReturnShipping =
                 status === "PENDING_RETURN" &&
                 reservation.returnMethod != null &&
@@ -478,27 +479,57 @@ export default function MyReservationsPage() {
 
                           {/* 게스트 - 대여 중일 때 반납하기 (RENTING → PENDING_RETURN) */}
                           {canStartReturn && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                try {
-                                  await updateStatusMutation.mutateAsync({
-                                    reservationId: reservation.id,
-                                    data: {
-                                      status: ReservationStatus.PENDING_RETURN,
-                                    },
-                                  });
-                                  showToast("반납 대기 상태로 변경되었습니다.", "success");
-                                } catch (error) {
-                                  console.error("Failed to start return:", error);
-                                }
-                              }}
-                              disabled={updateStatusMutation.isPending}
-                              className="border-purple-600 text-purple-600 hover:bg-purple-50"
-                            >
-                              반납하기
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    await updateStatusMutation.mutateAsync({
+                                      reservationId: reservation.id,
+                                      data: {
+                                        status: ReservationStatus.PENDING_RETURN,
+                                      },
+                                    });
+                                    showToast("반납 대기 상태로 변경되었습니다.", "success");
+                                  } catch (error) {
+                                    console.error("Failed to start return:", error);
+                                  }
+                                }}
+                                disabled={updateStatusMutation.isPending}
+                                className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                              >
+                                반납하기
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    await updateStatusMutation.mutateAsync({
+                                      reservationId: reservation.id,
+                                      data: {
+                                        status:
+                                          ReservationStatus.LOST_OR_UNRETURNED,
+                                      },
+                                    });
+                                    showToast(
+                                      "미반납/분실 상태로 변경되었습니다.",
+                                      "success",
+                                    );
+                                  } catch (error) {
+                                    console.error(
+                                      "Failed to mark lost or unreturned:",
+                                      error,
+                                    );
+                                  }
+                                }}
+                                disabled={updateStatusMutation.isPending}
+                                className="border-red-600 text-red-600 hover:bg-red-50"
+                              >
+                                미반납/분실 처리
+                              </Button>
+                            </>
                           )}
 
 

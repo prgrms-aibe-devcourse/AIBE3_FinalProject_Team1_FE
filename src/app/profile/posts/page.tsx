@@ -404,6 +404,8 @@ function PostCard({ post }: { post: Post }) {
                       status === "INSPECTING_RETURN";
                     const canRequestRefund = status === "RETURN_COMPLETED";
                     const canMarkLostOrUnreturned = status === "RENTING";
+                    const canRequestClaimForLost =
+                      status === "LOST_OR_UNRETURNED";
 
                     return (
                       <Card key={reservation.id} className="bg-gray-50">
@@ -781,6 +783,37 @@ function PostCard({ post }: { post: Post }) {
                                   className="text-red-600 border-red-600 hover:bg-red-50"
                                 >
                                   미반납/분실 처리
+                                </Button>
+                              )}
+
+                              {/* 호스트 - 미반납/분실 상태일 때 청구 요청 (LOST_OR_UNRETURNED → CLAIMING) */}
+                              {canRequestClaimForLost && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await updateStatusMutation.mutateAsync({
+                                        reservationId: reservation.id,
+                                        data: {
+                                          status: ReservationStatus.CLAIMING,
+                                        },
+                                      });
+                                      showToast(
+                                        "청구 진행 상태로 변경되었습니다.",
+                                        "success",
+                                      );
+                                    } catch (error) {
+                                      console.error(
+                                        "Failed to request claim:",
+                                        error,
+                                      );
+                                    }
+                                  }}
+                                  disabled={updateStatusMutation.isPending}
+                                  className="text-red-600 border-red-600 hover:bg-red-50"
+                                >
+                                  청구 요청
                                 </Button>
                               )}
                             </div>
