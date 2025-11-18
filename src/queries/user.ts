@@ -45,18 +45,24 @@ export function useUserQuery(userId?: number) {
         setUser(user);
         return user;
       } catch (error: unknown) {
-        // 브라우저 환경에서만 인증 실패 시 로그아웃 처리
+        // 네트워크 에러나 CORS 에러는 로그아웃하지 않음
+        // 인증 에러(401, 403)만 로그아웃 처리
         if (
           isBrowser &&
           error &&
           typeof error === "object" &&
           "status" in error &&
+          typeof error.status === "number" &&
           (error.status === 401 || error.status === 403)
         ) {
+          // 명확한 인증 에러인 경우에만 로그아웃
+          console.log("[useUserQuery] Authentication failed, logging out");
           logout();
+        } else {
+          // 네트워크 에러, CORS 에러, 또는 기타 에러는 로그만 남기고 로그아웃하지 않음
+          console.error("[useUserQuery] Failed to fetch user (non-auth error):", error);
         }
         // API 실패 시 null 반환하여 정상 동작
-        console.error("Failed to fetch user:", error);
         return null;
       }
     },
@@ -83,18 +89,24 @@ export function useMeQuery() {
         setUser(user);
         return user;
       } catch (error: unknown) {
-        // 브라우저 환경에서만 인증 실패 시 로그아웃 처리
+        // 네트워크 에러나 CORS 에러는 로그아웃하지 않음
+        // 인증 에러(401, 403)만 로그아웃 처리
         if (
           isBrowser &&
           error &&
           typeof error === "object" &&
           "status" in error &&
+          typeof error.status === "number" &&
           (error.status === 401 || error.status === 403)
         ) {
+          // 명확한 인증 에러인 경우에만 로그아웃
+          console.log("[useMeQuery] Authentication failed, logging out");
           logout();
+        } else {
+          // 네트워크 에러, CORS 에러, 또는 기타 에러는 로그만 남기고 로그아웃하지 않음
+          console.error("[useMeQuery] Failed to fetch me (non-auth error):", error);
         }
         // API 실패 시 null 반환하여 정상 동작
-        console.error("Failed to fetch me:", error);
         return null;
       }
     },

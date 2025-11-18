@@ -30,33 +30,52 @@ class ApiClient {
       console.log("[API Client] Credentials:", "include");
     }
 
-    const response = await fetch(url, {
-      method: "GET",
-      credentials: "include", // 쿠키 자동 포함
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include", // 쿠키 자동 포함
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!response.ok) {
-      const error = await this.handleError(response);
-      // 개발 환경에서 상세 에러 로그
-      if (process.env.NODE_ENV === "development") {
-        console.error("[API Client] GET Error:", {
-          url,
-          status: error.status,
-          message: error.message,
-        });
+      if (!response.ok) {
+        const error = await this.handleError(response);
+        // 개발 환경에서 상세 에러 로그
+        if (process.env.NODE_ENV === "development") {
+          console.error("[API Client] GET Error:", {
+            url,
+            status: error.status,
+            message: error.message,
+          });
+        }
+        throw error;
       }
+
+      const result: ApiResponse<T> = await response.json();
+      // data가 undefined인 경우를 방지
+      if (result.data === undefined) {
+        throw new Error("API response data is undefined");
+      }
+      return result.data;
+    } catch (error) {
+      // fetch 자체가 실패한 경우 (네트워크 에러, CORS 에러 등)
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        const networkError: ApiError = {
+          status: 0,
+          message: `Network error: ${error.message}`,
+        };
+        if (process.env.NODE_ENV === "development") {
+          console.error("[API Client] Network Error:", {
+            url,
+            error: networkError.message,
+          });
+        }
+        throw networkError;
+      }
+      // 기타 에러는 그대로 전달
       throw error;
     }
-
-    const result: ApiResponse<T> = await response.json();
-    // data가 undefined인 경우를 방지
-    if (result.data === undefined) {
-      throw new Error("API response data is undefined");
-    }
-    return result.data;
   }
 
   /**
