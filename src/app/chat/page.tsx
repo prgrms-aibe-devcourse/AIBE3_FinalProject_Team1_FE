@@ -1,589 +1,662 @@
-/**
- * 채팅 페이지
- * 좌측에 채팅방 목록, 우측에 선택된 채팅방의 메시지
- */
 "use client";
 
-import { format, formatDistanceToNow } from "date-fns";
+import type { IMessage } from "@stomp/stompjs";
+import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
+import { differenceInMinutes, format, isToday } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import type { ChatMessage, ChatRoom } from "@/types/domain";
+import type {
+  ChatMessageDto,
+  ChatNotiDto,
+  ChatRoomListDto,
+  NewMessageNotiDto,
+  NewRoomNotiDto,
+} from "@/types/domain";
+
+import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { useStomp } from "@/hooks/useStomp";
+
+import { markChatRoomAsRead } from "@/api/endpoints/chat";
+
 import {
   useChatMessagesQuery,
   useChatRoomListQuery,
-  useChatRoomQuery,
-  useCreateChatMessageMutation,
+  useMarkAsReadMutation,
+  useSendChatMessageMutation,
 } from "@/queries/chat";
 import { useMeQuery } from "@/queries/user";
-import { useStomp } from "@/hooks/useStomp";
-import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { getQueryKey, queryKeys } from "@/lib/query-keys";
-import type { PaginatedApiResponse } from "@/types/api";
 
 import { MessageSquare, Send, User } from "lucide-react";
 
-/**
- * 채팅 페이지
- * 좌측에 채팅방 목록, 우측에 선택된 채팅방의 메시지
- */
-
-/**
- * 채팅 페이지
- * 좌측에 채팅방 목록, 우측에 선택된 채팅방의 메시지
- */
-
-/**
- * 타임스탬프 포맷팅
- */
+/* ======================
+   유틸 함수
+====================== */
 function formatTimestamp(date: Date | string): string {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  const now = new Date();
-  const diff = now.getTime() - dateObj.getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-  if (days === 0) {
-    // 오늘인 경우 시간만 표시
-    return format(dateObj, "a h:mm", { locale: ko });
-  } else if (days === 1) {
-    // 어제
-    return "어제";
-  } else if (days < 7) {
-    // 7일 이내
-    return formatDistanceToNow(dateObj, { addSuffix: true, locale: ko });
-  } else {
-    // 7일 이상
-    return format(dateObj, "yyyy. MM. dd.", { locale: ko });
-  }
+  const d = typeof date === "string" ? new Date(date) : date;
+  return format(d, "HH:mm", { locale: ko });
 }
 
-function ChatPageContent() {
+function formatLastMessageTime(date?: Date | string | null): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+
+  const mins = differenceInMinutes(new Date(), d);
+  if (mins < 1) return "방금";
+  if (mins < 60) return `${mins}분 전`;
+  if (isToday(d)) return format(d, "HH:mm", { locale: ko });
+
+  return format(d, "yyyy.MM.dd", { locale: ko });
+}
+
+export default function ChatPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatPage />
+    </Suspense>
+  );
+}
+
+/* ======================
+   ChatPage
+====================== */
+function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomIdParam = searchParams.get("roomId");
+
+  const queryClient = useQueryClient();
+
+  // ⭐ 자동 스크롤 제어용
+  const initialScrollDone = useRef(false);
+  const isUserScrollingUpRef = useRef(false);
+  const shouldAutoScrollRef = useRef(true);
+
+  /* ⭐ 채팅 페이지 처음 들어올 때 목록 강제 refetch */
+  useEffect(() => {
+    const key = getQueryKey(queryKeys.chat.rooms);
+    console.log("[ChatPage] invalidate chat rooms on mount:", key);
+    queryClient.invalidateQueries({ queryKey: key });
+  }, [queryClient]);
+
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(
     roomIdParam ? Number(roomIdParam) : null,
   );
   const [message, setMessage] = useState("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: me } = useMeQuery();
+
+  /* ======================
+     채팅방 목록
+  ====================== */
+  const { data: chatRoomsInitial = [], isLoading: chatRoomsLoading } =
+    useChatRoomListQuery();
+
+  const [chatRooms, setChatRooms] = useState<ChatRoomListDto[]>([]);
+
+  useEffect(() => {
+    setChatRooms(chatRoomsInitial);
+  }, [chatRoomsInitial]);
+
+  /* ======================
+     메시지 페이지네이션
+  ====================== */
+  useEffect(() => {
+    if (!selectedRoomId) return;
+
+    // 🔥 메시지 페이지 캐시 리셋 (중요!)
+    queryClient.removeQueries({
+      queryKey: getQueryKey(queryKeys.chat.messages(selectedRoomId)),
+    });
+  }, [selectedRoomId, queryClient]);
+
   const {
-    data: chatRoomsData,
-    isLoading: roomsLoading,
+    data: messagesData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useChatRoomListQuery();
-  // 선택된 채팅방 상세 정보 조회 (목록과 별개)
-  // 채팅방 상세 정보는 필요 시 사용할 수 있도록 쿼리만 실행
-  useChatRoomQuery(selectedRoomId || 0);
-  const {
-    data: messagesData,
-    isLoading: messagesLoading,
-    fetchNextPage: fetchNextMessages,
-    hasNextPage: hasNextMessages,
-    isFetchingNextPage: isFetchingNextMessages,
-  } = useChatMessagesQuery(selectedRoomId || 0, {});
-  const createMessageMutation = useCreateChatMessageMutation();
-  // const markAsReadMutation = useMarkChatRoomAsReadMutation();
+  } = useChatMessagesQuery(selectedRoomId);
 
-  // STOMP 연결
+  // ⭐ 다시 정의해줘야 하는 부분
+  const handleFetchNextPage = useCallback(() => {
+    if (!selectedRoomId) return;
+    if (!hasNextPage || isFetchingNextPage) return;
+    fetchNextPage();
+  }, [selectedRoomId, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  /* ======================
+     메시지 정리
+  ====================== */
+  const messages = (() => {
+    const flat = messagesData
+      ? messagesData.pages.flatMap((pg) => pg.content || [])
+      : [];
+
+    const seen = new Set<number>();
+    const deduped: ChatMessageDto[] = [];
+
+    for (const m of flat) {
+      if (!seen.has(m.id)) {
+        seen.add(m.id);
+        deduped.push(m);
+      }
+    }
+
+    return deduped.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  })();
+
+  /* ======================
+     메시지 ID 추적
+  ====================== */
+  const lastMessageIdByRoom = useRef<Record<number, number | null>>({});
+  const lastMarkedMessageIdByRoom = useRef<Record<number, number | null>>({});
+  const prevRoomRef = useRef<number | null>(null);
+  const selectedRoomIdRef = useRef<number | null>(selectedRoomId);
+  const hasEnterReadRunRef = useRef(false);
+
+  useEffect(() => {
+    selectedRoomIdRef.current = selectedRoomId;
+  }, [selectedRoomId]);
+
+  useEffect(() => {
+    if (!selectedRoomId || messages.length === 0) return;
+    const lastId = messages[messages.length - 1].id;
+    lastMessageIdByRoom.current[selectedRoomId] = lastId;
+  }, [messages, selectedRoomId]);
+
+  /* ======================
+     읽음 처리
+  ====================== */
+  const markAsReadMutation = useMarkAsReadMutation();
+
+  const markRoomAsRead = useCallback(
+    (roomId: number) => {
+      const lastId = lastMessageIdByRoom.current[roomId];
+      const prev = lastMarkedMessageIdByRoom.current[roomId];
+
+      if (!lastId) return;
+      if (prev && prev >= lastId) return;
+
+      console.log("🔥 READ", { roomId, lastId });
+
+      lastMarkedMessageIdByRoom.current[roomId] = lastId;
+
+      markAsReadMutation.mutate({ roomId, lastMessageId: lastId });
+    },
+    [markAsReadMutation],
+  );
+
+  /* ======================
+     ENTER / EXIT 방 처리
+  ====================== */
+  useEffect(() => {
+    const prev = prevRoomRef.current;
+    const curr = selectedRoomId;
+
+    if (prev && prev !== curr) {
+      console.log("🚪 EXIT ROOM", prev);
+      markRoomAsRead(prev);
+    }
+
+    if (curr && prev !== curr) {
+      console.log("👀 ENTER ROOM", curr);
+
+      setChatRooms((prevRooms) =>
+        prevRooms.map((room) =>
+          room.id === curr ? { ...room, unreadCount: 0 } : room,
+        ),
+      );
+
+      hasEnterReadRunRef.current = false;
+    }
+
+    prevRoomRef.current = curr ?? null;
+  }, [selectedRoomId, markRoomAsRead]);
+
+  /* ======================
+     ENTER 시 읽음 처리 1번만
+  ====================== */
+  useEffect(() => {
+    if (!selectedRoomId) return;
+    if (messages.length === 0) return;
+    if (hasEnterReadRunRef.current) return;
+
+    hasEnterReadRunRef.current = true;
+    console.log("👁️ ENTER READ after messages loaded", {
+      roomId: selectedRoomId,
+    });
+    markRoomAsRead(selectedRoomId);
+  }, [selectedRoomId, messages.length, markRoomAsRead]);
+
+  /* ======================
+     언마운트 fallback
+  ====================== */
+  useEffect(() => {
+    return () => {
+      const hot =
+        "hot" in import.meta ? (import.meta as { hot?: unknown }).hot : false;
+
+      if (hot) return;
+
+      const roomId = prevRoomRef.current;
+      if (!roomId) return;
+
+      const lastId = lastMessageIdByRoom.current[roomId];
+      const prevMarked = lastMarkedMessageIdByRoom.current[roomId];
+
+      if (!lastId) return;
+      if (prevMarked && prevMarked >= lastId) return;
+
+      console.log("🔥 READ (unmount fallback)", { roomId, lastId });
+      markChatRoomAsRead(roomId, lastId).catch(console.error);
+    };
+  }, []);
+
+  /* ======================
+     STOMP 설정
+  ====================== */
+  const sendMessageMutation = useSendChatMessageMutation();
   const { isConnected, subscribe, publish } = useStomp();
-  const queryClient = useQueryClient();
 
-  // 무한 스크롤: 모든 페이지의 채팅방을 하나의 배열로 합치기
-  const chatRooms = chatRoomsData?.pages.flatMap((page) => page.content) || [];
+  const handleIncomingMessage = useCallback(
+    (msg: IMessage, subscribedRoomId: number) => {
+      const parsed = JSON.parse(msg.body) as ChatMessageDto;
+      const roomId = subscribedRoomId;
 
-  // 무한 스크롤: 모든 페이지의 메시지를 하나의 배열로 합치기 (최신 메시지가 아래에 오도록 역순으로 합치기)
-  const messages =
-    messagesData?.pages
-      .flatMap((page) => page.content)
-      .sort((a, b) => {
-        // 생성 시간 기준으로 정렬 (오래된 메시지가 위에, 최신 메시지가 아래에)
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        return aTime - bTime;
-      }) || [];
+      console.log("💬 RECEIVE MESSAGE", {
+        roomId,
+        msgId: parsed.id,
+      });
 
-  // 채팅방 선택 시 URL 업데이트
-  useEffect(() => {
-    if (selectedRoomId) {
-      router.replace(`/chat?roomId=${selectedRoomId}`, { scroll: false });
-      // 읽음 처리 비활성화
-      // markAsReadMutation.mutate(selectedRoomId);
-    }
-  }, [selectedRoomId, router]);
+      queryClient.setQueryData(
+        getQueryKey(queryKeys.chat.messages(roomId)),
+        (old: InfiniteData<{ content: ChatMessageDto[] }> | null) => {
+          if (!old) return old;
 
-  // 새 메시지가 추가되면 스크롤을 맨 아래로 (최신 메시지가 아래에 있음)
-  useEffect(() => {
-    // 첫 로드이거나 새 메시지가 추가된 경우에만 스크롤
-    if (!messagesLoading && messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages.length, messagesLoading]);
-
-  // URL 파라미터로 채팅방 선택
-  useEffect(() => {
-    if (roomIdParam) {
-      setSelectedRoomId(Number(roomIdParam));
-    }
-  }, [roomIdParam]);
-
-  // STOMP: 선택된 채팅방 메시지 구독
-  useEffect(() => {
-    if (!isConnected || !selectedRoomId) return;
-
-    // `/sub/chat/room/{roomId}` 구독
-    const unsubscribe = subscribe(
-      `/sub/chat/room/${selectedRoomId}`,
-      (stompMessage) => {
-        try {
-          const newMessage: ChatMessage = JSON.parse(stompMessage.body);
-
-          // React Query 캐시 업데이트 (무한 스크롤 쿼리)
-          queryClient.setQueryData<
-            InfiniteData<PaginatedApiResponse<ChatMessage>>
-          >(
-            getQueryKey(queryKeys.chat.messages(selectedRoomId)),
-            (oldData) => {
-              if (!oldData) return oldData;
-
-              // 이미 존재하는 메시지인지 확인 (중복 방지)
-              const existingMessage = oldData.pages
-                .flatMap((page) => page.content)
-                .find((msg) => msg.id === newMessage.id);
-
-              if (existingMessage) {
-                return oldData;
-              }
-
-              // 첫 번째 페이지에 새 메시지 추가
-              const firstPage = oldData.pages[0];
-              if (firstPage) {
-                return {
-                  ...oldData,
-                  pages: [
-                    {
-                      ...firstPage,
-                      content: [...firstPage.content, newMessage],
-                      page: {
-                        ...firstPage.page,
-                        totalElements: firstPage.page.totalElements + 1,
-                      },
-                    },
-                    ...oldData.pages.slice(1),
-                  ],
-                };
-              }
-
-              return oldData;
-            },
+          const exists = old.pages.some((pg) =>
+            pg.content.some((m: ChatMessageDto) => m.id === parsed.id),
           );
+          if (exists) return old;
 
-          // 채팅방 목록 쿼리 무효화 (마지막 메시지 업데이트)
-          queryClient.invalidateQueries({
-            queryKey: getQueryKey(queryKeys.chat.rooms),
-          });
+          const pages = [...old.pages];
+          pages[0] = {
+            ...pages[0],
+            content: [parsed, ...(pages[0].content || [])],
+          };
 
-          // 새 메시지가 추가되면 스크롤을 맨 아래로
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-          }, 100);
-        } catch (error) {
-          console.error("Failed to parse STOMP message:", error);
-        }
-      },
+          return { ...old, pages };
+        },
+      );
+
+      lastMessageIdByRoom.current[roomId] = parsed.id;
+
+      // 새 메시지를 받을 때, 사용자가 맨 아래에 있으면 자동 스크롤 가능
+      shouldAutoScrollRef.current = true;
+    },
+    [queryClient],
+  );
+
+  /* 메시지 구독 */
+  useEffect(() => {
+    if (!selectedRoomId || !isConnected) return;
+
+    const dest = `/sub/chat/${selectedRoomId}`;
+    console.log("🔔 STOMP SUB", dest);
+
+    const unsub = subscribe(dest, (msg) =>
+      handleIncomingMessage(msg, selectedRoomId),
     );
 
     return () => {
-      unsubscribe();
+      console.log("🔕 STOMP UNSUB", dest);
+      unsub();
     };
-  }, [isConnected, selectedRoomId, subscribe, queryClient]);
+  }, [selectedRoomId, isConnected, subscribe, handleIncomingMessage]);
 
-  // 메시지 전송 (STOMP 사용)
+  /* ======================
+     알림 구독
+  ====================== */
+  const handleNewRoom = useCallback((room: NewRoomNotiDto) => {
+    setChatRooms((prev) => {
+      if (prev.some((r) => r.id === room.id)) return prev;
+      return [room, ...prev];
+    });
+  }, []);
+
+  const handleNewMessageNoti = useCallback((payload: NewMessageNotiDto) => {
+    const currentRoomId = selectedRoomIdRef.current;
+    const isCurrentRoom = currentRoomId === payload.chatRoomId;
+
+    setChatRooms((prev) =>
+      prev.map((room) =>
+        room.id !== payload.chatRoomId
+          ? room
+          : {
+              ...room,
+              lastMessage: payload.content,
+              lastMessageTime: payload.createdAt,
+              unreadCount: isCurrentRoom ? 0 : (room.unreadCount ?? 0) + 1,
+            },
+      ),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!isConnected || !me?.id) return;
+
+    const dest = `/sub/notifications/${me.id}`;
+    console.log("🔔 STOMP SUB", dest);
+
+    const unsub = subscribe(dest, (msg) => {
+      try {
+        const noti: ChatNotiDto = JSON.parse(msg.body);
+
+        if (noti.type === "NEW_ROOM") {
+          handleNewRoom(noti.payload as NewRoomNotiDto);
+        } else if (noti.type === "NEW_MESSAGE") {
+          handleNewMessageNoti(noti.payload as NewMessageNotiDto);
+        }
+      } catch (e) {
+        console.error("Notification parse error:", e);
+      }
+    });
+
+    return () => {
+      console.log("🔕 STOMP UNSUB", dest);
+      unsub();
+    };
+  }, [isConnected, me?.id, subscribe, handleNewRoom, handleNewMessageNoti]);
+
+  /* ======================
+     메시지 전송
+  ====================== */
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRoomId || !message.trim()) return;
 
-    if (isConnected) {
-      // STOMP로 메시지 발행
-      try {
-        publish(`/pub/chat/message`, {
-          chatRoomId: selectedRoomId,
-          content: message.trim(),
-        });
-        setMessage("");
-        // 메시지 전송 후 스크롤을 맨 아래로
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
-      } catch (error) {
-        console.error("Send message via STOMP failed:", error);
-        // STOMP 실패 시 REST API로 폴백
-        try {
-          await createMessageMutation.mutateAsync({
-            chatRoomId: selectedRoomId,
-            content: message.trim(),
-          });
-          setMessage("");
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-          }, 100);
-        } catch (restError) {
-          console.error("Send message via REST API failed:", restError);
-        }
-      }
-    } else {
-      // STOMP 연결이 안 되어 있으면 REST API 사용
-      try {
-        await createMessageMutation.mutateAsync({
-          chatRoomId: selectedRoomId,
-          content: message.trim(),
-        });
-        setMessage("");
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
-      } catch (error) {
-        console.error("Send message failed:", error);
+    const trimmed = message.trim();
+
+    try {
+      publish(`/pub/chat/${selectedRoomId}`, { content: trimmed });
+      setMessage("");
+    } catch {
+      await sendMessageMutation.mutateAsync({
+        roomId: selectedRoomId,
+        content: trimmed,
+      });
+      setMessage("");
+    }
+
+    // ⭐ 내가 보낸 메시지를 채팅 목록에서도 즉시 업데이트 (방법 A)
+    setChatRooms((prev) =>
+      prev.map((room) =>
+        room.id === selectedRoomId
+          ? ({
+              ...room,
+              lastMessage: trimmed,
+              lastMessageTime: new Date(), // 🔥 타입 맞춤
+              unreadCount: 0,
+            } as unknown as ChatRoomListDto) // ⭐ unknown → ChatRoomListDto 캐스팅
+          : room,
+      ),
+    );
+  };
+
+  /* URL sync */
+  useEffect(() => {
+    if (selectedRoomId) {
+      const param = String(selectedRoomId);
+      if (roomIdParam !== param) {
+        router.replace(`/chat?roomId=${selectedRoomId}`, { scroll: false });
       }
     }
-  };
+  }, [selectedRoomId, roomIdParam, router]);
 
-  // 선택된 채팅방 정보
-  const selectedRoom = chatRooms?.find((room) => room.id === selectedRoomId);
+  useEffect(() => {
+    if (roomIdParam) setSelectedRoomId(Number(roomIdParam));
+  }, [roomIdParam]);
 
-  // 채팅방의 상대방 정보 가져오기
-  const getOtherMember = (room: ChatRoom) => {
-    if (!room.members || !me) return null;
-    return room.members.find((member) => member.memberId !== me.id)?.member;
-  };
+  /* ======================
+     자동 스크롤 (🔥 수정된 부분)
+  ====================== */
+  useEffect(() => {
+    if (messages.length === 0) return;
 
-  // 선택된 채팅방의 상대방 정보
-  const otherMember = selectedRoom ? getOtherMember(selectedRoom) : null;
+    // 1) 최초 1회 → 무조건 맨 아래
+    if (!initialScrollDone.current) {
+      initialScrollDone.current = true;
+      messagesEndRef.current?.scrollIntoView();
+      return;
+    }
+
+    // 2) 사용자가 위로 스크롤하면 자동 스크롤 금지
+    if (!shouldAutoScrollRef.current) return;
+
+    // 3) 새 메시지 오면 부드럽게 이동
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  /* ======================
+     UI
+  ====================== */
+  const selectedRoom = chatRooms.find((r) => r.id === selectedRoomId);
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
-      {/* 좌측 사이드바 - 채팅방 목록 */}
-      <aside className="w-80 border-r border-gray-200 bg-white flex flex-col">
+      {/* Left: Room list */}
+      <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">채팅</h2>
+          <h2 className="text-lg font-semibold">채팅</h2>
         </div>
-        <div
-          className="flex-1 overflow-y-auto"
-          onScroll={(e) => {
-            const target = e.currentTarget;
-            // hasNextPage가 없으면 요청하지 않음
-            if (!hasNextPage || isFetchingNextPage) {
-              return;
-            }
-            // 스크롤이 하단에 가까워지면 다음 페이지 로드 (100px 여유)
-            const scrollBottom =
-              target.scrollHeight - target.scrollTop - target.clientHeight;
-            if (scrollBottom <= 100) {
-              fetchNextPage();
-            }
-          }}
-        >
-          {roomsLoading ? (
-            <div className="p-4 space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="flex gap-3">
-                    <div className="h-12 w-12 rounded-full bg-gray-200" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded mb-2" />
-                      <div className="h-3 bg-gray-200 rounded w-3/4" />
+
+        <div className="flex-1 overflow-y-auto">
+          {chatRoomsLoading ? (
+            <div className="flex items-center justify-center h-full">
+              로딩 중...
+            </div>
+          ) : chatRooms.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+              <MessageSquare className="h-8 w-8" />
+              <p>채팅방이 없습니다</p>
+            </div>
+          ) : (
+            chatRooms.map((room) => (
+              <button
+                key={room.id}
+                onClick={() => setSelectedRoomId(room.id)}
+                className={`w-full p-4 border-b hover:bg-gray-50 text-left ${
+                  selectedRoomId === room.id ? "bg-gray-100" : ""
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                    {room.otherMember?.profileImgUrl ? (
+                      <Image
+                        src={room.otherMember.profileImgUrl}
+                        alt={room.otherMember.nickname}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <User className="h-6 w-6 text-gray-400" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    {/* 상단: 닉네임 + 읽지 않음 카운트 */}
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-sm truncate">
+                        {room.otherMember?.nickname}
+                      </span>
+
+                      {room.id !== selectedRoomId &&
+                        (room.unreadCount ?? 0) > 0 && (
+                          <span className="text-xs bg-red-500 text-white rounded-full h-5 min-w-5 px-2 flex items-center justify-center">
+                            {room.unreadCount}
+                          </span>
+                        )}
                     </div>
+
+                    {/* 🔵 게시글 제목 (항상 표시) */}
+                    <span className="text-[11px] text-blue-500 font-medium block truncate mt-[2px]">
+                      {room.post.title}
+                    </span>
+
+                    {/* 최근 메시지가 있을 때만 */}
+                    {room.lastMessage && (
+                      <div className="flex gap-2 items-center mt-[4px]">
+                        {/* 🟣 최근 메시지 내용: 더 크고 조금 더 진하게 */}
+                        <span className="text-sm text-gray-800 font-medium truncate">
+                          {room.lastMessage}
+                        </span>
+
+                        {/* ⏱ 시간 */}
+                        <span className="text-[10px] text-gray-400 shrink-0">
+                          {formatLastMessageTime(room.lastMessageTime)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : chatRooms && chatRooms.length > 0 ? (
-            <>
-              <div className="divide-y divide-gray-100">
-                {chatRooms.map((room) => {
-                  const other = getOtherMember(room);
-                  const lastMessage = room.lastMessage;
-                  const unreadCount = room.unreadCount || 0;
-
-                  return (
-                    <button
-                      key={room.id}
-                      onClick={() => setSelectedRoomId(room.id)}
-                      className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
-                        selectedRoomId === room.id ? "bg-blue-50" : ""
-                      }`}
-                    >
-                      <div className="flex gap-3">
-                        {/* 프로필 이미지 */}
-                        <div className="relative flex-shrink-0">
-                          <div className="relative h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                            {other?.profileImgUrl ? (
-                              <Image
-                                src={other.profileImgUrl}
-                                alt={other.nickname || "User"}
-                                fill
-                                className="object-cover rounded-full"
-                                sizes="48px"
-                              />
-                            ) : (
-                              <User className="h-6 w-6 text-gray-400" />
-                            )}
-                          </div>
-                          {/* 읽지 않은 메시지 수 배지 */}
-                          {unreadCount > 0 && (
-                            <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium">
-                              {unreadCount > 9 ? "9+" : unreadCount}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* 채팅방 정보 */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {other?.nickname || "알 수 없음"}
-                            </p>
-                            {lastMessage && (
-                              <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
-                                {formatTimestamp(lastMessage.createdAt)}
-                              </span>
-                            )}
-                          </div>
-                          {room.post && (
-                            <p className="text-xs text-gray-500 truncate mb-1">
-                              {room.post.title}
-                            </p>
-                          )}
-                          {lastMessage && (
-                            <p className="text-sm text-gray-600 truncate">
-                              {lastMessage.content}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              {/* 로딩 중 표시 */}
-              {isFetchingNextPage && (
-                <div className="p-4 space-y-4">
-                  {[...Array(2)].map((_, i) => (
-                    <div key={`loading-${i}`} className="animate-pulse">
-                      <div className="flex gap-3">
-                        <div className="h-12 w-12 rounded-full bg-gray-200" />
-                        <div className="flex-1">
-                          <div className="h-4 bg-gray-200 rounded mb-2" />
-                          <div className="h-3 bg-gray-200 rounded w-3/4" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full p-4">
-              <p className="text-sm text-gray-500 text-center">
-                채팅방이 없습니다.
-              </p>
-            </div>
+              </button>
+            ))
           )}
         </div>
-      </aside>
+      </div>
 
-      {/* 우측 메인 영역 - 메시지 */}
-      <main className="flex-1 flex flex-col bg-gray-50">
-        {selectedRoomId && selectedRoom ? (
+      {/* Right: Messages */}
+      <div className="flex-1 flex flex-col bg-white">
+        {selectedRoom ? (
           <>
-            {/* 채팅방 헤더 */}
-            <div className="p-4 bg-white border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <div className="relative h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                  {otherMember?.profileImgUrl ? (
-                    <Image
-                      src={otherMember.profileImgUrl}
-                      alt={otherMember.nickname || "User"}
-                      fill
-                      className="object-cover rounded-full"
-                      sizes="40px"
-                    />
-                  ) : (
-                    <User className="h-5 w-5 text-gray-400" />
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {otherMember?.nickname || "알 수 없음"}
-                  </p>
-                  {selectedRoom.post && (
-                    <p className="text-xs text-gray-500">
-                      {selectedRoom.post.title}
-                    </p>
-                  )}
-                </div>
+            {/* Header */}
+            <div className="p-4 border-b bg-white flex items-center gap-3">
+              <div className="relative h-10 w-10 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                {selectedRoom.otherMember?.profileImgUrl ? (
+                  <Image
+                    src={selectedRoom.otherMember.profileImgUrl}
+                    alt={selectedRoom.otherMember.nickname}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-gray-400" />
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-sm">
+                  {selectedRoom.otherMember?.nickname}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {selectedRoom.post.title}
+                </p>
               </div>
             </div>
 
-            {/* 메시지 목록 */}
+            {/* Messages */}
             <div
               className="flex-1 overflow-y-auto p-4 space-y-4"
               onScroll={(e) => {
-                const target = e.currentTarget;
-                // 스크롤이 상단에 가까워지면 이전 메시지 로드 (메시지는 위로 스크롤하면 이전 메시지)
-                if (!hasNextMessages || isFetchingNextMessages) {
-                  return;
+                const t = e.currentTarget;
+
+                // ⭐ 사용자가 위로 스크롤했는지 감지
+                if (t.scrollTop < t.scrollHeight - t.clientHeight - 50) {
+                  isUserScrollingUpRef.current = true;
+                  shouldAutoScrollRef.current = false;
+                } else {
+                  isUserScrollingUpRef.current = false;
+                  shouldAutoScrollRef.current = true;
                 }
-                // 스크롤이 상단에서 100px 이내이면 이전 페이지 로드
-                if (target.scrollTop <= 100) {
-                  fetchNextMessages();
+
+                // 초기 scrollTop === 0 방지
+                if (t.scrollTop === 0) return;
+
+                // 위로 충분히 올렸을 때 page=1 요청
+                if (t.scrollTop < 80 && hasNextPage && !isFetchingNextPage) {
+                  handleFetchNextPage();
                 }
               }}
             >
-              {messagesLoading ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="flex gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gray-200" />
-                        <div className="flex-1">
-                          <div className="h-4 bg-gray-200 rounded mb-2 w-1/4" />
-                          <div className="h-12 bg-gray-200 rounded" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              {messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  메시지가 없습니다
                 </div>
-              ) : messages.length > 0 ? (
+              ) : (
                 <>
-                  {/* 이전 메시지 로딩 중 표시 */}
-                  {isFetchingNextMessages && (
-                    <div className="space-y-4">
-                      {[...Array(2)].map((_, i) => (
-                        <div key={`loading-${i}`} className="animate-pulse">
-                          <div className="flex gap-3">
-                            <div className="h-8 w-8 rounded-full bg-gray-200" />
-                            <div className="flex-1">
-                              <div className="h-4 bg-gray-200 rounded mb-2 w-1/4" />
-                              <div className="h-12 bg-gray-200 rounded" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                  {isFetchingNextPage && (
+                    <div className="text-center text-sm text-gray-500 py-2">
+                      이전 메시지 로딩 중...
                     </div>
                   )}
-                  {messages.map((msg: ChatMessage) => {
-                    const isMyMessage = msg.chatMember?.memberId === me?.id;
-                    const sender = msg.chatMember?.member;
 
+                  {messages.map((msg) => {
+                    const isMine = msg.authorId === me?.id;
                     return (
                       <div
                         key={msg.id}
-                        className={`flex gap-3 ${
-                          isMyMessage ? "flex-row-reverse" : ""
+                        className={`flex ${
+                          isMine ? "justify-end" : "justify-start"
                         }`}
                       >
-                        {/* 프로필 이미지 */}
-                        {!isMyMessage && (
-                          <div className="relative h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {sender?.profileImgUrl ? (
-                              <Image
-                                src={sender.profileImgUrl}
-                                alt={sender.nickname || "User"}
-                                fill
-                                className="object-cover rounded-full"
-                                sizes="32px"
-                              />
-                            ) : (
-                              <User className="h-4 w-4 text-gray-400" />
-                            )}
-                          </div>
-                        )}
-
-                        {/* 메시지 내용 */}
-                        <div
-                          className={`flex flex-col max-w-[70%] ${
-                            isMyMessage ? "items-end" : "items-start"
-                          }`}
-                        >
-                          {!isMyMessage && (
-                            <p className="text-xs text-gray-500 mb-1">
-                              {sender?.nickname || "알 수 없음"}
-                            </p>
-                          )}
+                        <div className="max-w-xs lg:max-w-md">
                           <div
-                            className={`rounded-lg px-4 py-2 ${
-                              isMyMessage
-                                ? "bg-blue-600 text-white"
-                                : "bg-white border border-gray-200 text-gray-900"
+                            className={`px-4 py-2 rounded-lg ${
+                              isMine
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-100 text-gray-900"
                             }`}
                           >
-                            <p className="text-sm whitespace-pre-wrap break-words">
-                              {msg.content}
-                            </p>
+                            {msg.content}
                           </div>
-                          <span className="text-xs text-gray-500 mt-1">
+                          <span className="text-xs text-gray-500 px-2">
                             {formatTimestamp(msg.createdAt)}
                           </span>
                         </div>
                       </div>
                     );
                   })}
+
                   <div ref={messagesEndRef} />
                 </>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-gray-500">메시지가 없습니다.</p>
-                </div>
               )}
             </div>
 
-            {/* 메시지 입력 */}
-            <div className="p-4 bg-white border-t border-gray-200">
+            {/* Input */}
+            <div className="p-4 border-t bg-white">
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <Input
+                  className="flex-1"
+                  placeholder="메시지를 입력하세요..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="메시지를 입력하세요..."
-                  disabled={createMessageMutation.isPending}
-                  className="flex-1"
                 />
-                <Button
-                  type="submit"
-                  disabled={!message.trim() || createMessageMutation.isPending}
-                >
-                  <Send className="h-4 w-4" />
+                <Button type="submit" disabled={!message.trim()}>
+                  <Send className="w-4 h-4" />
                 </Button>
               </form>
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full text-gray-500">
             <div className="text-center">
-              <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">채팅방을 선택해주세요</p>
+              <MessageSquare className="w-12 h-12 mx-auto opacity-50" />
+              채팅방을 선택하세요
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
-  );
-}
-
-export default function ChatPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ChatPageContent />
-    </Suspense>
   );
 }

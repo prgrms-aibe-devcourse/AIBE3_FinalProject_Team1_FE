@@ -466,3 +466,118 @@ export interface PaginatedResponse<T> {
   size: number;
   totalPages: number;
 }
+
+/**
+ * 채팅방 목록용 DTO (백엔드 ChatRoomListDto)
+ * - 채팅방 목록 조회 시에만 사용 (기존 코드와 호환)
+ */
+export interface ChatRoomListDto {
+  id: number;
+  createdAt: Date;
+  post: ChatPostDto;
+  otherMember: OtherMemberDto;
+  lastMessage?: string | null;
+  lastMessageTime?: Date | null;
+  unreadCount?: number;
+}
+
+/**
+ * 채팅 메시지 (ChatMessage) - 기존 코드와 호환
+ */
+export interface ChatMessageDto {
+  id: number;
+  authorId: number;
+  content: string;
+  createdAt: Date;
+} /**
+ * 채팅 메시지 전송 DTO
+ */
+export interface SendChatMessageDto {
+  chatRoomId: number;
+  content: string;
+}
+
+/**
+ * 채팅방 생성 응답 DTO
+ */
+export interface CreateChatRoomResBody {
+  id: number;
+  postId: number;
+  teacherId: number;
+  studentId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 새로운 채팅방 알림 (기존 코드와 호환)
+ */
+export interface NewRoomNotiDto {
+  id: number;
+  createdAt: Date;
+  post: ChatPostDto;
+  otherMember: OtherMemberDto;
+  lastMessage: string | null;
+  lastMessageTime: Date | null;
+  unreadCount: number;
+}
+
+/**
+ * 새로운 메시지 알림 (기존 코드와 호환)
+ */
+export interface NewMessageNotiDto {
+  chatRoomId: number;
+  messageId: number;
+  authorId: number;
+  content: string;
+  createdAt: Date;
+}
+
+/**
+ * 채팅 알림 DTO (웹소켓 메시지)
+ */
+export interface ChatNotiDto {
+  type: "NEW_ROOM" | "NEW_MESSAGE";
+  payload: NewRoomNotiDto | NewMessageNotiDto;
+}
+
+/**
+ * 게시글 정보 (채팅용)
+ */
+export interface ChatPostDto {
+  title: string;
+}
+
+/**
+ * 다른 사용자 정보 (채팅용)
+ */
+export interface OtherMemberDto {
+  id: number;
+  nickname: string;
+  profileImgUrl: string | null;
+}
+
+/**
+ * 채팅방 (ChatRoom)
+ */
+export interface ChatRoomDto {
+  id: number;
+  createdAt: Date;
+  post: ChatPostDto;
+  otherMember: OtherMemberDto;
+}
+
+/**
+ * 채팅방 생성 요청 DTO
+ */
+export interface CreateChatRoomReqBody {
+  postId: number;
+}
+
+/**
+ * 채팅방 생성 응답 DTO
+ */
+export interface CreateChatRoomResBody {
+  message: string;
+  chatRoomId: number;
+}
