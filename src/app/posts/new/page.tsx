@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+import { useAuthStore } from "@/store/authStore";
+import { useMeQuery } from "@/queries/user";
 import { useCategoryListQuery } from "@/queries/category";
 import { useRegionListQuery } from "@/queries/region";
 import { useCreatePostMutation } from "@/queries/post";
@@ -32,10 +34,24 @@ interface PostOptionInput {
 
 export default function NewPostPage() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+  const { data: me, isLoading: meLoading } = useMeQuery();
   const createPostMutation = useCreatePostMutation();
   const { data: categories } = useCategoryListQuery();
   const { data: regions } = useRegionListQuery();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 인증 상태 확인 (me API 호출 결과 또는 스토어의 사용자 정보)
+  const currentUser = me ?? user;
+  const authenticated = !!currentUser || isAuthenticated;
+
+  // 인증 체크: 로그인되지 않은 경우 로그인 페이지로 리다이렉트
+  useEffect(() => {
+    if (meLoading) return; // 로딩 중이면 대기
+    if (!authenticated) {
+      router.push("/login?redirect=/posts/new");
+    }
+  }, [authenticated, meLoading, router]);
 
   // 대분류 카테고리 (child 배열을 가진 것들, 즉 최상위 카테고리)
   const mainCategories = categories || [];
@@ -358,6 +374,20 @@ export default function NewPostPage() {
       [name]: processedValue,
     });
   };
+
+  // 로딩 중이거나 인증되지 않은 경우
+  if (meLoading || !authenticated) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto max-w-4xl">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-1/4" />
+            <div className="h-64 bg-gray-200 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

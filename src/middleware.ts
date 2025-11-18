@@ -31,28 +31,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 쿠키에서 인증 토큰 확인
-  // HttpOnly 쿠키는 JavaScript에서 접근할 수 없으므로
-  // 서버 사이드에서만 확인 가능
-  // 일반적인 인증 쿠키 이름들을 확인
-  const cookieNames = [
-    "accessToken",
-    "refreshToken",
-    "token",
-    "authToken",
-    "access_token",
-    "refresh_token",
-  ];
-  
-  const hasAuthCookie = cookieNames.some((name) => request.cookies.has(name));
-
-  // 인증이 필요한 경로이고 쿠키가 없으면 로그인 페이지로 리다이렉트
-  if (!hasAuthCookie) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
+  // 다른 도메인으로 API 요청 시 쿠키가 middleware에 전달되지 않을 수 있음
+  // 따라서 middleware에서 인증 체크를 하지 않고, 클라이언트 사이드에서만 인증 체크
+  // 모든 경로를 통과시킴 (인증 체크는 각 페이지 컴포넌트에서 처리)
   return NextResponse.next();
 }
 
