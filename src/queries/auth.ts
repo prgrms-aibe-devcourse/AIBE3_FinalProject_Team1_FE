@@ -31,10 +31,22 @@ export function useLoginMutation() {
       // 응답은 MemberResponse 객체 자체
       setAuth(user);
 
+      // 로그인 시 받은 사용자 정보를 me 쿼리 캐시에 직접 설정
+      // 이렇게 하면 별도 API 호출 없이 캐시에서 데이터를 사용할 수 있음
+      queryClient.setQueryData(
+        getQueryKey(queryKeys.user.me),
+        user,
+      );
+
       // 로그인 성공 후 me API를 호출하여 쿠키가 제대로 설정되었는지 확인
       try {
         const me = await getMe();
         setAuth(me); // 최신 사용자 정보로 업데이트
+        // me API 응답으로 캐시 업데이트
+        queryClient.setQueryData(
+          getQueryKey(queryKeys.user.me),
+          me,
+        );
       } catch (error) {
         console.error("Failed to fetch user info after login:", error);
         // 쿠키가 제대로 설정되지 않았을 수 있지만, 로그인 응답의 사용자 정보는 있으므로 계속 진행

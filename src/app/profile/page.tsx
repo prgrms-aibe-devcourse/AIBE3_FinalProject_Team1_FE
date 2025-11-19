@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+import { useAuthStore } from "@/store/authStore";
+
 import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
 import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
@@ -68,32 +70,44 @@ import { Calendar, Edit, Star } from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { user: authUser, isAuthenticated } = useAuthStore();
   const { data: me, isLoading: meLoading } = useMeQuery();
+  
+  // 스토어에 있는 사용자 정보와 me 응답 중 우선순위: me > authUser
+  const meFinal = me ?? authUser;
   const { data: myPosts } = useMyPostsQuery();
   const { data: myReservations } = useMyReservationsQuery();
   const updateUserMutation = useUpdateUserMutation();
 
+  // 클라이언트 마운트 여부 (Hydration 에러 방지)
+  const [isMounted, setIsMounted] = useState(false);
+
   const [formData, setFormData] = useState({
-    name: me?.name || "",
-    nickname: me?.nickname || "",
-    phoneNumber: me?.phoneNumber || "",
-    address1: me?.address1 || "",
-    address2: me?.address2 || "",
+    name: meFinal?.name || "",
+    nickname: meFinal?.nickname || "",
+    phoneNumber: meFinal?.phoneNumber || "",
+    address1: meFinal?.address1 || "",
+    address2: meFinal?.address2 || "",
   });
   const [isEditing, setIsEditing] = useState(false);
 
-  // me 데이터가 변경되면 formData 업데이트
+  // 클라이언트 마운트 후 상태 업데이트
   useEffect(() => {
-    if (me) {
+    setIsMounted(true);
+  }, []);
+
+  // meFinal 데이터가 변경되면 formData 업데이트
+  useEffect(() => {
+    if (meFinal) {
       setFormData({
-        name: me.name || "",
-        nickname: me.nickname || "",
-        phoneNumber: me.phoneNumber || "",
-        address1: me.address1 || "",
-        address2: me.address2 || "",
+        name: meFinal.name || "",
+        nickname: meFinal.nickname || "",
+        phoneNumber: meFinal.phoneNumber || "",
+        address1: meFinal.address1 || "",
+        address2: meFinal.address2 || "",
       });
     }
-  }, [me]);
+  }, [meFinal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,13 +121,13 @@ export default function ProfilePage() {
   };
 
   const handleCancel = () => {
-    if (me) {
+    if (meFinal) {
       setFormData({
-        name: me.name || "",
-        nickname: me.nickname || "",
-        phoneNumber: me.phoneNumber || "",
-        address1: me.address1 || "",
-        address2: me.address2 || "",
+        name: meFinal.name || "",
+        nickname: meFinal.nickname || "",
+        phoneNumber: meFinal.phoneNumber || "",
+        address1: meFinal.address1 || "",
+        address2: meFinal.address2 || "",
       });
     }
     setIsEditing(false);
@@ -126,7 +140,27 @@ export default function ProfilePage() {
     });
   };
 
-  if (meLoading) {
+  // 클라이언트 마운트 전에는 항상 메인 콘텐츠 렌더링 (Hydration 에러 방지)
+  if (!isMounted) {
+    return (
+      <div className="space-y-6 p-0">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900">내 정보</h1>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <div className="h-64 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="lg:col-span-2">
+            <div className="h-64 bg-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 클라이언트에서만 로딩 화면 표시
+  if (meLoading && !authUser) {
     return (
       <div className="animate-pulse">
         <div className="h-8 bg-gray-200 rounded w-1/4 mb-4" />
@@ -135,7 +169,9 @@ export default function ProfilePage() {
     );
   }
 
-  if (!me) {
+  // 클라이언트에서만 로그인 화면 표시
+  // me 로딩이 완료되고, 스토어에도 사용자 정보가 없을 때만 로그인 화면 표시
+  if (!meLoading && !meFinal && !isAuthenticated) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
         <div className="text-center">
@@ -178,21 +214,21 @@ export default function ProfilePage() {
           <Card className="bg-blue-600 text-white border-0 shadow-lg">
             <CardContent className="p-6 text-center">
               <div className="relative mx-auto mb-4 h-24 w-24 rounded-full bg-white/20 ring-4 ring-white/30">
-                {me.profileImgUrl ? (
-                  <Image
-                    src={me.profileImgUrl}
-                    alt={me.nickname}
-                    fill
-                    className="object-cover rounded-full"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-3xl font-semibold text-white">
-                    {me.nickname?.[0]?.toUpperCase() || "U"}
-                  </div>
-                )}
+                    {meFinal?.profileImgUrl ? (
+                      <Image
+                        src={meFinal.profileImgUrl}
+                        alt={meFinal.nickname || "User"}
+                        fill
+                        className="object-cover rounded-full"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-3xl font-semibold text-white">
+                        {meFinal?.nickname?.[0]?.toUpperCase() || "U"}
+                      </div>
+                    )}
               </div>
-              <h2 className="text-2xl font-bold mb-1">{me.nickname}</h2>
-              <p className="text-blue-100 mb-3">{me.email}</p>
+              <h2 className="text-2xl font-bold mb-1">{meFinal?.nickname}</h2>
+              <p className="text-blue-100 mb-3">{meFinal?.email}</p>
               <div className="flex items-center justify-center gap-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 <span className="font-semibold">4.8</span>
@@ -200,9 +236,11 @@ export default function ProfilePage() {
               </div>
               <p className="text-sm text-blue-100">
                 가입일:{" "}
-                {format(new Date(me.createdAt), "yyyy. MM. dd.", {
-                  locale: ko,
-                })}
+                {meFinal?.createdAt
+                  ? format(new Date(meFinal.createdAt), "yyyy. MM. dd.", {
+                      locale: ko,
+                    })
+                  : ""}
               </p>
             </CardContent>
           </Card>
@@ -264,7 +302,7 @@ export default function ProfilePage() {
                     <Input
                       id="email"
                       type="email"
-                      value={me.email}
+                      value={meFinal?.email || ""}
                       disabled
                       className="bg-gray-50"
                     />
@@ -337,7 +375,7 @@ export default function ProfilePage() {
                       이메일
                     </label>
                     <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {me.email}
+                      {meFinal?.email}
                     </p>
                   </div>
                   <div>
