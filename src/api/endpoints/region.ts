@@ -43,7 +43,7 @@ export async function updateRegion(
   regionId: number,
   data: { name: string },
 ): Promise<Region> {
-  return apiClient.put<Region>(`/api/v1/adm/regions/${regionId}`, data);
+  return apiClient.patch<Region>(`/api/v1/adm/regions/${regionId}`, data);
 }
 
 /**

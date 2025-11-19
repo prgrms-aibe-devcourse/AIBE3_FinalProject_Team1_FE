@@ -43,7 +43,7 @@ export async function updateCategory(
   categoryId: number,
   data: { name: string },
 ): Promise<Category> {
-  return apiClient.put<Category>(`/api/v1/adm/categories/${categoryId}`, data);
+  return apiClient.patch<Category>(`/api/v1/adm/categories/${categoryId}`, data);
 }
 
 /**
