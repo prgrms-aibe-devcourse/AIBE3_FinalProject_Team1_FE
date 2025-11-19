@@ -661,7 +661,7 @@ function ReservationDetailPageContent() {
                       <div className="flex items-start justify-between">
                         <div>
                           <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded mb-2">
-                            필수 장비
+                            기본 장비
                           </span>
                           <p className="font-semibold text-gray-900">{post.title}</p>
                         </div>
@@ -684,8 +684,8 @@ function ReservationDetailPageContent() {
                     <div key={option.id} className="p-4 bg-pink-50 rounded-lg">
                       <div className="flex items-start justify-between">
                         <div>
-                          <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded mb-2">
-                            필수 장비
+                          <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded mb-2">
+                            추가 옵션
                           </span>
                           <p className="font-semibold text-gray-900">{option.name}</p>
                         </div>
