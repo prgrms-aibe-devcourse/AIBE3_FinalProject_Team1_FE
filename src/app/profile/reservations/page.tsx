@@ -42,6 +42,7 @@ type StatusFilter =
   | "PENDING_PICKUP"
   | "RENTING"
   | "RETURN_COMPLETED"
+  | "PENDING_REFUND"
   | "REFUND_COMPLETED"
   | "LOST_OR_UNRETURNED"
   | "CLAIMING"
@@ -96,6 +97,7 @@ const statusTabs: Array<{ key: StatusFilter; label: string }> = [
   { key: "PENDING_PICKUP", label: "수령 대기" },
   { key: "RENTING", label: "대여중" },
   { key: "RETURN_COMPLETED", label: "반납 완료" },
+  { key: "PENDING_REFUND", label: "환급 예정" },
   { key: "REFUND_COMPLETED", label: "환급 완료" },
   { key: "LOST_OR_UNRETURNED", label: "미반납/분실" },
   { key: "CLAIMING", label: "청구 진행" },
@@ -246,7 +248,7 @@ export default function MyReservationsPage() {
                   : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
-              {tab.label} ({statusCounts[tab.key] || 0})
+              {tab.label}
             </button>
           ))}
         </div>
