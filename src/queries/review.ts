@@ -59,10 +59,30 @@ export function useReviewsByPostQuery(
   return useQuery({
     queryKey: getQueryKey(queryKeys.review.byPost(postId)),
     queryFn: async (): Promise<PaginatedApiResponse<Review>> => {
-      return getReviewsByPost(postId, filters);
+      try {
+        return await getReviewsByPost(postId, filters);
+      } catch (error) {
+        // API 실패 시 빈 페이지네이션 응답 반환하여 정상 동작
+        console.error("Failed to fetch reviews by post:", error);
+        return {
+          content: [],
+          page: {
+            page: 0,
+            size: 20,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true,
+            hasNext: false,
+            hasPrevious: false,
+            sort: [],
+          },
+        };
+      }
     },
     enabled: !!postId, // postId가 있을 때만 쿼리 실행
     staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지
+    retry: false, // 재시도하지 않음
   });
 }
 

@@ -77,10 +77,11 @@ type ProfileLayoutProps = {
 
 export default function ProfileLayout({ children }: ProfileLayoutProps) {
   const pathname = usePathname();
-  const { user } = useAuthStore();
-  const { data: me } = useMeQuery();
+  const { user, isAuthenticated } = useAuthStore();
+  const { data: me, isLoading: meLoading } = useMeQuery();
 
   // 스토어에 있는 사용자 정보와 me 응답 중 우선순위: me > user
+  // me가 로딩 중이거나 없어도 스토어에 사용자 정보가 있으면 인증 상태로 간주
   const currentUser = me ?? user;
 
   // 현재 경로에 따라 활성 탭 결정
@@ -121,8 +122,12 @@ export default function ProfileLayout({ children }: ProfileLayoutProps) {
     },
   ];
 
+  // 클라이언트 사이드에서만 인증 체크 (서버 사이드에서는 항상 레이아웃 렌더링)
+  const isBrowser = typeof window !== "undefined";
+  const shouldShowLoginScreen = isBrowser && !meLoading && !currentUser && !isAuthenticated;
+
   // 로그인되지 않은 경우: 마이페이지 대신 로그인 유도 화면
-  if (!currentUser) {
+  if (shouldShowLoginScreen) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-8 text-center shadow-sm">
