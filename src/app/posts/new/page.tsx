@@ -3,10 +3,10 @@
  */
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, X, Star, MapPin, Plus, User, Truck, CheckCircle, Info } from "lucide-react";
 
 import type { CreatePostDto, ReceiveMethod } from "@/types/domain";
 
@@ -21,10 +21,35 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { useAuthStore } from "@/store/authStore";
-import { useMeQuery } from "@/queries/user";
+
 import { useCategoryListQuery } from "@/queries/category";
-import { useRegionListQuery } from "@/queries/region";
 import { useCreatePostMutation } from "@/queries/post";
+import { useRegionListQuery } from "@/queries/region";
+import { useMeQuery } from "@/queries/user";
+
+import {
+  Camera,
+  CheckCircle,
+  Info,
+  MapPin,
+  Plus,
+  Star,
+  Truck,
+  User,
+  X,
+} from "lucide-react";
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
 
 interface PostOptionInput {
   name: string;
@@ -55,7 +80,7 @@ export default function NewPostPage() {
 
   // 대분류 카테고리 (child 배열을 가진 것들, 즉 최상위 카테고리)
   const mainCategories = categories || [];
-  
+
   // 시/도 지역 (child 배열을 가진 것들, 즉 최상위 지역)
   const provinces = regions || [];
 
@@ -73,8 +98,12 @@ export default function NewPostPage() {
     imageUrls: [],
   });
 
-  const [selectedMainCategory, setSelectedMainCategory] = useState<number | null>(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
+  const [selectedMainCategory, setSelectedMainCategory] = useState<
+    number | null
+  >(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(
+    null,
+  );
   const [selectedProvince, setSelectedProvince] = useState<number | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
   interface ImageData {
@@ -131,7 +160,9 @@ export default function NewPostPage() {
           }
           if (data.buildingName !== "") {
             extraAddress +=
-              extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+              extraAddress !== ""
+                ? `, ${data.buildingName}`
+                : data.buildingName;
           }
           // 추가 정보가 있으면 주소에 추가
           fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
@@ -188,12 +219,12 @@ export default function NewPostPage() {
     const imageToRemove = images[index];
     const newImages = images.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    
+
     // 삭제된 이미지가 대표 이미지였던 경우, 첫 번째 이미지를 대표로 설정
     if (imageToRemove.isPrimary && newImages.length > 0) {
       newImages[0].isPrimary = true;
     }
-    
+
     setImages(newImages);
     setImagePreviews(newPreviews);
   };
@@ -225,7 +256,7 @@ export default function NewPostPage() {
   ) => {
     const newOptions = [...options];
     let processedValue: string | number = value;
-    
+
     if (field === "deposit" || field === "fee") {
       const numValue = Number(value);
       // 음수 값은 0으로 제한
@@ -235,7 +266,7 @@ export default function NewPostPage() {
     } else {
       processedValue = Number(value);
     }
-    
+
     newOptions[index] = {
       ...newOptions[index],
       [field]: processedValue,
@@ -251,7 +282,7 @@ export default function NewPostPage() {
   // 반납 방법 변경 핸들러
   const handleReturnMethodChange = (method: ReceiveMethod) => {
     setFormData({ ...formData, returnMethod: method });
-    
+
     // 택배 방식이 없으면 반납 주소 초기화
     if (method !== "DELIVERY" && method !== "ANY") {
       setFormData((prev) => ({
@@ -267,13 +298,15 @@ export default function NewPostPage() {
   const selectedMainCategoryData = mainCategories.find(
     (cat) => cat.id === selectedMainCategory,
   );
-  const filteredSubCategories = selectedMainCategoryData?.child || selectedMainCategoryData?.children || [];
+  const filteredSubCategories =
+    selectedMainCategoryData?.child || selectedMainCategoryData?.children || [];
 
   // 시/도 선택 시 시/군/구 필터링 (child 배열 사용)
   const selectedProvinceData = provinces.find(
     (province) => province.id === selectedProvince,
   );
-  const filteredDistricts = selectedProvinceData?.child || selectedProvinceData?.children || [];
+  const filteredDistricts =
+    selectedProvinceData?.child || selectedProvinceData?.children || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,56 +325,63 @@ export default function NewPostPage() {
     const deposit = Math.max(0, formData.deposit ?? 0);
     const fee = Math.max(0, formData.fee ?? 0);
 
-    // FormData 생성
-    const formDataToSend = new FormData();
-    formDataToSend.append("title", formData.title || "");
-    formDataToSend.append("content", formData.content || "");
-    // deposit과 fee는 0이어도 항상 보냄 (음수는 0으로 처리)
-    formDataToSend.append("deposit", String(deposit));
-    formDataToSend.append("fee", String(fee));
-    formDataToSend.append("receiveMethod", formData.receiveMethod || "DIRECT");
-    formDataToSend.append("returnMethod", formData.returnMethod || "DIRECT");
-    
     // 반납 방식에 택배가 포함되면 반납 주소 추가
     const returnMethod = formData.returnMethod || "DIRECT";
-    if (returnMethod === "DELIVERY" || returnMethod === "ANY") {
-      if (formData.returnAddress1) {
-        formDataToSend.append("returnAddress1", formData.returnAddress1);
-      }
-      if (formData.returnAddress2) {
-        formDataToSend.append("returnAddress2", formData.returnAddress2);
-      }
-    }
-    
-    formDataToSend.append("categoryId", String(selectedSubCategory || formData.categoryId || 0));
+    const returnAddress1 =
+      returnMethod === "DELIVERY" || returnMethod === "ANY"
+        ? formData.returnAddress1 || null
+        : null;
+    const returnAddress2 =
+      returnMethod === "DELIVERY" || returnMethod === "ANY"
+        ? formData.returnAddress2 || null
+        : null;
 
-    // 지역 ID 배열 추가
-    selectedRegionIds.forEach((regionId) => {
-      formDataToSend.append("regionIds", String(regionId));
+    // 옵션 데이터 구성
+    const optionsData =
+      options.length > 0
+        ? options
+            .filter((option) => option.name.trim())
+            .map((option) => ({
+              name: option.name,
+              deposit: Math.max(0, option.deposit ?? 0),
+              fee: Math.max(0, option.fee ?? 0),
+            }))
+        : [];
+
+    // 이미지 데이터 구성 (isPrimary만 포함)
+    const imagesData = images.map((imageData) => ({
+      isPrimary: imageData.isPrimary,
+    }));
+
+    // request JSON 데이터 구성
+    const requestData = {
+      title: formData.title || "",
+      content: formData.content || "",
+      receiveMethod: formData.receiveMethod || "DIRECT",
+      returnMethod: returnMethod,
+      returnAddress1: returnAddress1,
+      returnAddress2: returnAddress2,
+      regionIds: selectedRegionIds.map((id) => Number(id)),
+      categoryId: Number(selectedSubCategory || formData.categoryId || 0),
+      deposit: deposit,
+      fee: fee,
+      options: optionsData,
+      images: imagesData,
+    };
+
+    // FormData 생성
+    const formDataToSend = new FormData();
+
+    // request part: JSON Blob으로 추가
+    const requestBlob = new Blob([JSON.stringify(requestData)], {
+      type: "application/json",
     });
+    formDataToSend.append("request", requestBlob);
 
-    // 이미지 파일 추가 (file과 isPrimary를 객체 형태로)
-    images.forEach((imageData, index) => {
-      formDataToSend.append(`images[${index}].file`, imageData.file);
-      formDataToSend.append(
-        `images[${index}].isPrimary`,
-        String(imageData.isPrimary),
-      );
+    // file part: 각 파일을 "file"로 추가
+    images.forEach((imageData) => {
+      formDataToSend.append("file", imageData.file);
     });
-
-    // 옵션 추가 (옵션이 있는 경우)
-    if (options.length > 0) {
-      options.forEach((option, index) => {
-        if (option.name.trim()) {
-          // 옵션의 deposit과 fee도 음수 검증
-          const optionDeposit = Math.max(0, option.deposit ?? 0);
-          const optionFee = Math.max(0, option.fee ?? 0);
-          formDataToSend.append(`options[${index}].name`, option.name);
-          formDataToSend.append(`options[${index}].deposit`, String(optionDeposit));
-          formDataToSend.append(`options[${index}].fee`, String(optionFee));
-        }
-      });
-    }
 
     try {
       const response = await createPostMutation.mutateAsync(
@@ -360,7 +400,7 @@ export default function NewPostPage() {
   ) => {
     const { name, value } = e.target;
     let processedValue: string | number = value;
-    
+
     if (name === "deposit" || name === "fee") {
       const numValue = Number(value);
       // 음수 값은 0으로 제한
@@ -368,7 +408,7 @@ export default function NewPostPage() {
     } else if (name === "categoryId") {
       processedValue = Number(value);
     }
-    
+
     setFormData({
       ...formData,
       [name]: processedValue,
@@ -444,7 +484,9 @@ export default function NewPostPage() {
                   className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={selectedMainCategory || ""}
                   onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null;
+                    const value = e.target.value
+                      ? Number(e.target.value)
+                      : null;
                     setSelectedMainCategory(value);
                     setSelectedSubCategory(null);
                   }}
@@ -470,14 +512,18 @@ export default function NewPostPage() {
                   className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                   value={selectedSubCategory || ""}
                   onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null;
+                    const value = e.target.value
+                      ? Number(e.target.value)
+                      : null;
                     setSelectedSubCategory(value);
                     setFormData({
                       ...formData,
                       categoryId: value || formData.categoryId || 0,
                     });
                   }}
-                  disabled={!selectedMainCategory || createPostMutation.isPending}
+                  disabled={
+                    !selectedMainCategory || createPostMutation.isPending
+                  }
                 >
                   <option value="">세부 카테고리 선택</option>
                   {filteredSubCategories.map((category) => (
@@ -498,7 +544,9 @@ export default function NewPostPage() {
                   className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={selectedProvince || ""}
                   onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null;
+                    const value = e.target.value
+                      ? Number(e.target.value)
+                      : null;
                     setSelectedProvince(value);
                     setSelectedDistrict(null);
                   }}
@@ -524,7 +572,9 @@ export default function NewPostPage() {
                   className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                   value={selectedDistrict || ""}
                   onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null;
+                    const value = e.target.value
+                      ? Number(e.target.value)
+                      : null;
                     setSelectedDistrict(value);
                   }}
                   disabled={!selectedProvince || createPostMutation.isPending}
@@ -650,51 +700,81 @@ export default function NewPostPage() {
                     수령 방식 <span className="text-red-500">*</span>
                   </label>
                   <div className="space-y-2">
-                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                    <label
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
                       style={{
-                        borderColor: formData.receiveMethod === "DIRECT" ? "#2563eb" : "#e5e7eb",
-                        backgroundColor: formData.receiveMethod === "DIRECT" ? "#eff6ff" : "transparent"
-                      }}>
+                        borderColor:
+                          formData.receiveMethod === "DIRECT"
+                            ? "#2563eb"
+                            : "#e5e7eb",
+                        backgroundColor:
+                          formData.receiveMethod === "DIRECT"
+                            ? "#eff6ff"
+                            : "transparent",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="receiveMethod"
                         value="DIRECT"
                         checked={formData.receiveMethod === "DIRECT"}
-                        onChange={() => handleReceiveMethodChange("DIRECT" as ReceiveMethod)}
+                        onChange={() =>
+                          handleReceiveMethodChange("DIRECT" as ReceiveMethod)
+                        }
                         disabled={createPostMutation.isPending}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
                       <User className="h-5 w-5 text-gray-600" />
                       <span className="flex-1">만나서</span>
                     </label>
-                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                    <label
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
                       style={{
-                        borderColor: formData.receiveMethod === "DELIVERY" ? "#2563eb" : "#e5e7eb",
-                        backgroundColor: formData.receiveMethod === "DELIVERY" ? "#eff6ff" : "transparent"
-                      }}>
+                        borderColor:
+                          formData.receiveMethod === "DELIVERY"
+                            ? "#2563eb"
+                            : "#e5e7eb",
+                        backgroundColor:
+                          formData.receiveMethod === "DELIVERY"
+                            ? "#eff6ff"
+                            : "transparent",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="receiveMethod"
                         value="DELIVERY"
                         checked={formData.receiveMethod === "DELIVERY"}
-                        onChange={() => handleReceiveMethodChange("DELIVERY" as ReceiveMethod)}
+                        onChange={() =>
+                          handleReceiveMethodChange("DELIVERY" as ReceiveMethod)
+                        }
                         disabled={createPostMutation.isPending}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
                       <Truck className="h-5 w-5 text-gray-600" />
                       <span className="flex-1">택배</span>
                     </label>
-                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                    <label
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
                       style={{
-                        borderColor: formData.receiveMethod === "ANY" ? "#2563eb" : "#e5e7eb",
-                        backgroundColor: formData.receiveMethod === "ANY" ? "#eff6ff" : "transparent"
-                      }}>
+                        borderColor:
+                          formData.receiveMethod === "ANY"
+                            ? "#2563eb"
+                            : "#e5e7eb",
+                        backgroundColor:
+                          formData.receiveMethod === "ANY"
+                            ? "#eff6ff"
+                            : "transparent",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="receiveMethod"
                         value="ANY"
                         checked={formData.receiveMethod === "ANY"}
-                        onChange={() => handleReceiveMethodChange("ANY" as ReceiveMethod)}
+                        onChange={() =>
+                          handleReceiveMethodChange("ANY" as ReceiveMethod)
+                        }
                         disabled={createPostMutation.isPending}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
@@ -710,51 +790,81 @@ export default function NewPostPage() {
                     반납 방식 <span className="text-red-500">*</span>
                   </label>
                   <div className="space-y-2">
-                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                    <label
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
                       style={{
-                        borderColor: formData.returnMethod === "DIRECT" ? "#2563eb" : "#e5e7eb",
-                        backgroundColor: formData.returnMethod === "DIRECT" ? "#eff6ff" : "transparent"
-                      }}>
+                        borderColor:
+                          formData.returnMethod === "DIRECT"
+                            ? "#2563eb"
+                            : "#e5e7eb",
+                        backgroundColor:
+                          formData.returnMethod === "DIRECT"
+                            ? "#eff6ff"
+                            : "transparent",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="returnMethod"
                         value="DIRECT"
                         checked={formData.returnMethod === "DIRECT"}
-                        onChange={() => handleReturnMethodChange("DIRECT" as ReceiveMethod)}
+                        onChange={() =>
+                          handleReturnMethodChange("DIRECT" as ReceiveMethod)
+                        }
                         disabled={createPostMutation.isPending}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
                       <User className="h-5 w-5 text-gray-600" />
                       <span className="flex-1">만나서</span>
                     </label>
-                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                    <label
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
                       style={{
-                        borderColor: formData.returnMethod === "DELIVERY" ? "#2563eb" : "#e5e7eb",
-                        backgroundColor: formData.returnMethod === "DELIVERY" ? "#eff6ff" : "transparent"
-                      }}>
+                        borderColor:
+                          formData.returnMethod === "DELIVERY"
+                            ? "#2563eb"
+                            : "#e5e7eb",
+                        backgroundColor:
+                          formData.returnMethod === "DELIVERY"
+                            ? "#eff6ff"
+                            : "transparent",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="returnMethod"
                         value="DELIVERY"
                         checked={formData.returnMethod === "DELIVERY"}
-                        onChange={() => handleReturnMethodChange("DELIVERY" as ReceiveMethod)}
+                        onChange={() =>
+                          handleReturnMethodChange("DELIVERY" as ReceiveMethod)
+                        }
                         disabled={createPostMutation.isPending}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
                       <Truck className="h-5 w-5 text-gray-600" />
                       <span className="flex-1">택배</span>
                     </label>
-                    <label className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
+                    <label
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-gray-50"
                       style={{
-                        borderColor: formData.returnMethod === "ANY" ? "#2563eb" : "#e5e7eb",
-                        backgroundColor: formData.returnMethod === "ANY" ? "#eff6ff" : "transparent"
-                      }}>
+                        borderColor:
+                          formData.returnMethod === "ANY"
+                            ? "#2563eb"
+                            : "#e5e7eb",
+                        backgroundColor:
+                          formData.returnMethod === "ANY"
+                            ? "#eff6ff"
+                            : "transparent",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="returnMethod"
                         value="ANY"
                         checked={formData.returnMethod === "ANY"}
-                        onChange={() => handleReturnMethodChange("ANY" as ReceiveMethod)}
+                        onChange={() =>
+                          handleReturnMethodChange("ANY" as ReceiveMethod)
+                        }
                         disabled={createPostMutation.isPending}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
@@ -774,7 +884,9 @@ export default function NewPostPage() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">수령/반납 방식 안내</h4>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                      수령/반납 방식 안내
+                    </h4>
                     <ul className="space-y-1 text-sm text-gray-700">
                       <li>• 만나서: 직접 만나서 수령/반납</li>
                       <li>• 택배: 택배로 발송/반납 (택배비 별도)</li>
@@ -786,7 +898,8 @@ export default function NewPostPage() {
             </div>
 
             {/* 반납 주소 입력 (택배 방식 선택 시, 전체 너비) */}
-            {(formData.returnMethod === "DELIVERY" || formData.returnMethod === "ANY") && (
+            {(formData.returnMethod === "DELIVERY" ||
+              formData.returnMethod === "ANY") && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">
                   반납 주소 <span className="text-red-500">*</span>
@@ -804,7 +917,8 @@ export default function NewPostPage() {
                     }
                     disabled={createPostMutation.isPending}
                     required={
-                      formData.returnMethod === "DELIVERY" || formData.returnMethod === "ANY"
+                      formData.returnMethod === "DELIVERY" ||
+                      formData.returnMethod === "ANY"
                     }
                     className="flex-1"
                     readOnly
@@ -839,7 +953,12 @@ export default function NewPostPage() {
             {/* 추가 옵션 */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-gray-300">
-                <h3 className="text-xl font-semibold text-gray-900">추가 옵션 <span className="text-sm font-normal text-gray-500">(선택사항)</span></h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  추가 옵션{" "}
+                  <span className="text-sm font-normal text-gray-500">
+                    (선택사항)
+                  </span>
+                </h3>
                 <Button
                   type="button"
                   onClick={handleAddOption}
@@ -858,10 +977,15 @@ export default function NewPostPage() {
               ) : (
                 <div className="space-y-4">
                   {options.map((option, index) => (
-                    <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div
+                      key={index}
+                      className="bg-white rounded-lg border border-gray-200 p-4"
+                    >
                       <div className="grid gap-4 md:grid-cols-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">옵션명</label>
+                          <label className="text-sm font-medium text-gray-700">
+                            옵션명
+                          </label>
                           <Input
                             placeholder="옵션명을 입력하세요"
                             value={option.name}
@@ -872,7 +996,9 @@ export default function NewPostPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">추가 요금</label>
+                          <label className="text-sm font-medium text-gray-700">
+                            추가 요금
+                          </label>
                           <Input
                             type="number"
                             min="0"
@@ -886,7 +1012,9 @@ export default function NewPostPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">추가 보증금</label>
+                          <label className="text-sm font-medium text-gray-700">
+                            추가 보증금
+                          </label>
                           <Input
                             type="number"
                             min="0"
@@ -894,7 +1022,11 @@ export default function NewPostPage() {
                             placeholder="0"
                             value={option.deposit}
                             onChange={(e) =>
-                              handleOptionChange(index, "deposit", e.target.value)
+                              handleOptionChange(
+                                index,
+                                "deposit",
+                                e.target.value,
+                              )
                             }
                             disabled={createPostMutation.isPending}
                           />

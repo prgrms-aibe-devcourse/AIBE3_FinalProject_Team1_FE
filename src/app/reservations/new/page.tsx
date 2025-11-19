@@ -122,6 +122,14 @@ function NewReservationPageContent() {
     setStartDate(start || null);
     setEndDate(end || null);
 
+    // 로컬 시간대 기준으로 YYYY-MM-DD 형식 변환
+    const formatDateToYYYYMMDD = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
     setFormData((prev) => ({
       ...prev,
       postId: existingReservation.postId,
@@ -132,10 +140,10 @@ function NewReservationPageContent() {
         (existingReservation.returnMethod as ReceiveMethod) ??
         ReceiveMethod.DIRECT,
       reservationStartAt: start
-        ? start.toISOString().split("T")[0]
+        ? formatDateToYYYYMMDD(start)
         : prev.reservationStartAt,
       reservationEndAt: end
-        ? end.toISOString().split("T")[0]
+        ? formatDateToYYYYMMDD(end)
         : prev.reservationEndAt,
       optionIds:
         existingReservation.options?.map((o) => o.optionId) ??
@@ -320,9 +328,16 @@ function NewReservationPageContent() {
       return;
     }
 
-    // 날짜를 YYYY-MM-DD 형식으로 변환
-    const reservationStartAt = startDate.toISOString().split("T")[0];
-    const reservationEndAt = endDate.toISOString().split("T")[0];
+    // 날짜를 YYYY-MM-DD 형식으로 변환 (로컬 시간대 기준)
+    const formatDateToYYYYMMDD = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+    
+    const reservationStartAt = formatDateToYYYYMMDD(startDate);
+    const reservationEndAt = formatDateToYYYYMMDD(endDate);
 
     // 택배일 경우 주소 필수
     if (
@@ -365,8 +380,8 @@ function NewReservationPageContent() {
           data: {
             receiveMethod: submitData.receiveMethod,
             returnMethod: submitData.returnMethod,
-            reservationStartAt: startDate,
-            reservationEndAt: endDate,
+            reservationStartAt: reservationStartAt,
+            reservationEndAt: reservationEndAt,
             optionIds: submitData.optionIds,
             receiveAddress1: submitData.receiveAddress1,
             receiveAddress2: submitData.receiveAddress2,
@@ -464,18 +479,23 @@ function NewReservationPageContent() {
                     onChange={(start, end) => {
                       setStartDate(start);
                       setEndDate(end);
+                      // 로컬 시간대 기준으로 YYYY-MM-DD 형식 변환
+                      const formatDateToYYYYMMDD = (date: Date): string => {
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, "0");
+                        const day = String(date.getDate()).padStart(2, "0");
+                        return `${year}-${month}-${day}`;
+                      };
                       if (start) {
                         setFormData({
                           ...formData,
-                          reservationStartAt: start
-                            .toISOString()
-                            .split("T")[0],
+                          reservationStartAt: formatDateToYYYYMMDD(start),
                         });
                       }
                       if (end) {
                         setFormData({
                           ...formData,
-                          reservationEndAt: end.toISOString().split("T")[0],
+                          reservationEndAt: formatDateToYYYYMMDD(end),
                         });
                         // 종료일이 선택되면 자동으로 달력 닫기
                         setIsDatePickerOpen(false);

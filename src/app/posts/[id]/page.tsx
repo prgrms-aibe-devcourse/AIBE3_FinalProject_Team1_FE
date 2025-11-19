@@ -12,6 +12,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { ProfileReviewDialog } from "@/components/profile/profile-review-dialog";
 
@@ -36,6 +42,7 @@ import {
 /**
  * 게시글 상세 페이지
  */
+
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -188,7 +195,7 @@ export default function PostDetailPage() {
     );
   }
 
-  const isAuthor = user?.id === post.authorId;
+  const isAuthor = user?.id === (post.author?.id ?? post.authorId);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -278,179 +285,223 @@ export default function PostDetailPage() {
             {/* 제목 및 요금 정보 */}
             <div>
               <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-2xl font-semibold text-blue-600">
                   {post.fee.toLocaleString()}원/일
                 </span>
+                {post.deposit > 0 && (
+                  <span className="text-lg text-gray-600 text-right">
+                    보증금: {post.deposit.toLocaleString()}원
+                  </span>
+                )}
               </div>
+              {post.createdAt && (
+                <p className="text-sm text-gray-500">
+                  작성일:{" "}
+                  {(() => {
+                    const date = new Date(post.createdAt);
+                    return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, "0")}. ${String(date.getDate()).padStart(2, "0")}.`;
+                  })()}
+                </p>
+              )}
             </div>
           </div>
 
           {/* 우측: 작성자 정보 및 액션 카드 (1/3) */}
-          {!isAuthor && (
-            <div className="lg:col-span-1">
-              <Card>
-                <CardContent className="p-4 space-y-4">
-                  {/* 작성자 프로필 섹션 */}
-                  <div className="flex items-start gap-4 pb-4 bg-gray-50 rounded-lg p-4 mb-4">
-                    {post.author?.profileImgUrl ? (
-                      <div className="relative h-16 w-16 rounded-full overflow-hidden shrink-0">
-                        <Image
-                          src={post.author.profileImgUrl}
-                          alt={post.author.nickname || "작성자"}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center shrink-0">
-                        <span className="text-gray-600 text-xl font-semibold">
-                          {
-                            (post.author?.nickname ||
-                              post.authorNickname ||
-                              "U")[0]
-                          }
-                        </span>
-                      </div>
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                {/* 작성자 프로필 섹션 */}
+                <div className="flex items-start gap-4 pb-4 bg-gray-50 rounded-lg p-4 mb-4">
+                  {post.author?.profileImgUrl ? (
+                    <div className="relative h-16 w-16 rounded-full overflow-hidden shrink-0">
+                      <Image
+                        src={post.author.profileImgUrl}
+                        alt={post.author.nickname || "작성자"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center shrink-0">
+                      <span className="text-gray-600 text-xl font-semibold">
+                        {
+                          (post.author?.nickname ||
+                            post.authorNickname ||
+                            "U")[0]
+                        }
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => setProfileDialogOpen(true)}
+                      className="font-semibold text-lg text-left text-gray-900 hover:text-blue-600"
+                    >
+                      {post.author?.nickname || post.authorNickname || "익명"}
+                    </button>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                      <span>★4.9</span>
+                      <span>응답률 98%</span>
+                    </div>
+                    {post.author?.createdAt && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {(() => {
+                          const date = new Date(post.author.createdAt);
+                          return `${date.getFullYear()}년 ${date.getMonth() + 1}월 가입`;
+                        })()}
+                      </p>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => setProfileDialogOpen(true)}
-                        className="font-semibold text-lg text-left text-gray-900 hover:text-blue-600"
-                      >
-                        {post.author?.nickname || post.authorNickname || "익명"}
-                      </button>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                        <span>★4.9</span>
-                        <span>응답률 98%</span>
-                      </div>
-                      {post.author?.createdAt && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {(() => {
-                            const date = new Date(post.author.createdAt);
-                            return `${date.getFullYear()}년 ${date.getMonth() + 1}월 가입`;
-                          })()}
-                        </p>
+                  </div>
+                </div>
+
+                {/* 반납 주소 섹션 */}
+                {(post.returnAddress1 || post.returnAddress2) && (
+                  <div className="pb-4 mb-4 bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-start gap-2 mb-2">
+                      <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium">반납 주소</p>
+                    </div>
+                    <div className="bg-white rounded p-2 text-sm space-y-1">
+                      {post.returnAddress1 && (
+                        <p className="text-gray-700">{post.returnAddress1}</p>
+                      )}
+                      {post.returnAddress2 && (
+                        <p className="text-gray-700">{post.returnAddress2}</p>
                       )}
                     </div>
                   </div>
+                )}
 
-                  {/* 반납 주소 섹션 */}
-                  {(post.returnAddress1 || post.returnAddress2) && (
-                    <div className="pb-4 mb-4 bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-start gap-2 mb-2">
-                        <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                        <p className="text-sm font-medium">반납 주소</p>
-                      </div>
-                      <div className="bg-white rounded p-2 text-sm space-y-1">
-                        {post.returnAddress1 && (
-                          <p className="text-gray-700">{post.returnAddress1}</p>
-                        )}
-                        {post.returnAddress2 && (
-                          <p className="text-gray-700">{post.returnAddress2}</p>
-                        )}
-                      </div>
+                {/* 수령/반납 방식 섹션 */}
+                <div className="space-y-4 pb-4 mb-4 bg-gray-50 rounded-lg p-4">
+                  {/* 수령 방식 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Truck className="h-4 w-4 text-blue-500" />
+                      <p className="text-sm font-medium">수령 방식</p>
                     </div>
-                  )}
-
-                  {/* 수령/반납 방식 섹션 */}
-                  <div className="space-y-4 pb-4 mb-4 bg-gray-50 rounded-lg p-4">
-                    {/* 수령 방식 */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Truck className="h-4 w-4 text-blue-500" />
-                        <p className="text-sm font-medium">수령 방식</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {post.receiveMethod === "ANY" ||
-                        post.receiveMethod === "DIRECT" ? (
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                            직접 수령
-                          </span>
-                        ) : null}
-                        {post.receiveMethod === "ANY" ||
-                        post.receiveMethod === "DELIVERY" ? (
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                            택배 발송
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* 반납 방식 */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <RotateCcw className="h-4 w-4 text-green-500" />
-                        <p className="text-sm font-medium">반납 방식</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {post.returnMethod === "ANY" ||
-                        post.returnMethod === "DIRECT" ? (
-                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                            직접 반납
-                          </span>
-                        ) : null}
-                        {post.returnMethod === "ANY" ||
-                        post.returnMethod === "DELIVERY" ? (
-                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                            택배 반납
-                          </span>
-                        ) : null}
-                      </div>
+                    <div className="flex flex-wrap gap-2">
+                      {post.receiveMethod === "ANY" ||
+                      post.receiveMethod === "DIRECT" ? (
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                          직접 수령
+                        </span>
+                      ) : null}
+                      {post.receiveMethod === "ANY" ||
+                      post.receiveMethod === "DELIVERY" ? (
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                          택배 발송
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 
-                  {/* 좋아요 및 신고 버튼 */}
-                  <div className="flex gap-2 mb-4 bg-gray-50 rounded-lg p-4">
+                  {/* 반납 방식 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <RotateCcw className="h-4 w-4 text-green-500" />
+                      <p className="text-sm font-medium">반납 방식</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {post.returnMethod === "ANY" ||
+                      post.returnMethod === "DIRECT" ? (
+                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                          직접 반납
+                        </span>
+                      ) : null}
+                      {post.returnMethod === "ANY" ||
+                      post.returnMethod === "DELIVERY" ? (
+                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                          택배 반납
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 좋아요 및 신고 버튼 */}
+                <div className="flex gap-2 mb-4 bg-gray-50 rounded-lg p-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="flex-1 whitespace-nowrap"
+                          onClick={handleFavorite}
+                          disabled={
+                            toggleFavoriteMutation.isPending ||
+                            !isAuthenticated ||
+                            isAuthor
+                          }
+                        >
+                          <Heart
+                            className={`h-4 w-4 mr-2 ${
+                              isFavorite ? "fill-red-500 text-red-500" : ""
+                            }`}
+                          />
+                          즐겨찾기
+                        </Button>
+                      </TooltipTrigger>
+                      {isAuthor && (
+                        <TooltipContent sideOffset={12}>
+                          <p>자신의 게시글에는 즐겨찾기를 할 수 없습니다.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button
+                    variant="outline"
+                    className="flex-1 whitespace-nowrap"
+                  >
+                    <Flag className="h-4 w-4 mr-2" />
+                    신고하기
+                  </Button>
+                </div>
+
+                {/* 메시지 보내기 및 대여 신청 버튼 */}
+                {isAuthenticated && (
+                  <div className="space-y-2">
                     <Button
                       variant="outline"
-                      className="flex-1"
-                      onClick={handleFavorite}
-                      disabled={
-                        toggleFavoriteMutation.isPending || !isAuthenticated
-                      }
+                      className="w-full"
+                      onClick={handleChat}
+                      disabled={createChatRoomMutation.isPending}
                     >
-                      <Heart
-                        className={`h-4 w-4 mr-2 ${
-                          isFavorite ? "fill-red-500 text-red-500" : ""
-                        }`}
-                      />
-                      즐겨찾기
+                      {createChatRoomMutation.isPending
+                        ? "채팅방 생성 중..."
+                        : "메시지 보내기"}
                     </Button>
-                    <Button variant="outline" className="flex-1">
-                      <Flag className="h-4 w-4 mr-2" />
-                      신고하기
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="w-full">
+                            <Button
+                              className="w-full"
+                              onClick={() =>
+                                router.push(
+                                  `/reservations/new?postId=${postId}`,
+                                )
+                              }
+                              disabled={isAuthor}
+                            >
+                              대여 신청
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {isAuthor && (
+                          <TooltipContent sideOffset={12}>
+                            <p>자신의 게시글에는 예약신청 할 수 없습니다.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-
-                  {/* 메시지 보내기 및 대여 신청 버튼 */}
-                  {isAuthenticated && (
-                    <div className="space-y-2">
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleChat}
-                        disabled={createChatRoomMutation.isPending}
-                      >
-                        {createChatRoomMutation.isPending
-                          ? "채팅방 생성 중..."
-                          : "메시지 보내기"}
-                      </Button>
-                      <Button
-                        className="w-full"
-                        onClick={() =>
-                          router.push(`/reservations/new?postId=${postId}`)
-                        }
-                      >
-                        대여 신청
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -510,25 +561,6 @@ export default function PostDetailPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
-
-          {/* 작성자 수정/삭제 버튼 */}
-          {isAuthor && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/posts/${postId}/edit`)}
-              >
-                수정
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleDelete}
-                disabled={deletePostMutation.isPending}
-              >
-                삭제
-              </Button>
-            </div>
           )}
 
           {/* 후기 섹션 */}

@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 
 import { useFilterStore } from "@/store/filterStore";
+import { useAuthStore } from "@/store/authStore";
 
 import { useCategoryListQuery } from "@/queries/category";
 import { usePostListQuery } from "@/queries/post";
@@ -37,6 +38,7 @@ const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
 
 export default function PostsPage() {
   const { postFilters, setPostFilters, resetPostFilters } = useFilterStore();
+  const { user } = useAuthStore();
   const [showFilters, setShowFilters] = useState(false);
   const [localKeyword, setLocalKeyword] = useState(postFilters.keyword || "");
 
@@ -414,6 +416,8 @@ export default function PostsPage() {
               toggleFavoriteMutation.mutate(post.id);
             };
 
+            const isAuthor = user?.id === (post.author?.id ?? post.authorId);
+
             return (
               <div key={post.id} className="relative">
                 <Link href={`/posts/${post.id}`} className="block">
@@ -423,7 +427,7 @@ export default function PostsPage() {
                     type="button"
                     onClick={handleFavoriteClick}
                     className="absolute right-2 top-2 z-10 rounded-full bg-white bg-opacity-80 p-2 shadow-md hover:bg-opacity-100 transition-all"
-                    disabled={toggleFavoriteMutation.isPending}
+                    disabled={toggleFavoriteMutation.isPending || isAuthor}
                   >
                     <Heart
                       className={`h-5 w-5 ${
