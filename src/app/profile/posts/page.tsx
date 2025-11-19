@@ -279,9 +279,9 @@ function PostCard({ post }: { post: Post }) {
                 )}
                 <p className="text-sm text-gray-600 mb-2">
                   {post.createdAt &&
-                    format(new Date(post.createdAt), "yyyy-MM-dd", {
+                    `작성일 : ${format(new Date(post.createdAt), "yyyy-MM-dd", {
                       locale: ko,
-                    })}
+                    })}`}
                 </p>
                 <p className="text-lg font-semibold text-blue-600">
                   {post.fee?.toLocaleString() || 0}원/일
@@ -444,7 +444,7 @@ function PostCard({ post }: { post: Post }) {
                                   src={getImageUrl(
                                     reservation.author.profileImgUrl,
                                   )}
-                                  alt={reservation.author.nickname || "예약자"}
+                                  alt={reservation.author.nickname || reservation.author?.name || "예약자"}
                                   width={48}
                                   height={48}
                                   className="rounded-full"
@@ -456,7 +456,7 @@ function PostCard({ post }: { post: Post }) {
                               )}
                               <div>
                                 <p className="font-semibold text-gray-900">
-                                  {reservation.author?.nickname || "예약자"}
+                                  {reservation.author?.nickname || reservation.author?.name || "예약자"}
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   신청일:{" "}
