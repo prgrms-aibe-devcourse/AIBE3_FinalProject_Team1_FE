@@ -43,6 +43,14 @@ import {
  * 게시글 상세 페이지
  */
 
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -461,8 +469,8 @@ export default function PostDetailPage() {
                 </div>
 
                 {/* 메시지 보내기 및 대여 신청 버튼 */}
-                {isAuthenticated && (
-                  <div className="space-y-2">
+                <div className="space-y-2">
+                  {isAuthenticated && (
                     <Button
                       variant="outline"
                       className="w-full"
@@ -473,32 +481,37 @@ export default function PostDetailPage() {
                         ? "채팅방 생성 중..."
                         : "메시지 보내기"}
                     </Button>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="w-full">
-                            <Button
-                              className="w-full"
-                              onClick={() =>
-                                router.push(
-                                  `/reservations/new?postId=${postId}`,
-                                )
+                  )}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="w-full">
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                router.push(`/login?redirect=/posts/${postId}`);
+                                return;
                               }
-                              disabled={isAuthor}
-                            >
-                              대여 신청
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        {isAuthor && (
-                          <TooltipContent sideOffset={12}>
-                            <p>자신의 게시글에는 예약신청 할 수 없습니다.</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                )}
+                              if (isAuthor) {
+                                return;
+                              }
+                              router.push(`/reservations/new?postId=${postId}`);
+                            }}
+                            disabled={isAuthor}
+                          >
+                            대여 신청
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {isAuthor && (
+                        <TooltipContent sideOffset={12}>
+                          <p>자신의 게시글에는 예약신청 할 수 없습니다.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </CardContent>
             </Card>
           </div>

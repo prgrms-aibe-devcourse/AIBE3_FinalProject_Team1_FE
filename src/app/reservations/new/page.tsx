@@ -122,12 +122,16 @@ function NewReservationPageContent() {
     setStartDate(start || null);
     setEndDate(end || null);
 
-    // 로컬 시간대 기준으로 YYYY-MM-DD 형식 변환
-    const formatDateToYYYYMMDD = (date: Date): string => {
+    // 로컬 시간대 기준으로 LocalDateTime 형식 변환
+    // 시작일은 00:00:00, 종료일은 23:59:59로 설정
+    const formatDateToLocalDateTime = (date: Date, isEndDate: boolean = false): string => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
+      const hours = isEndDate ? "23" : "00";
+      const minutes = isEndDate ? "59" : "00";
+      const seconds = isEndDate ? "59" : "00";
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     };
 
     setFormData((prev) => ({
@@ -140,10 +144,10 @@ function NewReservationPageContent() {
         (existingReservation.returnMethod as ReceiveMethod) ??
         ReceiveMethod.DIRECT,
       reservationStartAt: start
-        ? formatDateToYYYYMMDD(start)
+        ? formatDateToLocalDateTime(start, false)
         : prev.reservationStartAt,
       reservationEndAt: end
-        ? formatDateToYYYYMMDD(end)
+        ? formatDateToLocalDateTime(end, true)
         : prev.reservationEndAt,
       optionIds:
         existingReservation.options?.map((o) => o.optionId) ??
@@ -328,16 +332,20 @@ function NewReservationPageContent() {
       return;
     }
 
-    // 날짜를 YYYY-MM-DD 형식으로 변환 (로컬 시간대 기준)
-    const formatDateToYYYYMMDD = (date: Date): string => {
+    // 날짜를 LocalDateTime 형식으로 변환 (로컬 시간대 기준)
+    // 시작일은 00:00:00, 종료일은 23:59:59로 설정
+    const formatDateToLocalDateTime = (date: Date, isEndDate: boolean = false): string => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
+      const hours = isEndDate ? "23" : "00";
+      const minutes = isEndDate ? "59" : "00";
+      const seconds = isEndDate ? "59" : "00";
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     };
     
-    const reservationStartAt = formatDateToYYYYMMDD(startDate);
-    const reservationEndAt = formatDateToYYYYMMDD(endDate);
+    const reservationStartAt = formatDateToLocalDateTime(startDate, false);
+    const reservationEndAt = formatDateToLocalDateTime(endDate, true);
 
     // 택배일 경우 주소 필수
     if (
@@ -479,23 +487,27 @@ function NewReservationPageContent() {
                     onChange={(start, end) => {
                       setStartDate(start);
                       setEndDate(end);
-                      // 로컬 시간대 기준으로 YYYY-MM-DD 형식 변환
-                      const formatDateToYYYYMMDD = (date: Date): string => {
+                      // 로컬 시간대 기준으로 LocalDateTime 형식 변환
+                      // 시작일은 00:00:00, 종료일은 23:59:59로 설정
+                      const formatDateToLocalDateTime = (date: Date, isEndDate: boolean = false): string => {
                         const year = date.getFullYear();
                         const month = String(date.getMonth() + 1).padStart(2, "0");
                         const day = String(date.getDate()).padStart(2, "0");
-                        return `${year}-${month}-${day}`;
+                        const hours = isEndDate ? "23" : "00";
+                        const minutes = isEndDate ? "59" : "00";
+                        const seconds = isEndDate ? "59" : "00";
+                        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
                       };
                       if (start) {
                         setFormData({
                           ...formData,
-                          reservationStartAt: formatDateToYYYYMMDD(start),
+                          reservationStartAt: formatDateToLocalDateTime(start, false),
                         });
                       }
                       if (end) {
                         setFormData({
                           ...formData,
-                          reservationEndAt: formatDateToYYYYMMDD(end),
+                          reservationEndAt: formatDateToLocalDateTime(end, true),
                         });
                         // 종료일이 선택되면 자동으로 달력 닫기
                         setIsDatePickerOpen(false);
