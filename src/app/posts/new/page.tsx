@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 
 import { useAuthStore } from "@/store/authStore";
 
@@ -38,6 +39,30 @@ import {
   User,
   X,
 } from "lucide-react";
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
 
 /**
  * 게시글 작성 페이지
@@ -257,12 +282,12 @@ export default function NewPostPage() {
     const newOptions = [...options];
     let processedValue: string | number = value;
 
-    if (field === "deposit" || field === "fee") {
-      const numValue = Number(value);
-      // 음수 값은 0으로 제한
-      processedValue = numValue < 0 ? 0 : numValue;
-    } else if (field === "name") {
+    // deposit과 fee는 NumberInput에서 직접 처리되므로 그대로 사용
+    if (field === "name") {
       processedValue = value;
+    } else if (field === "deposit" || field === "fee") {
+      // NumberInput에서 이미 숫자로 변환되어 전달됨
+      processedValue = typeof value === "number" ? value : Number(value) || 0;
     } else {
       processedValue = Number(value);
     }
@@ -270,6 +295,20 @@ export default function NewPostPage() {
     newOptions[index] = {
       ...newOptions[index],
       [field]: processedValue,
+    };
+    setOptions(newOptions);
+  };
+
+  // 옵션의 NumberInput용 핸들러
+  const handleOptionNumberChange = (
+    index: number,
+    field: "deposit" | "fee",
+    value: number,
+  ) => {
+    const newOptions = [...options];
+    newOptions[index] = {
+      ...newOptions[index],
+      [field]: value,
     };
     setOptions(newOptions);
   };
@@ -401,17 +440,24 @@ export default function NewPostPage() {
     const { name, value } = e.target;
     let processedValue: string | number = value;
 
-    if (name === "deposit" || name === "fee") {
-      const numValue = Number(value);
-      // 음수 값은 0으로 제한
-      processedValue = numValue < 0 ? 0 : numValue;
-    } else if (name === "categoryId") {
+    if (name === "categoryId") {
       processedValue = Number(value);
+    } else {
+      // deposit과 fee는 NumberInput에서 직접 처리
+      processedValue = value;
     }
 
     setFormData({
       ...formData,
       [name]: processedValue,
+    });
+  };
+
+  // NumberInput용 핸들러
+  const handleNumberChange = (name: "deposit" | "fee", value: number) => {
+    setFormData({
+      ...formData,
+      [name]: value,
     });
   };
 
@@ -595,14 +641,10 @@ export default function NewPostPage() {
                 <label htmlFor="fee" className="text-sm font-medium">
                   대여료(일) <span className="text-red-500">*</span>
                 </label>
-                <Input
+                <NumberInput
                   id="fee"
-                  name="fee"
-                  type="number"
-                  min="0"
-                  step="1"
                   value={formData.fee || 0}
-                  onChange={handleChange}
+                  onChange={(value) => handleNumberChange("fee", value)}
                   required
                   disabled={createPostMutation.isPending}
                 />
@@ -611,14 +653,10 @@ export default function NewPostPage() {
                 <label htmlFor="deposit" className="text-sm font-medium">
                   보증금
                 </label>
-                <Input
+                <NumberInput
                   id="deposit"
-                  name="deposit"
-                  type="number"
-                  min="0"
-                  step="1"
                   value={formData.deposit || 0}
-                  onChange={handleChange}
+                  onChange={(value) => handleNumberChange("deposit", value)}
                   disabled={createPostMutation.isPending}
                 />
               </div>
@@ -999,14 +1037,11 @@ export default function NewPostPage() {
                           <label className="text-sm font-medium text-gray-700">
                             추가 요금
                           </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
+                          <NumberInput
                             placeholder="0"
-                            value={option.fee}
-                            onChange={(e) =>
-                              handleOptionChange(index, "fee", e.target.value)
+                            value={option.fee || 0}
+                            onChange={(value) =>
+                              handleOptionNumberChange(index, "fee", value)
                             }
                             disabled={createPostMutation.isPending}
                           />
@@ -1015,18 +1050,11 @@ export default function NewPostPage() {
                           <label className="text-sm font-medium text-gray-700">
                             추가 보증금
                           </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
+                          <NumberInput
                             placeholder="0"
-                            value={option.deposit}
-                            onChange={(e) =>
-                              handleOptionChange(
-                                index,
-                                "deposit",
-                                e.target.value,
-                              )
+                            value={option.deposit || 0}
+                            onChange={(value) =>
+                              handleOptionNumberChange(index, "deposit", value)
                             }
                             disabled={createPostMutation.isPending}
                           />
