@@ -58,12 +58,11 @@ export interface CreateMemberDto {
  * 사용자 수정 DTO
  */
 export interface UpdateMemberDto {
-  name?: string;
-  phoneNumber?: string;
-  address1?: string;
-  address2?: string;
-  nickname?: string;
-  profileImgUrl?: string;
+  address1: string;
+  address2: string;
+  nickname: string;
+  phoneNumber: string;
+  removeProfileImage: boolean;
 }
 
 /**

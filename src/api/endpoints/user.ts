@@ -42,7 +42,7 @@ export async function getMe(): Promise<MemberResponse> {
 export async function updateUser(
   data: UpdateMemberDto | FormData,
 ): Promise<MemberResponse> {
-  return apiClient.put<MemberResponse>("/api/v1/members/me", data, {
+  return apiClient.patch<MemberResponse>("/api/v1/members/me", data, {
     isFormData: data instanceof FormData,
   });
 }
