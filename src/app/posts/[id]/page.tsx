@@ -36,74 +36,6 @@ import {
 /**
  * 게시글 상세 페이지
  */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -557,22 +489,19 @@ export default function PostDetailPage() {
                           <p className="font-medium text-gray-900 mb-1">
                             {option.name}
                           </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            {option.deposit > 0 && (
-                              <span>
-                                보증금: {option.deposit.toLocaleString()}원
-                              </span>
-                            )}
-                            {option.fee > 0 && (
-                              <span className="text-blue-600 font-semibold">
-                                추가 요금: {option.fee.toLocaleString()}원/일
-                              </span>
-                            )}
-                            {option.deposit === 0 && option.fee === 0 && (
-                              <span className="text-gray-500">
-                                추가 요금 없음
-                              </span>
-                            )}
+                          <div className="flex items-center justify-between text-sm text-gray-600">
+                            <span className="text-blue-600 font-semibold">
+                              추가 요금:{" "}
+                              {option.fee > 0
+                                ? `${option.fee.toLocaleString()}원/일`
+                                : "무료/일"}
+                            </span>
+                            <span className="text-right">
+                              보증금:{" "}
+                              {option.deposit > 0
+                                ? `${option.deposit.toLocaleString()}원`
+                                : "무료"}
+                            </span>
                           </div>
                         </div>
                       </div>
