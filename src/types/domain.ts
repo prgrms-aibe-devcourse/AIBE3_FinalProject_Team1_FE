@@ -352,8 +352,8 @@ export interface UpdateReservationDto {
   cancelReason?: string;
   rejectReason?: string;
   claimReason?: string;
-  reservationStartAt?: Date;
-  reservationEndAt?: Date;
+  reservationStartAt?: string; // LocalDateTime 형식 (YYYY-MM-DDTHH:mm:ss)
+  reservationEndAt?: string; // LocalDateTime 형식 (YYYY-MM-DDTHH:mm:ss)
   optionIds?: number[];
 }
 

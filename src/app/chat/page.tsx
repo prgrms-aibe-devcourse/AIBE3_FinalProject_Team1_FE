@@ -22,6 +22,7 @@ import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { useStomp } from "@/hooks/useStomp";
 
@@ -455,14 +456,16 @@ function ChatPage() {
   const selectedRoom = chatRooms.find((r) => r.id === selectedRoomId);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      {/* Left: Room list */}
-      <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">채팅</h2>
-        </div>
+    <div className="container mx-auto px-4 py-4">
+      <div className="flex gap-4 h-[calc(100vh-14rem)]">
+        {/* Left: Room list */}
+        <Card className="w-80 flex-shrink-0 flex flex-col h-full">
+          <CardContent className="!p-0 flex flex-col h-full overflow-hidden">
+            <div className="px-4 py-4 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-lg font-semibold">채팅</h2>
+            </div>
 
-        <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
           {chatRoomsLoading ? (
             <div className="flex items-center justify-center h-full">
               로딩 중...
@@ -477,11 +480,11 @@ function ChatPage() {
               <button
                 key={room.id}
                 onClick={() => setSelectedRoomId(room.id)}
-                className={`w-full p-4 border-b hover:bg-gray-50 text-left ${
+                className={`w-full py-4 border-b border-gray-100 hover:bg-gray-50 text-left ${
                   selectedRoomId === room.id ? "bg-gray-100" : ""
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 px-4">
                   <div className="relative h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
                     {room.otherMember?.profileImgUrl ? (
                       <Image
@@ -534,15 +537,17 @@ function ChatPage() {
               </button>
             ))
           )}
-        </div>
-      </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Right: Messages */}
-      <div className="flex-1 flex flex-col bg-white">
+        {/* Right: Messages */}
+        <Card className="flex-1 flex flex-col h-full">
+          <CardContent className="!p-0 flex flex-col h-full overflow-hidden">
         {selectedRoom ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b bg-white flex items-center gap-3">
+            <div className="p-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
               <div className="relative h-10 w-10 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
                 {selectedRoom.otherMember?.profileImgUrl ? (
                   <Image
@@ -567,7 +572,7 @@ function ChatPage() {
 
             {/* Messages */}
             <div
-              className="flex-1 overflow-y-auto p-4 space-y-4"
+              className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0"
               onScroll={(e) => {
                 const t = e.currentTarget;
 
@@ -634,7 +639,7 @@ function ChatPage() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t bg-white">
+            <div className="p-4 border-t border-gray-200 flex-shrink-0">
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <Input
                   className="flex-1"
@@ -656,6 +661,8 @@ function ChatPage() {
             </div>
           </div>
         )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
