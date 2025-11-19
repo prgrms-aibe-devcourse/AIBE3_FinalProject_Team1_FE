@@ -92,6 +92,18 @@ import {
 /**
  * 게시글 상세 페이지
  */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -472,10 +484,11 @@ export default function PostDetailPage() {
                           isFavorite ? "fill-red-500 text-red-500" : ""
                         }`}
                       />
-                      {post.favoriteCount || 0}
+                      즐겨찾기
                     </Button>
-                    <Button variant="outline" size="sm">
-                      <Flag className="h-4 w-4" />
+                    <Button variant="outline" className="flex-1">
+                      <Flag className="h-4 w-4 mr-2" />
+                      신고하기
                     </Button>
                   </div>
 
