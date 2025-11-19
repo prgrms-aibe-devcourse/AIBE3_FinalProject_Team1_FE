@@ -1,6 +1,7 @@
 // src/hooks/useStomp.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
 let globalClient: Client | null = null;
 
@@ -39,12 +40,20 @@ export function useStomp() {
       return;
     }
 
+    // ⭐ 환경변수에서 URL 가져오기 (주의: http/https 사용!)
+    const wsUrl =
+      process.env.NEXT_PUBLIC_WS_BASE_URL || "http://localhost:8080/ws-chat";
+
     const client = new Client({
-      brokerURL:
-        process.env.NEXT_PUBLIC_WS_BASE_URL || "ws://localhost:8080/ws-chat",
+      // ⭐ brokerURL 대신 webSocketFactory 사용
+      webSocketFactory: () => new SockJS(wsUrl, null, {
+        transports: ['xhr-streaming', 'xhr-polling']  // ⭐ WebSocket 제외
+      }),
+      
       reconnectDelay: 3000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
+      
       onConnect: () => {
         console.log("[STOMP] Connected");
         setIsConnected(true);
@@ -54,6 +63,11 @@ export function useStomp() {
         setIsConnected(false);
       },
       onStompError: (err) => console.error("[STOMP] Error:", err),
+      
+      // ⭐ 디버깅용 (선택사항)
+      debug: (str) => {
+        console.log("[STOMP Debug]", str);
+      },
     });
 
     globalClient = client;
