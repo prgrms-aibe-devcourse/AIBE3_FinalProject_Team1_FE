@@ -10,10 +10,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-import type { Reservation } from "@/types/domain";
+import type { Reservation, UpdateMemberDto } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
 import { useAuthStore } from "@/store/authStore";
@@ -22,7 +23,63 @@ import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
 import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
 
-import { Calendar, Edit, Star } from "lucide-react";
+import { Calendar, Edit, MapPin, Star } from "lucide-react";
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
 
 /**
  * 마이페이지 - 내 정보
@@ -72,7 +129,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user: authUser, isAuthenticated } = useAuthStore();
   const { data: me, isLoading: meLoading } = useMeQuery();
-  
+
   // 스토어에 있는 사용자 정보와 me 응답 중 우선순위: me > authUser
   const meFinal = me ?? authUser;
   const { data: myPosts } = useMyPostsQuery();
@@ -83,37 +140,104 @@ export default function ProfilePage() {
   const [isMounted, setIsMounted] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: meFinal?.name || "",
     nickname: meFinal?.nickname || "",
     phoneNumber: meFinal?.phoneNumber || "",
     address1: meFinal?.address1 || "",
     address2: meFinal?.address2 || "",
+    removeProfileImage: false,
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
+    null,
+  );
 
   // 클라이언트 마운트 후 상태 업데이트
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  // 다음 주소 검색 스크립트 로드
+  useEffect(() => {
+    if (window.daum && window.daum.Postcode) {
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      try {
+        if (document.head.contains(script)) {
+          document.head.removeChild(script);
+        }
+      } catch {
+        // 스크립트가 이미 제거되었을 수 있음
+      }
+    };
+  }, []);
+
   // meFinal 데이터가 변경되면 formData 업데이트
   useEffect(() => {
     if (meFinal) {
       setFormData({
-        name: meFinal.name || "",
         nickname: meFinal.nickname || "",
         phoneNumber: meFinal.phoneNumber || "",
         address1: meFinal.address1 || "",
         address2: meFinal.address2 || "",
+        removeProfileImage: false,
       });
+      setProfileImagePreview(meFinal.profileImgUrl || null);
+      setProfileImageFile(null);
     }
   }, [meFinal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateUserMutation.mutateAsync(formData);
+      // FormData 생성
+      const formDataToSend = new FormData();
+
+      // reqBody를 JSON Blob으로 추가
+      const reqBody = {
+        address1: formData.address1,
+        address2: formData.address2,
+        nickname: formData.nickname,
+        phoneNumber: formData.phoneNumber,
+        removeProfileImage: formData.removeProfileImage,
+      };
+      formDataToSend.append(
+        "reqBody",
+        new Blob([JSON.stringify(reqBody)], { type: "application/json" }),
+      );
+
+      // 프로필 이미지 파일 추가
+      // removeProfileImage가 true면 파일을 보내지 않음 (백엔드에서 삭제 처리)
+      // removeProfileImage가 false이고 파일이 있으면 새 이미지 업로드
+      if (profileImageFile && !formData.removeProfileImage) {
+        formDataToSend.append("profileImage", profileImageFile);
+      }
+      // removeProfileImage가 true이고 파일이 없으면 백엔드에서 이미지 삭제 처리
+      // (reqBody에 removeProfileImage: true가 포함되어 있음)
+
+      // 디버깅용 로그
+      if (process.env.NODE_ENV === "development") {
+        console.log("프로필 수정 요청:", {
+          removeProfileImage: formData.removeProfileImage,
+          hasProfileImageFile: !!profileImageFile,
+          reqBody,
+        });
+      }
+
+      await updateUserMutation.mutateAsync(
+        formDataToSend as unknown as UpdateMemberDto,
+      );
       setIsEditing(false);
+      setProfileImageFile(null);
+      setProfileImagePreview(null);
       alert("프로필이 업데이트되었습니다.");
     } catch (error) {
       console.error("Update profile failed:", error);
@@ -123,20 +247,86 @@ export default function ProfilePage() {
   const handleCancel = () => {
     if (meFinal) {
       setFormData({
-        name: meFinal.name || "",
         nickname: meFinal.nickname || "",
         phoneNumber: meFinal.phoneNumber || "",
         address1: meFinal.address1 || "",
         address2: meFinal.address2 || "",
+        removeProfileImage: false,
       });
+      setProfileImagePreview(meFinal.profileImgUrl || null);
+      setProfileImageFile(null);
     }
     setIsEditing(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+    const { name, value, type, checked } = e.target;
+    if (type === "checkbox") {
+      setFormData({
+        ...formData,
+        [name]: checked,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      // 이미지를 변경하면 removeProfileImage 체크 해제
+      setFormData({
+        ...formData,
+        removeProfileImage: false,
+      });
+    }
+  };
+
+  // 주소 검색 팝업 열기
+  const handleOpenAddressSearch = () => {
+    if (typeof window === "undefined" || !window.daum) {
+      alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    new window.daum.Postcode({
+      oncomplete: function (data: daum.PostcodeData) {
+        let fullAddress = data.address;
+        let extraAddress = "";
+
+        if (data.addressType === "R") {
+          if (data.bname !== "") {
+            extraAddress += data.bname;
+          }
+          if (data.buildingName !== "") {
+            extraAddress +=
+              extraAddress !== ""
+                ? `, ${data.buildingName}`
+                : data.buildingName;
+          }
+          fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
+        }
+
+        setFormData({
+          ...formData,
+          address1: fullAddress,
+        });
+      },
+      width: "100%",
+      height: "100%",
+    }).open({
+      q: formData.address1,
+      left: window.screen.width / 2 - 300,
+      top: window.screen.height / 2 - 300,
     });
   };
 
@@ -214,18 +404,20 @@ export default function ProfilePage() {
           <Card className="bg-blue-600 text-white border-0 shadow-lg">
             <CardContent className="p-6 text-center">
               <div className="relative mx-auto mb-4 h-24 w-24 rounded-full bg-white/20 ring-4 ring-white/30">
-                    {meFinal?.profileImgUrl ? (
-                      <Image
-                        src={meFinal.profileImgUrl}
-                        alt={meFinal.nickname || "User"}
-                        fill
-                        className="object-cover rounded-full"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-3xl font-semibold text-white">
-                        {meFinal?.nickname?.[0]?.toUpperCase() || "U"}
-                      </div>
-                    )}
+                {/* 항상 원본 이미지만 표시 */}
+                {meFinal?.profileImgUrl ? (
+                  <Image
+                    src={meFinal.profileImgUrl}
+                    alt={meFinal?.nickname || "User"}
+                    fill
+                    className="object-cover rounded-full"
+                    key={meFinal.profileImgUrl}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-3xl font-semibold text-white">
+                    {meFinal?.nickname?.[0]?.toUpperCase() || "U"}
+                  </div>
+                )}
               </div>
               <h2 className="text-2xl font-bold mb-1">{meFinal?.nickname}</h2>
               <p className="text-blue-100 mb-3">{meFinal?.email}</p>
@@ -276,17 +468,83 @@ export default function ProfilePage() {
             <CardContent className="p-6">
               {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* 프로필 이미지 */}
                   <div className="space-y-2">
                     <label
-                      htmlFor="name"
+                      htmlFor="profileImage"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      이름
+                      프로필 이미지
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-24 w-24 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-300">
+                        {profileImagePreview ? (
+                          <Image
+                            src={profileImagePreview}
+                            alt="프로필 미리보기"
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-2xl font-semibold text-gray-400">
+                            {formData.nickname?.[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          id="profileImage"
+                          name="profileImage"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          disabled={updateUserMutation.isPending}
+                          className="cursor-pointer"
+                        />
+                        {meFinal?.profileImgUrl && (
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="removeProfileImage"
+                              name="removeProfileImage"
+                              checked={formData.removeProfileImage}
+                              onCheckedChange={(checked) => {
+                                setFormData({
+                                  ...formData,
+                                  removeProfileImage: checked === true,
+                                });
+                                if (checked) {
+                                  setProfileImageFile(null);
+                                  setProfileImagePreview(null);
+                                } else {
+                                  setProfileImagePreview(
+                                    meFinal?.profileImgUrl || null,
+                                  );
+                                }
+                              }}
+                              disabled={updateUserMutation.isPending}
+                            />
+                            <label
+                              htmlFor="removeProfileImage"
+                              className="text-sm text-gray-700 cursor-pointer"
+                            >
+                              프로필 이미지 삭제
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="nickname"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      닉네임
                     </label>
                     <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
+                      id="nikname"
+                      name="nickname"
+                      value={formData.nickname}
                       onChange={handleChange}
                       required
                       disabled={updateUserMutation.isPending}
@@ -325,16 +583,53 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <label
-                      htmlFor="address"
+                      htmlFor="address1"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      주소
+                      도로명 주소 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="address1"
+                        name="address1"
+                        type="text"
+                        placeholder="도로명 주소를 검색해주세요"
+                        value={formData.address1}
+                        onChange={handleChange}
+                        required
+                        disabled={updateUserMutation.isPending}
+                        className="flex-1"
+                        readOnly
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleOpenAddressSearch}
+                        disabled={updateUserMutation.isPending}
+                        className="flex items-center gap-2 whitespace-nowrap"
+                      >
+                        <MapPin className="h-4 w-4" />
+                        주소 검색
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="address2"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      상세주소 <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      id="address"
-                      value={`${formData.address1} ${formData.address2}`.trim()}
-                      disabled
-                      className="bg-gray-50"
+                      id="address2"
+                      name="address2"
+                      type="text"
+                      placeholder="상세 주소 (예: 123-45, 101호)"
+                      value={formData.address2}
+                      onChange={handleChange}
+                      required
+                      disabled={updateUserMutation.isPending}
+                      className="w-full"
                     />
                   </div>
                   {updateUserMutation.isError && (
@@ -364,10 +659,10 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">
-                      이름
+                      닉네임
                     </label>
                     <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {formData.name}
+                      {formData.nickname}
                     </p>
                   </div>
                   <div>
