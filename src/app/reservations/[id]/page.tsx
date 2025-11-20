@@ -7,6 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/utils";
 import Image from "next/image";
 import {
   Calendar,
