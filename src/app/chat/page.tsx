@@ -2,7 +2,7 @@
 
 import type { IMessage } from "@stomp/stompjs";
 import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
-import { differenceInMinutes, format, isToday } from "date-fns";
+import { differenceInMinutes, format, isSameDay, isToday } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Suspense } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,10 +19,14 @@ import type {
 } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
+/* ======================
+   유틸 함수
+====================== */
+import { parseLocalDate } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 import { useStomp } from "@/hooks/useStomp";
 
@@ -38,17 +42,14 @@ import { useMeQuery } from "@/queries/user";
 
 import { MessageSquare, Send, User } from "lucide-react";
 
-/* ======================
-   유틸 함수
-====================== */
 function formatTimestamp(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "HH:mm", { locale: ko });
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  return format(d, "a h:mm", { locale: ko });
 }
 
 function formatLastMessageTime(date?: Date | string | null): string {
   if (!date) return "";
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
 
   const mins = differenceInMinutes(new Date(), d);
   if (mins < 1) return "방금";
@@ -56,6 +57,12 @@ function formatLastMessageTime(date?: Date | string | null): string {
   if (isToday(d)) return format(d, "HH:mm", { locale: ko });
 
   return format(d, "yyyy.MM.dd", { locale: ko });
+}
+
+// 날짜 구분선 포맷팅 함수
+function formatDateDivider(date: Date | string): string {
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  return format(d, "yyyy년 M월 d일 EEEE", { locale: ko });
 }
 
 export default function ChatPageWrapper() {
@@ -155,7 +162,8 @@ function ChatPage() {
 
     return deduped.sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        parseLocalDate(a.createdAt).getTime() -
+        parseLocalDate(b.createdAt).getTime(),
     );
   })();
 
@@ -466,77 +474,77 @@ function ChatPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto min-h-0">
-          {chatRoomsLoading ? (
-            <div className="flex items-center justify-center h-full">
-              로딩 중...
-            </div>
-          ) : chatRooms.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <MessageSquare className="h-8 w-8" />
-              <p>채팅방이 없습니다</p>
-            </div>
-          ) : (
-            chatRooms.map((room) => (
-              <button
-                key={room.id}
-                onClick={() => setSelectedRoomId(room.id)}
-                className={`w-full py-4 border-b border-gray-100 hover:bg-gray-50 text-left ${
-                  selectedRoomId === room.id ? "bg-gray-100" : ""
-                }`}
-              >
-                <div className="flex items-center gap-3 px-4">
-                  <div className="relative h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
-                    {room.otherMember?.profileImgUrl ? (
-                      <Image
-                        src={room.otherMember.profileImgUrl}
-                        alt={room.otherMember.nickname}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <User className="h-6 w-6 text-gray-400" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    {/* 상단: 닉네임 + 읽지 않음 카운트 */}
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-sm truncate">
-                        {room.otherMember?.nickname}
-                      </span>
-
-                      {room.id !== selectedRoomId &&
-                        (room.unreadCount ?? 0) > 0 && (
-                          <span className="text-xs bg-red-500 text-white rounded-full h-5 min-w-5 px-2 flex items-center justify-center">
-                            {room.unreadCount}
-                          </span>
-                        )}
-                    </div>
-
-                    {/* 🔵 게시글 제목 (항상 표시) */}
-                    <span className="text-[11px] text-blue-500 font-medium block truncate mt-[2px]">
-                      {room.post.title}
-                    </span>
-
-                    {/* 최근 메시지가 있을 때만 */}
-                    {room.lastMessage && (
-                      <div className="flex gap-2 items-center mt-[4px]">
-                        {/* 🟣 최근 메시지 내용: 더 크고 조금 더 진하게 */}
-                        <span className="text-sm text-gray-800 font-medium truncate">
-                          {room.lastMessage}
-                        </span>
-
-                        {/* ⏱ 시간 */}
-                        <span className="text-[10px] text-gray-400 shrink-0">
-                          {formatLastMessageTime(room.lastMessageTime)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+              {chatRoomsLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  로딩 중...
                 </div>
-              </button>
-            ))
-          )}
+              ) : chatRooms.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <MessageSquare className="h-8 w-8" />
+                  <p>채팅방이 없습니다</p>
+                </div>
+              ) : (
+                chatRooms.map((room) => (
+                  <button
+                    key={room.id}
+                    onClick={() => setSelectedRoomId(room.id)}
+                    className={`w-full py-4 border-b border-gray-100 hover:bg-gray-50 text-left ${
+                      selectedRoomId === room.id ? "bg-gray-100" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 px-4">
+                      <div className="relative h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                        {room.otherMember?.profileImgUrl ? (
+                          <Image
+                            src={room.otherMember.profileImgUrl}
+                            alt={room.otherMember.nickname}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <User className="h-6 w-6 text-gray-400" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* 상단: 닉네임 + 읽지 않음 카운트 */}
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-sm truncate">
+                            {room.otherMember?.nickname}
+                          </span>
+
+                          {room.id !== selectedRoomId &&
+                            (room.unreadCount ?? 0) > 0 && (
+                              <span className="text-xs bg-red-500 text-white rounded-full h-5 min-w-5 px-2 flex items-center justify-center">
+                                {room.unreadCount}
+                              </span>
+                            )}
+                        </div>
+
+                        {/* 🔵 게시글 제목 (항상 표시) */}
+                        <span className="text-[11px] text-blue-500 font-medium block truncate mt-[2px]">
+                          {room.post.title}
+                        </span>
+
+                        {/* 최근 메시지가 있을 때만 */}
+                        {room.lastMessage && (
+                          <div className="flex gap-2 items-center mt-[4px]">
+                            {/* 🟣 최근 메시지 내용: 더 크고 조금 더 진하게 */}
+                            <span className="text-sm text-gray-800 font-medium truncate">
+                              {room.lastMessage}
+                            </span>
+
+                            {/* ⏱ 시간 */}
+                            <span className="text-[10px] text-gray-400 shrink-0">
+                              {formatLastMessageTime(room.lastMessageTime)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -544,123 +552,149 @@ function ChatPage() {
         {/* Right: Messages */}
         <Card className="flex-1 flex flex-col h-full">
           <CardContent className="!p-0 flex flex-col h-full overflow-hidden">
-        {selectedRoom ? (
-          <>
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
-              <div className="relative h-10 w-10 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
-                {selectedRoom.otherMember?.profileImgUrl ? (
-                  <Image
-                    src={selectedRoom.otherMember.profileImgUrl}
-                    alt={selectedRoom.otherMember.nickname}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <User className="h-5 w-5 text-gray-400" />
-                )}
-              </div>
-              <div>
-                <p className="font-medium text-sm">
-                  {selectedRoom.otherMember?.nickname}
-                </p>
-                <p className="text-xs text-gray-500 truncate">
-                  {selectedRoom.post.title}
-                </p>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div
-              className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0"
-              onScroll={(e) => {
-                const t = e.currentTarget;
-
-                // ⭐ 사용자가 위로 스크롤했는지 감지
-                if (t.scrollTop < t.scrollHeight - t.clientHeight - 50) {
-                  isUserScrollingUpRef.current = true;
-                  shouldAutoScrollRef.current = false;
-                } else {
-                  isUserScrollingUpRef.current = false;
-                  shouldAutoScrollRef.current = true;
-                }
-
-                // 초기 scrollTop === 0 방지
-                if (t.scrollTop === 0) return;
-
-                // 위로 충분히 올렸을 때 page=1 요청
-                if (t.scrollTop < 80 && hasNextPage && !isFetchingNextPage) {
-                  handleFetchNextPage();
-                }
-              }}
-            >
-              {messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  메시지가 없습니다
+            {selectedRoom ? (
+              <>
+                {/* Header */}
+                <div className="p-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
+                  <div className="relative h-10 w-10 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                    {selectedRoom.otherMember?.profileImgUrl ? (
+                      <Image
+                        src={selectedRoom.otherMember.profileImgUrl}
+                        alt={selectedRoom.otherMember.nickname}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <User className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      {selectedRoom.otherMember?.nickname}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {selectedRoom.post.title}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <>
-                  {isFetchingNextPage && (
-                    <div className="text-center text-sm text-gray-500 py-2">
-                      이전 메시지 로딩 중...
+
+                {/* Messages */}
+                <div
+                  className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0"
+                  onScroll={(e) => {
+                    const t = e.currentTarget;
+
+                    // ⭐ 사용자가 위로 스크롤했는지 감지
+                    if (t.scrollTop < t.scrollHeight - t.clientHeight - 50) {
+                      isUserScrollingUpRef.current = true;
+                      shouldAutoScrollRef.current = false;
+                    } else {
+                      isUserScrollingUpRef.current = false;
+                      shouldAutoScrollRef.current = true;
+                    }
+
+                    // 초기 scrollTop === 0 방지
+                    if (t.scrollTop === 0) return;
+
+                    // 위로 충분히 올렸을 때 page=1 요청
+                    if (
+                      t.scrollTop < 80 &&
+                      hasNextPage &&
+                      !isFetchingNextPage
+                    ) {
+                      handleFetchNextPage();
+                    }
+                  }}
+                >
+                  {messages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      메시지가 없습니다
                     </div>
-                  )}
-
-                  {messages.map((msg) => {
-                    const isMine = msg.authorId === me?.id;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex ${
-                          isMine ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        <div className="max-w-xs lg:max-w-md">
-                          <div
-                            className={`px-4 py-2 rounded-lg ${
-                              isMine
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-100 text-gray-900"
-                            }`}
-                          >
-                            {msg.content}
-                          </div>
-                          <span className="text-xs text-gray-500 px-2">
-                            {formatTimestamp(msg.createdAt)}
-                          </span>
+                  ) : (
+                    <>
+                      {isFetchingNextPage && (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                          이전 메시지 로딩 중...
                         </div>
-                      </div>
-                    );
-                  })}
+                      )}
 
-                  <div ref={messagesEndRef} />
-                </>
-              )}
-            </div>
+                      {messages.map((msg, index) => {
+                        const isMine = msg.authorId === me?.id;
+                        const currentDate = parseLocalDate(msg.createdAt);
+                        const prevDate =
+                          index > 0
+                            ? parseLocalDate(messages[index - 1].createdAt)
+                            : null;
 
-            {/* Input */}
-            <div className="p-4 border-t border-gray-200 flex-shrink-0">
-              <form onSubmit={handleSendMessage} className="flex gap-2">
-                <Input
-                  className="flex-1"
-                  placeholder="메시지를 입력하세요..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                />
-                <Button type="submit" disabled={!message.trim()}>
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <div className="text-center">
-              <MessageSquare className="w-12 h-12 mx-auto opacity-50" />
-              채팅방을 선택하세요
-            </div>
-          </div>
-        )}
+                        // 날짜가 바뀌면 날짜 구분선 표시
+                        const shouldShowDateDivider =
+                          !prevDate || !isSameDay(currentDate, prevDate);
+
+                        return (
+                          <div key={msg.id} className="space-y-2">
+                            {shouldShowDateDivider && (
+                              <div className="flex items-center justify-center py-2">
+                                <div className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                                  {formatDateDivider(msg.createdAt)}
+                                </div>
+                              </div>
+                            )}
+                            <div
+                              className={`flex ${
+                                isMine ? "justify-end" : "justify-start"
+                              }`}
+                            >
+                              <div
+                                className={`max-w-xs lg:max-w-md ${isMine ? "flex flex-col items-end gap-1" : "flex flex-col gap-1"}`}
+                              >
+                                <div
+                                  className={`px-4 py-2 rounded-lg ${
+                                    isMine
+                                      ? "bg-blue-500 text-white"
+                                      : "bg-gray-100 text-gray-900"
+                                  }`}
+                                >
+                                  {msg.content}
+                                </div>
+                                <span
+                                  className={`text-xs text-gray-500 px-2 ${isMine ? "text-right" : ""}`}
+                                >
+                                  {formatTimestamp(msg.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <div ref={messagesEndRef} />
+                    </>
+                  )}
+                </div>
+
+                {/* Input */}
+                <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                  <form onSubmit={handleSendMessage} className="flex gap-2">
+                    <Input
+                      className="flex-1"
+                      placeholder="메시지를 입력하세요..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                    />
+                    <Button type="submit" disabled={!message.trim()}>
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="text-center">
+                  <MessageSquare className="w-12 h-12 mx-auto opacity-50" />
+                  채팅방을 선택하세요
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

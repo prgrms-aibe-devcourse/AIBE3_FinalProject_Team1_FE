@@ -17,6 +17,7 @@ import { Pagination } from "@/components/ui/pagination";
 
 import { useReviewsByMemberQuery } from "@/queries/review";
 import { useUserQuery } from "@/queries/user";
+import { parseLocalDate } from "@/lib/utils";
 
 import { Star } from "lucide-react";
 
@@ -65,7 +66,7 @@ export function ProfileReviewDialog({
   const joinedAtText =
     createdAt != null
       ? (() => {
-          const date = new Date(createdAt);
+          const date = parseLocalDate(createdAt);
           const yyyy = date.getFullYear();
           const mm = String(date.getMonth() + 1).padStart(2, "0");
           const dd = String(date.getDate()).padStart(2, "0");
@@ -142,7 +143,7 @@ export function ProfileReviewDialog({
                         <span className="text-xs text-gray-500">
                           작성일:{" "}
                           {(() => {
-                            const date = new Date(review.createdAt);
+                            const date = parseLocalDate(review.createdAt);
                             const yyyy = date.getFullYear();
                             const mm = String(
                               date.getMonth() + 1,

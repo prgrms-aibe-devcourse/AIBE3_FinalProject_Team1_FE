@@ -12,10 +12,30 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * 서버에서 받은 UTC 날짜 문자열을 로컬 시간으로 올바르게 변환
+ * 서버가 UTC로 보내는 경우를 가정하고 로컬 시간으로 변환
+ */
+export function parseLocalDate(dateStr: string | Date): Date {
+  if (dateStr instanceof Date) {
+    return dateStr;
+  }
+
+  // 서버가 UTC로 보내는 경우
+  // 시간대 정보가 없으면 UTC로 명시적으로 파싱
+  if (dateStr.includes("T") && !dateStr.includes("Z") && !dateStr.includes("+") && !dateStr.includes("-", 10)) {
+    // "2025-01-15T10:30:00" 형식을 UTC로 명시적으로 파싱
+    // 끝에 "Z"를 추가하여 UTC임을 명시
+    return new Date(dateStr + "Z");
+  }
+  // 이미 시간대 정보가 있으면 그대로 파싱
+  return new Date(dateStr);
+}
+
+/**
  * 날짜를 포맷팅하는 함수 예시
  */
 export function formatDate(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = parseLocalDate(date);
   return d.toLocaleDateString("ko-KR");
 }
 
