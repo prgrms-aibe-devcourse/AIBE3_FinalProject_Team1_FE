@@ -5,6 +5,7 @@
 
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/utils";
 import { useMemo, useState } from "react";
 
 import Image from "next/image";
@@ -279,7 +280,7 @@ function PostCard({ post }: { post: Post }) {
                 )}
                 <p className="text-sm text-gray-600 mb-2">
                   {post.createdAt &&
-                    `작성일 : ${format(new Date(post.createdAt), "yyyy-MM-dd", {
+                    `작성일 : ${format(parseLocalDate(post.createdAt), "yyyy-MM-dd", {
                       locale: ko,
                     })}`}
                 </p>
@@ -462,7 +463,7 @@ function PostCard({ post }: { post: Post }) {
                                   신청일:{" "}
                                   {reservation.createdAt &&
                                     format(
-                                      new Date(reservation.createdAt),
+                                      parseLocalDate(reservation.createdAt),
                                       "yyyy-MM-dd",
                                       { locale: ko },
                                     )}

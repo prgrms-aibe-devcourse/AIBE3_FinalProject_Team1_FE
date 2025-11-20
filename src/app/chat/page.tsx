@@ -2,7 +2,7 @@
 
 import type { IMessage } from "@stomp/stompjs";
 import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
-import { differenceInMinutes, format, isToday } from "date-fns";
+import { differenceInMinutes, format, isToday, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Suspense } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -41,14 +41,16 @@ import { MessageSquare, Send, User } from "lucide-react";
 /* ======================
    유틸 함수
 ====================== */
+import { parseLocalDate } from "@/lib/utils";
+
 function formatTimestamp(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "HH:mm", { locale: ko });
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  return format(d, "a h:mm", { locale: ko });
 }
 
 function formatLastMessageTime(date?: Date | string | null): string {
   if (!date) return "";
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
 
   const mins = differenceInMinutes(new Date(), d);
   if (mins < 1) return "방금";
@@ -56,6 +58,12 @@ function formatLastMessageTime(date?: Date | string | null): string {
   if (isToday(d)) return format(d, "HH:mm", { locale: ko });
 
   return format(d, "yyyy.MM.dd", { locale: ko });
+}
+
+// 날짜 구분선 포맷팅 함수
+function formatDateDivider(date: Date | string): string {
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  return format(d, "yyyy년 M월 d일 EEEE", { locale: ko });
 }
 
 export default function ChatPageWrapper() {
@@ -155,7 +163,7 @@ function ChatPage() {
 
     return deduped.sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        parseLocalDate(a.createdAt).getTime() - parseLocalDate(b.createdAt).getTime(),
     );
   })();
 
@@ -606,28 +614,46 @@ function ChatPage() {
                     </div>
                   )}
 
-                  {messages.map((msg) => {
+                  {messages.map((msg, index) => {
                     const isMine = msg.authorId === me?.id;
+                    const currentDate = parseLocalDate(msg.createdAt);
+                    const prevDate =
+                      index > 0
+                        ? parseLocalDate(messages[index - 1].createdAt)
+                        : null;
+
+                    // 날짜가 바뀌면 날짜 구분선 표시
+                    const shouldShowDateDivider =
+                      !prevDate || !isSameDay(currentDate, prevDate);
+
                     return (
-                      <div
-                        key={msg.id}
-                        className={`flex ${
-                          isMine ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        <div className="max-w-xs lg:max-w-md">
-                          <div
-                            className={`px-4 py-2 rounded-lg ${
-                              isMine
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-100 text-gray-900"
-                            }`}
-                          >
-                            {msg.content}
+                      <div key={msg.id} className="space-y-2">
+                        {shouldShowDateDivider && (
+                          <div className="flex items-center justify-center py-2">
+                            <div className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                              {formatDateDivider(msg.createdAt)}
+                            </div>
                           </div>
-                          <span className="text-xs text-gray-500 px-2">
-                            {formatTimestamp(msg.createdAt)}
-                          </span>
+                        )}
+                        <div
+                          className={`flex ${
+                            isMine ? "justify-end" : "justify-start"
+                          }`}
+                        >
+                          <div className="max-w-xs lg:max-w-md">
+                            <div
+                              className={`px-4 py-2 rounded-lg ${
+                                isMine
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-gray-100 text-gray-900"
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                            <span className="text-xs text-gray-500 px-2">
+                              {formatTimestamp(msg.createdAt)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );

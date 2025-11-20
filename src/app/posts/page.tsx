@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { parseLocalDate } from "@/lib/utils";
 
 import { useFilterStore } from "@/store/filterStore";
 import { useAuthStore } from "@/store/authStore";
@@ -512,7 +513,7 @@ export default function PostsPage() {
                       {post.createdAt && (
                         <span>
                           {(() => {
-                            const date = new Date(post.createdAt);
+                            const date = parseLocalDate(post.createdAt);
                             const year = date.getFullYear();
                             const month = String(date.getMonth() + 1).padStart(2, "0");
                             const day = String(date.getDate()).padStart(2, "0");

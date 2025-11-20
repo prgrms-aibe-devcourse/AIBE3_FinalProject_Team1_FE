@@ -9,6 +9,8 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
+import { parseLocalDate } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
@@ -38,6 +40,14 @@ import {
   Star,
   Truck,
 } from "lucide-react";
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
 
 /**
  * 게시글 상세 페이지
@@ -307,7 +317,7 @@ export default function PostDetailPage() {
                 <p className="text-sm text-gray-500">
                   작성일:{" "}
                   {(() => {
-                    const date = new Date(post.createdAt);
+                    const date = parseLocalDate(post.createdAt);
                     return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, "0")}. ${String(date.getDate()).padStart(2, "0")}.`;
                   })()}
                 </p>
@@ -356,7 +366,7 @@ export default function PostDetailPage() {
                     {post.author?.createdAt && (
                       <p className="text-xs text-gray-500 mt-1">
                         {(() => {
-                          const date = new Date(post.author.createdAt);
+                          const date = parseLocalDate(post.author.createdAt);
                           return `${date.getFullYear()}년 ${date.getMonth() + 1}월 가입`;
                         })()}
                       </p>
@@ -619,7 +629,9 @@ export default function PostDetailPage() {
                                 <span className="text-xs text-gray-500">
                                   작성일:{" "}
                                   {(() => {
-                                    const date = new Date(review.createdAt);
+                                    const date = parseLocalDate(
+                                      review.createdAt,
+                                    );
                                     const yyyy = date.getFullYear();
                                     const mm = String(
                                       date.getMonth() + 1,

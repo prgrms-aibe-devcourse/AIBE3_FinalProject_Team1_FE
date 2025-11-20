@@ -776,7 +776,7 @@ function ReservationDetailPageContent() {
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {format(new Date(reservation.createdAt), "yyyy. MM. dd. a h:mm:ss", {
+                        {format(parseLocalDate(reservation.createdAt), "yyyy. MM. dd. a h:mm:ss", {
                           locale: ko,
                         })}
                       </p>
@@ -803,7 +803,7 @@ function ReservationDetailPageContent() {
                       <p className="text-xs text-gray-500">
                         {reservation.updatedAt &&
                           format(
-                            new Date(reservation.updatedAt),
+                            parseLocalDate(reservation.updatedAt),
                             "yyyy. MM. dd. a h:mm:ss",
                             { locale: ko },
                           )}
