@@ -26,7 +26,7 @@ import { ProfileReviewDialog } from "@/components/profile/profile-review-dialog"
 import { useAuthStore } from "@/store/authStore";
 
 import { useCreateChatRoomMutation } from "@/queries/chat";
-import { useDeletePostMutation, usePostQuery } from "@/queries/post";
+import { usePostQuery } from "@/queries/post";
 import { useToggleFavoriteMutation } from "@/queries/post-favorite";
 import { useReviewsByPostQuery } from "@/queries/review";
 
@@ -52,29 +52,19 @@ import {
 /**
  * 게시글 상세 페이지
  */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const postId = Number(params.id);
   const { data: post, isLoading } = usePostQuery(postId);
-  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewPage, setReviewPage] = useState(0);
   const reviewPageSize = 5;
   const { data: reviewsData } = useReviewsByPostQuery(postId, {
-    page: reviewPage - 1,
+    page: reviewPage,
     size: reviewPageSize,
   });
   const { isAuthenticated, user } = useAuthStore();
   const toggleFavoriteMutation = useToggleFavoriteMutation();
-  const deletePostMutation = useDeletePostMutation();
   const createChatRoomMutation = useCreateChatRoomMutation();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
@@ -165,13 +155,6 @@ export default function PostDetailPage() {
 
   const handleFavorite = () => {
     toggleFavoriteMutation.mutate(postId);
-  };
-
-  const handleDelete = async () => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      await deletePostMutation.mutateAsync(postId);
-      router.push("/posts");
-    }
   };
 
   const handleChat = async () => {
@@ -697,9 +680,9 @@ export default function PostDetailPage() {
           {totalReviewPages > 1 && (
             <div className="mt-4 flex justify-center">
               <Pagination
-                currentPage={reviewPage}
+                currentPage={reviewPage + 1}
                 totalPages={totalReviewPages}
-                onPageChange={setReviewPage}
+                onPageChange={(newPage) => setReviewPage(newPage - 1)}
               />
             </div>
           )}

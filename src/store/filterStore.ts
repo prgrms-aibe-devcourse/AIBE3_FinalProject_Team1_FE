@@ -32,7 +32,7 @@ const defaultPostFilters: PostListFilters = {
   minFee: undefined,
   maxFee: undefined,
   receiveMethod: undefined,
-  page: 1,
+  page: 0,
   size: 20,
   sort: ["createdAt,DESC"],
 };

@@ -9,9 +9,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import type { PaginatedApiResponse } from "@/types/api";
 import type {
-  ChatMessageDto,
   ChatRoomDto,
   ChatRoomListDto,
   SendChatMessageDto,
