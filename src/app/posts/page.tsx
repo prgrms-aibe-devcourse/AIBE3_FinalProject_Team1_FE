@@ -52,7 +52,7 @@ export default function PostsPage() {
   useEffect(() => {
     if (localKeyword !== postFilters.keyword) {
       const timer = setTimeout(() => {
-        setPostFilters({ keyword: localKeyword || undefined, page: 1 });
+        setPostFilters({ keyword: localKeyword || undefined, page: 0 });
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -82,58 +82,58 @@ export default function PostsPage() {
   }
 
   const handleCategoryChange = (categoryId: number | undefined) => {
-    setPostFilters({ categoryId, page: 1 });
+    setPostFilters({ categoryId, page: 0 });
   };
 
   const handleRegionChange = (regionId: number | undefined) => {
-    setPostFilters({ regionId, page: 1 });
+    setPostFilters({ regionId, page: 0 });
   };
 
   const handleReceiveMethodChange = (
     receiveMethod: ReceiveMethod | undefined,
   ) => {
-    setPostFilters({ receiveMethod, page: 1 });
+    setPostFilters({ receiveMethod, page: 0 });
   };
 
   const handleMinDepositChange = (value: string) => {
     setPostFilters({
       minDeposit: value ? parseInt(value, 10) : undefined,
-      page: 1,
+      page: 0,
     });
   };
 
   const handleMaxDepositChange = (value: string) => {
     setPostFilters({
       maxDeposit: value ? parseInt(value, 10) : undefined,
-      page: 1,
+      page: 0,
     });
   };
 
   const handleMinFeeChange = (value: string) => {
     setPostFilters({
       minFee: value ? parseInt(value, 10) : undefined,
-      page: 1,
+      page: 0,
     });
   };
 
   const handleMaxFeeChange = (value: string) => {
     setPostFilters({
       maxFee: value ? parseInt(value, 10) : undefined,
-      page: 1,
+      page: 0,
     });
   };
 
   const handleSortChange = (sort: "createdAt" | "deposit" | "fee") => {
     const currentSort = postFilters.sort || ["createdAt,DESC"];
     const currentOrder = currentSort[0]?.split(",")[1] || "DESC";
-    setPostFilters({ sort: [`${sort},${currentOrder}`], page: 1 });
+    setPostFilters({ sort: [`${sort},${currentOrder}`], page: 0 });
   };
 
   const handleOrderChange = (order: "asc" | "desc") => {
     const currentSort = postFilters.sort || ["createdAt,DESC"];
     const currentSortField = currentSort[0]?.split(",")[0] || "createdAt";
     const orderUpper = order.toUpperCase();
-    setPostFilters({ sort: [`${currentSortField},${orderUpper}`], page: 1 });
+    setPostFilters({ sort: [`${currentSortField},${orderUpper}`], page: 0 });
   };
 
   const hasActiveFilters =
@@ -561,9 +561,9 @@ export default function PostsPage() {
       {!Array.isArray(data) && data?.page && data.page.totalPages > 1 && (
         <div className="mt-8">
           <Pagination
-            currentPage={postFilters.page || 1}
+            currentPage={(postFilters.page ?? 0) + 1}
             totalPages={data.page.totalPages || 1}
-            onPageChange={(page) => setPostFilters({ page })}
+            onPageChange={(page) => setPostFilters({ page: page - 1 })}
           />
         </div>
       )}

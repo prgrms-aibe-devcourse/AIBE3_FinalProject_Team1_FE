@@ -109,7 +109,7 @@ const statusTabs: Array<{ key: StatusFilter; label: string }> = [
 export default function MyReservationsPage() {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const pageSize = 10;
   const showToast = useUIStore((state) => state.showToast);
   const cancelMutation = useCancelReservationMutation();
@@ -139,7 +139,7 @@ export default function MyReservationsPage() {
 
   const { data: myReservations, isLoading: reservationsLoading } =
     useMyReservationsQuery({
-      page: page - 1,
+      page: page,
       size: pageSize,
       ...(statusFilter !== "all" && { status: statusFilter }),
     });
@@ -156,35 +156,6 @@ export default function MyReservationsPage() {
     return myReservations.page?.totalPages || 1;
   }, [myReservations]);
 
-  const totalElements = useMemo(() => {
-    if (!myReservations || Array.isArray(myReservations)) {
-      return Array.isArray(myReservations) ? myReservations.length : 0;
-    }
-    return myReservations.page?.totalElements || 0;
-  }, [myReservations]);
-
-  // 상태별 개수 계산 (실제로는 서버에서 받아야 함)
-  const statusCounts = useMemo(() => {
-    if (!myReservations || Array.isArray(myReservations)) {
-      return {} as Record<StatusFilter, number>;
-    }
-    // 현재는 전체 개수만 표시
-    // 실제로는 서버에서 상태별 개수를 받아야 함
-    const counts: Partial<Record<StatusFilter, number>> = {
-      all: totalElements,
-    };
-    // 예약 목록에서 상태별 개수 계산
-    if (Array.isArray(reservations)) {
-      statusTabs.forEach((tab) => {
-        if (tab.key !== "all") {
-          counts[tab.key] = reservations.filter(
-            (r) => r.status === tab.key,
-          ).length;
-        }
-      });
-    }
-    return counts;
-  }, [myReservations, totalElements, reservations]);
 
   const handleCancel = async () => {
     if (!cancelTargetId) return;
@@ -240,7 +211,7 @@ export default function MyReservationsPage() {
               key={tab.key}
               onClick={() => {
                 setStatusFilter(tab.key);
-                setPage(1); // 필터 변경 시 첫 페이지로
+                setPage(0); // 필터 변경 시 첫 페이지로
               }}
               className={`pb-4 px-1 border-b-2 font-medium transition-colors whitespace-nowrap ${
                 statusFilter === tab.key
@@ -600,9 +571,9 @@ export default function MyReservationsPage() {
           {/* 페이지네이션 */}
           <div className="mt-8">
             <Pagination
-              currentPage={page}
+              currentPage={page + 1}
               totalPages={totalPages}
-              onPageChange={setPage}
+              onPageChange={(newPage) => setPage(newPage - 1)}
             />
           </div>
         </>

@@ -34,7 +34,7 @@ export function ProfileReviewDialog({
   author,
   memberId,
 }: ProfileReviewDialogProps) {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const pageSize = 5;
 
   const effectiveMemberId = memberId ?? author?.id ?? null;
@@ -45,7 +45,7 @@ export function ProfileReviewDialog({
   const { data: reviewsData, isLoading } = useReviewsByMemberQuery(
     effectiveMemberId ?? 0,
     {
-      page: page - 1,
+      page: page,
       size: pageSize,
     },
   );
@@ -192,9 +192,9 @@ export function ProfileReviewDialog({
           {totalPages > 1 && (
             <div className="pt-2 flex justify-center">
               <Pagination
-                currentPage={page}
+                currentPage={page + 1}
                 totalPages={totalPages}
-                onPageChange={setPage}
+                onPageChange={(newPage) => setPage(newPage - 1)}
               />
             </div>
           )}

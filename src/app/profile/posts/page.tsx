@@ -998,12 +998,12 @@ function PostCard({ post }: { post: Post }) {
  * 마이페이지 - 내 게시글
  */
 export default function MyPostsPage() {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [sort, setSort] = useState<string[]>(["createdAt,DESC"]);
   const pageSize = 10;
 
   const { data: myPostsData, isLoading: postsLoading } = useMyPostsQuery({
-    page: page - 1,
+    page: page,
     size: pageSize,
     sort,
   });
@@ -1029,7 +1029,7 @@ export default function MyPostsPage() {
     const currentSort = sort || ["createdAt,DESC"];
     const currentOrder = currentSort[0]?.split(",")[1] || "DESC";
     setSort([`${sortField},${currentOrder}`]);
-    setPage(1); // 정렬 변경 시 첫 페이지로
+    setPage(0); // 정렬 변경 시 첫 페이지로
   };
 
   const handleOrderChange = (order: "asc" | "desc") => {
@@ -1037,7 +1037,7 @@ export default function MyPostsPage() {
     const currentSortField = currentSort[0]?.split(",")[0] || "createdAt";
     const orderUpper = order.toUpperCase();
     setSort([`${currentSortField},${orderUpper}`]);
-    setPage(1); // 정렬 변경 시 첫 페이지로
+    setPage(0); // 정렬 변경 시 첫 페이지로
   };
 
   if (postsLoading) {
@@ -1133,9 +1133,9 @@ export default function MyPostsPage() {
       {posts.length > 0 && (
         <div className="mt-8">
           <Pagination
-            currentPage={page}
+            currentPage={page + 1}
             totalPages={totalPages}
-            onPageChange={setPage}
+            onPageChange={(newPage) => setPage(newPage - 1)}
           />
         </div>
       )}
