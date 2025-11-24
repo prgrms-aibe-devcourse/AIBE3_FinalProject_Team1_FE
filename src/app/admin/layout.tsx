@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { MapPin, Tag } from "lucide-react";
+import { MapPin, Tag, Flag } from "lucide-react";
 
 import { MemberRole } from "@/types/domain";
 
@@ -66,6 +66,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           >
             <Tag className="h-4 w-4" />
             카테고리 관리
+          </Link>
+          <Link
+            href="/admin/reports"
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+              pathname === "/admin/reports"
+                ? "border-b-2 border-purple-600 text-purple-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <Flag className="h-4 w-4" />
+            신고 관리
           </Link>
         </nav>
       </div>
