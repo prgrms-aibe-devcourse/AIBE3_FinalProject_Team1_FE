@@ -1040,33 +1040,6 @@ export default function MyPostsPage() {
     setPage(0); // 정렬 변경 시 첫 페이지로
   };
 
-  if (postsLoading) {
-    return (
-      <div className="p-0">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">내 게시글</h1>
-          <Link href="/posts/new">
-            <Button>게시글 등록</Button>
-          </Link>
-        </div>
-        <div className="space-y-6">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="flex gap-4">
-                  <div className="h-24 w-24 bg-gray-200 rounded-lg" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-0">
@@ -1112,7 +1085,23 @@ export default function MyPostsPage() {
       </div>
 
       {/* 게시글 목록 */}
-      {posts.length === 0 ? (
+      {postsLoading ? (
+        <div className="space-y-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  <div className="h-24 w-24 bg-gray-200 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-gray-500 mb-4">게시글이 없습니다.</p>

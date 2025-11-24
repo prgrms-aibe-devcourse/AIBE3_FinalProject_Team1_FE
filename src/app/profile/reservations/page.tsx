@@ -177,26 +177,6 @@ export default function MyReservationsPage() {
     }
   };
 
-  if (reservationsLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-6">
-              <div className="flex gap-4">
-                <div className="h-24 w-24 bg-gray-200 rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="p-0">
       <div className="mb-6 flex items-center justify-between">
@@ -225,7 +205,24 @@ export default function MyReservationsPage() {
         </div>
       </div>
 
-      {reservations.length === 0 ? (
+      {/* 예약 목록 */}
+      {reservationsLoading ? (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  <div className="h-24 w-24 bg-gray-200 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : reservations.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-gray-500 mb-4">예약 내역이 없습니다.</p>

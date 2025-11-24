@@ -108,7 +108,9 @@ export function usePostQuery(postId: number) {
  */
 export function useMyPostsQuery(filters?: PostListFilters) {
   return useQuery({
-    queryKey: getQueryKey(queryKeys.post.myPosts),
+    queryKey: getQueryKey(
+      queryKeys.post.myPosts(filters as Record<string, unknown> | undefined),
+    ),
     queryFn: async (): Promise<PaginatedApiResponse<Post>> => {
       try {
         return await getMyPosts(filters);
@@ -185,7 +187,7 @@ export function useCreatePostMutation() {
         queryKey: getQueryKey(queryKeys.post.all),
       });
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.myPosts),
+        queryKey: getQueryKey(queryKeys.post.myPosts()),
       });
       showToast("게시글이 생성되었습니다.", "success");
     },
@@ -219,7 +221,7 @@ export function useUpdatePostMutation() {
         queryKey: getQueryKey(queryKeys.post.all),
       });
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.myPosts),
+        queryKey: getQueryKey(queryKeys.post.myPosts()),
       });
       showToast("게시글이 수정되었습니다.", "success");
     },
@@ -251,7 +253,7 @@ export function useDeletePostMutation() {
         queryKey: getQueryKey(queryKeys.post.all),
       });
       queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.myPosts),
+        queryKey: getQueryKey(queryKeys.post.myPosts()),
       });
       showToast("게시글이 삭제되었습니다.", "success");
     },
