@@ -25,13 +25,8 @@ interface FilterState {
 
 const defaultPostFilters: PostListFilters = {
   categoryId: undefined,
-  regionId: undefined,
+  regionIds: undefined,
   keyword: undefined,
-  minDeposit: undefined,
-  maxDeposit: undefined,
-  minFee: undefined,
-  maxFee: undefined,
-  receiveMethod: undefined,
   page: 0,
   size: 20,
   sort: ["createdAt,DESC"],

@@ -48,12 +48,12 @@ export default function PostsPage() {
   const { data: regions } = useRegionListQuery();
   const toggleFavoriteMutation = useToggleFavoriteMutation();
 
-  // 필터 변경 시 쿼리 업데이트
+  // 필터 변경 시 쿼리 업데이트 (debounce 500ms)
   useEffect(() => {
     if (localKeyword !== postFilters.keyword) {
       const timer = setTimeout(() => {
         setPostFilters({ keyword: localKeyword || undefined, page: 0 });
-      }, 300);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [localKeyword, postFilters.keyword, setPostFilters]);
@@ -63,64 +63,116 @@ export default function PostsPage() {
   const posts = Array.isArray(data) ? data : data?.content || [];
   const hasPosts = posts.length > 0;
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <div className="h-48 bg-gray-200" />
-              <CardContent className="p-4">
-                <div className="h-4 bg-gray-200 rounded mb-2" />
-                <div className="h-4 bg-gray-200 rounded w-3/4" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // 카테고리 상위/하위 선택을 위한 상태
+  const [selectedMainCategory, setSelectedMainCategory] = useState<
+    number | null
+  >(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<
+    number | null
+  >(null);
 
-  const handleCategoryChange = (categoryId: number | undefined) => {
-    setPostFilters({ categoryId, page: 0 });
+  // 지역 선택을 위한 상태 (시/도, 시/군/구)
+  const [selectedProvince, setSelectedProvince] = useState<number | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
+
+  // 대분류 카테고리 (child 배열을 가진 것들)
+  const mainCategories = categories || [];
+  const selectedMainCategoryData = mainCategories.find(
+    (cat) => cat.id === selectedMainCategory,
+  );
+  const filteredSubCategories =
+    selectedMainCategoryData?.child || selectedMainCategoryData?.children || [];
+
+  // 시/도 지역 (child 배열을 가진 것들)
+  const provinces = regions || [];
+  const selectedProvinceData = provinces.find(
+    (province) => province.id === selectedProvince,
+  );
+  const filteredDistricts =
+    selectedProvinceData?.child || selectedProvinceData?.children || [];
+
+  // 카테고리 변경 핸들러
+  const handleMainCategoryChange = (categoryId: number | null) => {
+    setSelectedMainCategory(categoryId);
+    setSelectedSubCategory(null);
+    // 대분류 선택 해제 시 필터도 해제
+    if (!categoryId) {
+      setPostFilters({ categoryId: undefined, page: 0 });
+    } else {
+      // 대분류 선택 시 필터는 적용하지 않고, 소분류 선택 대기
+      setPostFilters({ categoryId: undefined, page: 0 });
+    }
   };
 
-  const handleRegionChange = (regionId: number | undefined) => {
-    setPostFilters({ regionId, page: 0 });
-  };
-
-  const handleReceiveMethodChange = (
-    receiveMethod: ReceiveMethod | undefined,
-  ) => {
-    setPostFilters({ receiveMethod, page: 0 });
-  };
-
-  const handleMinDepositChange = (value: string) => {
+  const handleSubCategoryChange = (categoryId: number | null) => {
+    setSelectedSubCategory(categoryId);
+    // 소분류 선택 시에만 필터 적용 (필수)
     setPostFilters({
-      minDeposit: value ? parseInt(value, 10) : undefined,
+      categoryId: categoryId || undefined,
       page: 0,
     });
   };
 
-  const handleMaxDepositChange = (value: string) => {
-    setPostFilters({
-      maxDeposit: value ? parseInt(value, 10) : undefined,
-      page: 0,
-    });
+  // 지역 선택 핸들러 - 시/도 선택 시 해당 시/도 추가
+  const handleProvinceSelect = (regionId: number) => {
+    const currentRegionIds = postFilters.regionIds || [];
+    if (!currentRegionIds.includes(regionId)) {
+      setPostFilters({
+        regionIds: [...currentRegionIds, regionId],
+        page: 0,
+      });
+    }
   };
 
-  const handleMinFeeChange = (value: string) => {
-    setPostFilters({
-      minFee: value ? parseInt(value, 10) : undefined,
-      page: 0,
-    });
+  // 지역 선택 핸들러 - 시/군/구 선택 시 해당 시/군/구 추가
+  const handleDistrictSelect = (regionId: number) => {
+    const currentRegionIds = postFilters.regionIds || [];
+    if (!currentRegionIds.includes(regionId)) {
+      setPostFilters({
+        regionIds: [...currentRegionIds, regionId],
+        page: 0,
+      });
+    }
   };
 
-  const handleMaxFeeChange = (value: string) => {
-    setPostFilters({
-      maxFee: value ? parseInt(value, 10) : undefined,
-      page: 0,
-    });
+  // 선택된 카테고리 이름 가져오기 (소분류가 필수이므로 소분류 선택 시에만 표시)
+  const getSelectedCategoryName = () => {
+    if (selectedSubCategory) {
+      const subCategory = filteredSubCategories.find(
+        (c) => c.id === selectedSubCategory,
+      );
+      const mainCategory = mainCategories.find(
+        (c) => c.id === selectedMainCategory,
+      );
+      return mainCategory && subCategory
+        ? `${mainCategory.name} > ${subCategory.name}`
+        : null;
+    }
+    return null;
+  };
+
+  // 선택된 지역 이름들 가져오기
+  const getSelectedRegionNames = () => {
+    if (!postFilters.regionIds || postFilters.regionIds.length === 0) {
+      return [];
+    }
+    return postFilters.regionIds
+      .map((id) => {
+        // 시/도에서 찾기
+        for (const province of provinces) {
+          if (province.id === id) {
+            return { id, name: province.name };
+          }
+          if (province.child) {
+            const child = province.child.find((c) => c.id === id);
+            if (child) {
+              return { id, name: `${province.name} > ${child.name}` };
+            }
+          }
+        }
+        return null;
+      })
+      .filter((item): item is { id: number; name: string } => item !== null);
   };
 
   const handleSortChange = (sort: "createdAt" | "deposit" | "fee") => {
@@ -138,12 +190,7 @@ export default function PostsPage() {
 
   const hasActiveFilters =
     postFilters.categoryId ||
-    postFilters.regionId ||
-    postFilters.receiveMethod ||
-    postFilters.minDeposit ||
-    postFilters.maxDeposit ||
-    postFilters.minFee ||
-    postFilters.maxFee ||
+    (postFilters.regionIds && postFilters.regionIds.length > 0) ||
     postFilters.keyword;
 
   return (
@@ -187,6 +234,10 @@ export default function PostsPage() {
               onClick={() => {
                 resetPostFilters();
                 setLocalKeyword("");
+                setSelectedMainCategory(null);
+                setSelectedSubCategory(null);
+                setSelectedProvince(null);
+                setSelectedDistrict(null);
               }}
               className="flex items-center gap-1 text-sm"
             >
@@ -200,122 +251,165 @@ export default function PostsPage() {
         {showFilters && (
           <Card className="p-4">
             <CardContent className="space-y-4 p-0">
-              {/* 카테고리 */}
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  카테고리
-                </label>
-                <select
-                  value={postFilters.categoryId || ""}
-                  onChange={(e) =>
-                    handleCategoryChange(
-                      e.target.value ? parseInt(e.target.value, 10) : undefined,
-                    )
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                >
-                  <option value="">전체</option>
-                  {categories?.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 지역 */}
-              <div>
-                <label className="mb-2 block text-sm font-medium">지역</label>
-                <select
-                  value={postFilters.regionId || ""}
-                  onChange={(e) =>
-                    handleRegionChange(
-                      e.target.value ? parseInt(e.target.value, 10) : undefined,
-                    )
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                >
-                  <option value="">전체</option>
-                  {regions?.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 수령방식 */}
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  수령방식
-                </label>
-                <select
-                  value={postFilters.receiveMethod || ""}
-                  onChange={(e) =>
-                    handleReceiveMethodChange(
-                      (e.target.value || undefined) as
-                        | ReceiveMethod
-                        | undefined,
-                    )
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                >
-                  <option value="">전체</option>
-                  {Object.entries(RECEIVE_METHOD_LABELS).map(
-                    ([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
+              {/* 카테고리 - 대분류/소분류 한 줄 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    카테고리 (대분류)
+                  </label>
+                  <select
+                    value={selectedMainCategory || ""}
+                    onChange={(e) =>
+                      handleMainCategoryChange(
+                        e.target.value ? parseInt(e.target.value, 10) : null,
+                      )
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                  >
+                    <option value="">대분류 선택</option>
+                    {mainCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
                       </option>
-                    ),
-                  )}
-                </select>
-              </div>
-
-              {/* 보증금 범위 */}
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  보증금 범위
-                </label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    placeholder="최소"
-                    value={postFilters.minDeposit || ""}
-                    onChange={(e) => handleMinDepositChange(e.target.value)}
-                  />
-                  <span className="text-gray-500">~</span>
-                  <Input
-                    type="number"
-                    placeholder="최대"
-                    value={postFilters.maxDeposit || ""}
-                    onChange={(e) => handleMaxDepositChange(e.target.value)}
-                  />
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    카테고리 (소분류)
+                  </label>
+                  <select
+                    value={selectedSubCategory || ""}
+                    onChange={(e) =>
+                      handleSubCategoryChange(
+                        e.target.value ? parseInt(e.target.value, 10) : null,
+                      )
+                    }
+                    disabled={!selectedMainCategory}
+                    required={!!selectedMainCategory}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">소분류 선택 (필수)</option>
+                    {filteredSubCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              {/* 일일 대여료 범위 */}
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  일일 대여료 범위
-                </label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    placeholder="최소"
-                    value={postFilters.minFee || ""}
-                    onChange={(e) => handleMinFeeChange(e.target.value)}
-                  />
-                  <span className="text-gray-500">~</span>
-                  <Input
-                    type="number"
-                    placeholder="최대"
-                    value={postFilters.maxFee || ""}
-                    onChange={(e) => handleMaxFeeChange(e.target.value)}
-                  />
+              {/* 지역 - 시/도/시/군/구 한 줄 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    지역 (시/도)
+                  </label>
+                  <select
+                    value={selectedProvince || ""}
+                    onChange={(e) => {
+                      const provinceId = e.target.value
+                        ? parseInt(e.target.value, 10)
+                        : null;
+                      setSelectedProvince(provinceId);
+                      setSelectedDistrict(null);
+                      if (provinceId) {
+                        handleProvinceSelect(provinceId);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                  >
+                    <option value="">시/도 선택</option>
+                    {provinces.map((province) => (
+                      <option key={province.id} value={province.id}>
+                        {province.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    지역 (시/군/구)
+                  </label>
+                  <select
+                    value={selectedDistrict || ""}
+                    onChange={(e) => {
+                      const districtId = e.target.value
+                        ? parseInt(e.target.value, 10)
+                        : null;
+                      setSelectedDistrict(districtId);
+                      if (districtId) {
+                        handleDistrictSelect(districtId);
+                      }
+                    }}
+                    disabled={!selectedProvince}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">시/군/구 선택 (선택사항)</option>
+                    {filteredDistricts.map((district) => (
+                      <option key={district.id} value={district.id}>
+                        {district.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* 선택된 필터 Chip 표시 */}
+        {(getSelectedCategoryName() || getSelectedRegionNames().length > 0) && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {getSelectedCategoryName() && (
+              <div className="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800">
+                <span>카테고리: {getSelectedCategoryName()}</span>
+                <button
+                  onClick={() => {
+                    setSelectedMainCategory(null);
+                    setSelectedSubCategory(null);
+                    setPostFilters({ categoryId: undefined, page: 0 });
+                  }}
+                  className="ml-1 hover:text-blue-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            {getSelectedRegionNames().map((region) => {
+              return (
+                <div
+                  key={region.id}
+                  className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm text-green-800"
+                >
+                  <span>지역: {region.name}</span>
+                  <button
+                    onClick={() => {
+                      const newRegionIds =
+                        postFilters.regionIds?.filter(
+                          (id) => id !== region.id,
+                        ) || [];
+                      setPostFilters({
+                        regionIds:
+                          newRegionIds.length > 0 ? newRegionIds : undefined,
+                        page: 0,
+                      });
+                      // 선택된 시/도나 시/군/구가 제거되면 상태도 초기화
+                      if (region.id === selectedProvince) {
+                        setSelectedProvince(null);
+                        setSelectedDistrict(null);
+                      } else if (region.id === selectedDistrict) {
+                        setSelectedDistrict(null);
+                      }
+                    }}
+                    className="ml-1 hover:text-green-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -361,7 +455,19 @@ export default function PostsPage() {
       </div>
 
       {/* 게시글 목록 또는 빈 상태 */}
-      {hasPosts ? (
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <div className="h-48 bg-gray-200" />
+              <CardContent className="p-4">
+                <div className="h-4 bg-gray-200 rounded mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-3/4" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : hasPosts ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post: Post) => {
             // 카테고리 찾기

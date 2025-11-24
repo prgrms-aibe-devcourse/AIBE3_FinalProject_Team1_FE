@@ -27,7 +27,7 @@ import { useRegionListQuery } from "@/queries/region";
 
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Heart, MapPin, Truck, User } from "lucide-react";
+import { Heart, MapPin } from "lucide-react";
 
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   DIRECT: "직거래",
