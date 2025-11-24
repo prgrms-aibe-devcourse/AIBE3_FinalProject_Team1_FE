@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 
 import { useMeQuery } from "@/queries/user";
 
-import { Calendar, Wallet, FileText, User } from "lucide-react";
+import { Calendar, FileText, User, Heart } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 /**
@@ -69,7 +69,7 @@ import { useAuthStore } from "@/store/authStore";
  * 좌측 사이드바와 우측 메인 콘텐츠 구조
  */
 
-type TabType = "profile" | "posts" | "reservations" | "earnings";
+type TabType = "profile" | "posts" | "reservations" | "favorites";
 
 type ProfileLayoutProps = {
   children: ReactNode;
@@ -89,7 +89,7 @@ export default function ProfileLayout({ children }: ProfileLayoutProps) {
     if (pathname === "/profile") return "profile";
     if (pathname === "/profile/posts") return "posts";
     if (pathname === "/profile/reservations") return "reservations";
-    if (pathname === "/profile/earnings") return "earnings";
+    if (pathname === "/profile/favorites") return "favorites";
     return "profile";
   };
 
@@ -115,10 +115,10 @@ export default function ProfileLayout({ children }: ProfileLayoutProps) {
       path: "/profile/reservations",
     },
     {
-      id: "earnings" as TabType,
-      label: "수익 현황",
-      icon: Wallet,
-      path: "/profile/earnings",
+      id: "favorites" as TabType,
+      label: "즐겨찾기",
+      icon: Heart,
+      path: "/profile/favorites",
     },
   ];
 
