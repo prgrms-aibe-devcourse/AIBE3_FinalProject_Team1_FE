@@ -588,7 +588,7 @@ export default function SignupPage() {
                 !isEmailVerified ||
                 isNicknameDuplicated ||
                 isCheckingNickname ||
-                (formData.nickname && !isNicknameChecked)
+                Boolean(formData.nickname && !isNicknameChecked)
               }
             >
               {signupMutation.isPending ? "가입 중..." : "회원가입"}
