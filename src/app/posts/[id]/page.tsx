@@ -536,9 +536,9 @@ export default function PostDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {post.options.map((option, index) => (
+                  {post.options.map((option) => (
                     <div
-                      key={option.id || index}
+                      key={option.id}
                       className="border border-gray-200 rounded-lg p-4 bg-gray-50"
                     >
                       <div className="flex items-center justify-between">
