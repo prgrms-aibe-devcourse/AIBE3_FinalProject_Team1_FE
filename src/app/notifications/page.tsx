@@ -6,7 +6,7 @@
  */
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import type { NotificationResBody } from "@/types/domain";
 
@@ -19,7 +19,6 @@ import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 
 import {
-  useHasUnreadNotificationsQuery,
   useMarkAllNotificationsAsReadMutation,
   useMarkNotificationAsReadMutation,
   useNotificationsInfiniteQuery,
@@ -79,16 +78,10 @@ export default function NotificationsPage() {
   const { hasUnread } = useNotificationStore();
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    refetch,
-  } = useNotificationsInfiniteQuery({
-    enabled: isAuthenticated,
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useNotificationsInfiniteQuery({
+      enabled: isAuthenticated,
+    });
 
   const markAllAsReadMutation = useMarkAllNotificationsAsReadMutation();
 

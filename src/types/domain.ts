@@ -151,9 +151,11 @@ export interface NotificationUnreadResBody {
 
 /**
  * 알림 데이터 기본 인터페이스
+ * 구체적인 알림 데이터 타입들이 이를 확장합니다.
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface NotificationData {
-  // 구체적인 알림 데이터 타입들이 이를 확장
+  // 마커 인터페이스: 구체적인 알림 데이터 타입들이 이를 확장
 }
 
 /**
