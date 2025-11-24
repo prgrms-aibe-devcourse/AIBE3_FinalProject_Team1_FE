@@ -79,7 +79,7 @@ export interface Auth {
  */
 export enum ReportType {
   POST = "POST",
-  USER = "USER",
+  MEMBER = "MEMBER",
   REVIEW = "REVIEW",
 }
 

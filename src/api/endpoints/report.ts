@@ -15,7 +15,7 @@ export async function getReportList(
   filters?: Record<string, unknown>,
 ): Promise<PaginatedApiResponse<Report>> {
   const params = buildQueryParams(filters);
-  const endpoint = `/api/v1/reports${params.toString() ? `?${params.toString()}` : ""}`;
+  const endpoint = `/api/v1/adm/reports${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Report>>(endpoint);
 }
 
@@ -49,7 +49,7 @@ export async function getReportsByType(
 ): Promise<PaginatedApiResponse<Report>> {
   const params = buildQueryParams(filters);
   params.append("reportType", reportType);
-  const endpoint = `/api/v1/reports${params.toString() ? `?${params.toString()}` : ""}`;
+  const endpoint = `/api/v1/adm/reports${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Report>>(endpoint);
 }
 

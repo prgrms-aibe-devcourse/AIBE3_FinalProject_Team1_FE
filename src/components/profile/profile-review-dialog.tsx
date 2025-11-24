@@ -5,6 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 
 import type { MemberResponse } from "@/types/domain";
+import { ReportType } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +16,21 @@ import {
 } from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
 
+import { ReportDialog } from "@/components/report/report-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import { useReviewsByMemberQuery } from "@/queries/review";
 import { useUserQuery } from "@/queries/user";
 import { parseLocalDate } from "@/lib/utils";
 
-import { Star } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+
+import { Star, Flag } from "lucide-react";
 
 type ProfileReviewDialogProps = {
   open: boolean;
@@ -35,7 +46,14 @@ export function ProfileReviewDialog({
   memberId,
 }: ProfileReviewDialogProps) {
   const [page, setPage] = useState(0);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reviewReportDialogOpen, setReviewReportDialogOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<{
+    id: number;
+    comment: string;
+  } | null>(null);
   const pageSize = 5;
+  const { user } = useAuthStore();
 
   const effectiveMemberId = memberId ?? author?.id ?? null;
   const { data: member } = useUserQuery(
@@ -60,6 +78,9 @@ export function ProfileReviewDialog({
     baseMember?.nickname ||
     baseMember?.name ||
     "익명";
+
+  // 자기 자신인지 확인
+  const isSelf = user?.id === effectiveMemberId;
 
   const createdAt = baseMember?.createdAt;
 
@@ -128,20 +149,44 @@ export function ProfileReviewDialog({
                 return (
                   <div
                     key={review.id}
-                    className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                    className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1 text-yellow-500 text-sm">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold text-gray-900">
-                            {overallScore.toFixed(1)}
-                          </span>
-                        </span>
+                    {/* 신고하기 버튼 - 우측 상단 */}
+                    {user && (
+                      <div className="absolute top-4 right-4">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedReview({
+                                    id: review.id,
+                                    comment: review.comment,
+                                  });
+                                  setReviewReportDialogOpen(true);
+                                }}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                              >
+                                <Flag className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>신고하기</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
+                    )}
+
+                    {/* 작성자 닉네임과 작성일 */}
+                    <div className="flex items-center gap-2 mb-2 pr-16">
+                      <span className="font-semibold text-sm text-gray-900">
+                        {review.author?.nickname || "익명"}
+                      </span>
                       {review.createdAt && (
                         <span className="text-xs text-gray-500">
-                          작성일:{" "}
                           {(() => {
                             const date = parseLocalDate(review.createdAt);
                             const yyyy = date.getFullYear();
@@ -155,22 +200,29 @@ export function ProfileReviewDialog({
                       )}
                     </div>
 
-                    <div className="mb-2 flex flex-wrap items-center gap-3 text-xs text-gray-600">
-                      <span className="flex items-center gap-1">
+                    {/* 평균 평점, 장비, 친절도, 응답시간 - 한 줄 */}
+                    <div className="mb-3 flex flex-wrap items-center gap-3 text-xs">
+                      <span className="flex items-center gap-1 text-yellow-500">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="font-semibold text-gray-900">
+                          {overallScore.toFixed(1)}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1 text-gray-600">
                         장비
                         <span className="flex items-center gap-0.5 text-yellow-500">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           <span>{review.equipmentScore}</span>
                         </span>
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 text-gray-600">
                         친절도
                         <span className="flex items-center gap-0.5 text-yellow-500">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           <span>{review.kindnessScore}</span>
                         </span>
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 text-gray-600">
                         응답시간
                         <span className="flex items-center gap-0.5 text-yellow-500">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -179,6 +231,7 @@ export function ProfileReviewDialog({
                       </span>
                     </div>
 
+                    {/* 후기 내용 */}
                     <p className="text-sm text-gray-800 whitespace-pre-wrap">
                       {review.comment}
                     </p>
@@ -200,6 +253,16 @@ export function ProfileReviewDialog({
           )}
 
           <div className="pt-2 flex justify-end gap-2">
+            {!isSelf && effectiveMemberId && (
+              <Button
+                variant="outline"
+                onClick={() => setReportDialogOpen(true)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Flag className="h-4 w-4 mr-2" />
+                신고하기
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -209,6 +272,33 @@ export function ProfileReviewDialog({
           </div>
         </div>
       </DialogContent>
+
+      {/* 사용자 신고 다이얼로그 */}
+      {effectiveMemberId && (
+        <ReportDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          reportType={ReportType.MEMBER}
+          targetId={effectiveMemberId}
+          targetTitle={displayName}
+        />
+      )}
+
+      {/* 후기 신고 다이얼로그 */}
+      {selectedReview && (
+        <ReportDialog
+          open={reviewReportDialogOpen}
+          onOpenChange={(open) => {
+            setReviewReportDialogOpen(open);
+            if (!open) {
+              setSelectedReview(null);
+            }
+          }}
+          reportType={ReportType.REVIEW}
+          targetId={selectedReview.id}
+          targetTitle={`후기: ${selectedReview.comment.substring(0, 30)}${selectedReview.comment.length > 30 ? "..." : ""}`}
+        />
+      )}
     </Dialog>
   );
 }

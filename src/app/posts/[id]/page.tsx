@@ -22,8 +22,11 @@ import {
 } from "@/components/ui/tooltip";
 
 import { ProfileReviewDialog } from "@/components/profile/profile-review-dialog";
+import { ReportDialog } from "@/components/report/report-dialog";
 
 import { useAuthStore } from "@/store/authStore";
+
+import { ReportType } from "@/types/domain";
 
 import { useCreateChatRoomMutation } from "@/queries/chat";
 import { usePostQuery } from "@/queries/post";
@@ -67,6 +70,12 @@ export default function PostDetailPage() {
   const toggleFavoriteMutation = useToggleFavoriteMutation();
   const createChatRoomMutation = useCreateChatRoomMutation();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reviewReportDialogOpen, setReviewReportDialogOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<{
+    id: number;
+    comment: string;
+  } | null>(null);
 
   // post.isFavorite를 사용 (optimistic update가 이미 적용됨)
   const isFavorite = post?.isFavorite ?? false;
@@ -455,6 +464,7 @@ export default function PostDetailPage() {
                   <Button
                     variant="outline"
                     className="flex-1 whitespace-nowrap"
+                    onClick={() => setReportDialogOpen(true)}
                   >
                     <Flag className="h-4 w-4 mr-2" />
                     신고하기
@@ -595,9 +605,38 @@ export default function PostDetailPage() {
                     return (
                       <div
                         key={review.id}
-                        className="border-b pb-6 last:border-0"
+                        className="border-b pb-6 last:border-0 relative"
                       >
-                        <div className="flex items-start gap-4 mb-3">
+                        {/* 신고하기 버튼 - 우측 상단 */}
+                        {isAuthenticated && (
+                          <div className="absolute top-0 right-0">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedReview({
+                                        id: review.id,
+                                        comment: review.comment,
+                                      });
+                                      setReviewReportDialogOpen(true);
+                                    }}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                  >
+                                    <Flag className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>신고하기</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        )}
+
+                        <div className="flex items-start gap-4 mb-3 pr-16">
                           <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                             <span className="text-gray-600">
                               {review.author?.nickname?.[0] || "U"}
@@ -662,7 +701,9 @@ export default function PostDetailPage() {
                               </span>
                             </div>
 
-                            <p className="text-gray-700">{review.comment}</p>
+                            <p className="text-gray-700">
+                              {review.comment}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -696,6 +737,33 @@ export default function PostDetailPage() {
         author={post?.author ?? null}
         memberId={post?.author?.id}
       />
+
+      {/* 게시글 신고 다이얼로그 */}
+      {post && (
+        <ReportDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          reportType={ReportType.POST}
+          targetId={post.id}
+          targetTitle={post.title}
+        />
+      )}
+
+      {/* 후기 신고 다이얼로그 */}
+      {selectedReview && (
+        <ReportDialog
+          open={reviewReportDialogOpen}
+          onOpenChange={(open) => {
+            setReviewReportDialogOpen(open);
+            if (!open) {
+              setSelectedReview(null);
+            }
+          }}
+          reportType={ReportType.REVIEW}
+          targetId={selectedReview.id}
+          targetTitle={`후기: ${selectedReview.comment.substring(0, 30)}${selectedReview.comment.length > 30 ? "..." : ""}`}
+        />
+      )}
     </div>
   );
 }
