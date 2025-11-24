@@ -103,12 +103,33 @@ export interface CreateReportDto {
 }
 
 /**
+ * 알림 그룹 타입
+ */
+export enum NotificationGroupType {
+  RESERVATION = "RESERVATION",
+}
+
+/**
  * 알림 타입
  */
 export enum NotificationType {
-  RESER = "RESER", // 예약
-  REVIEW = "REVIEW", // 후기
-  CHAT = "CHAT", // 채팅
+  RESERVATION_PENDING_APPROVAL = "RESERVATION_PENDING_APPROVAL", // 예약 : 승인 대기
+  RESERVATION_PENDING_PAYMENT = "RESERVATION_PENDING_PAYMENT", // 예약 : 결제 대기
+  RESERVATION_PENDING_PICKUP = "RESERVATION_PENDING_PICKUP", // 예약 : 수령 대기
+  RESERVATION_SHIPPING = "RESERVATION_SHIPPING", // 예약 : 배송 중
+  RESERVATION_INSPECTING_RENTAL = "RESERVATION_INSPECTING_RENTAL", // 예약 : 대여 검수
+  RESERVATION_RENTING = "RESERVATION_RENTING", // 예약 : 대여 중
+  RESERVATION_PENDING_RETURN = "RESERVATION_PENDING_RETURN", // 예약 : 반납 대기
+  RESERVATION_RETURNING = "RESERVATION_RETURNING", // 예약 : 반납 중
+  RESERVATION_RETURN_COMPLETED = "RESERVATION_RETURN_COMPLETED", // 예약 : 반납 완료
+  RESERVATION_INSPECTING_RETURN = "RESERVATION_INSPECTING_RETURN", // 예약 : 반납 검수
+  RESERVATION_PENDING_REFUND = "RESERVATION_PENDING_REFUND", // 예약 : 환급 예정
+  RESERVATION_REFUND_COMPLETED = "RESERVATION_REFUND_COMPLETED", // 예약 : 환급 완료
+  RESERVATION_LOST_OR_UNRETURNED = "RESERVATION_LOST_OR_UNRETURNED", // 예약 : 미반납/분실
+  RESERVATION_CLAIMING = "RESERVATION_CLAIMING", // 예약 : 청구 진행
+  RESERVATION_CLAIM_COMPLETED = "RESERVATION_CLAIM_COMPLETED", // 예약 : 청구 완료
+  RESERVATION_REJECTED = "RESERVATION_REJECTED", // 예약 : 승인 거절
+  RESERVATION_CANCELLED = "RESERVATION_CANCELLED", // 예약 : 예약 취소
 }
 
 /**
@@ -119,6 +140,72 @@ export interface Notification extends BaseEntity {
   targetId: number;
   memberId: number;
   isRead?: boolean; // 프론트엔드에서 사용
+}
+
+/**
+ * 읽지 않은 알림 여부 응답 DTO
+ */
+export interface NotificationUnreadResBody {
+  hasUnread: boolean;
+}
+
+/**
+ * 알림 데이터 기본 인터페이스
+ * 구체적인 알림 데이터 타입들이 이를 확장합니다.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface NotificationData {
+  // 마커 인터페이스: 구체적인 알림 데이터 타입들이 이를 확장
+}
+
+/**
+ * 알림 응답 DTO
+ */
+export interface NotificationResBody<
+  T extends NotificationData = NotificationData,
+> {
+  id: number;
+  notificationType: NotificationType;
+  createdAt: Date | string; // API 응답은 문자열일 수 있음
+  isRead: boolean;
+  data: T;
+}
+
+/**
+ * 작성자 정보 (알림용)
+ */
+export interface Author {
+  id: number;
+  nickname: string;
+}
+
+/**
+ * 게시글 정보 (알림용)
+ */
+export interface PostInfo {
+  id: number;
+  title: string;
+  author: Author;
+}
+
+/**
+ * 예약 정보 (알림용)
+ */
+export interface ReservationInfo {
+  id: number;
+  author: Author;
+  startDate: Date | string; // API 응답은 문자열일 수 있음
+  endDate: Date | string; // API 응답은 문자열일 수 있음
+  cancelReason: string | null;
+  rejectReason: string | null;
+}
+
+/**
+ * 예약 알림 데이터
+ */
+export interface ReservationNotificationData extends NotificationData {
+  postInfo: PostInfo;
+  reservationInfo: ReservationInfo;
 }
 
 /**

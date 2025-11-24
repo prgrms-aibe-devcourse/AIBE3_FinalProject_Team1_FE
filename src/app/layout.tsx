@@ -10,6 +10,8 @@ import { Toast } from "@/components/ui/toast";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 
+import { NotificationSSEProvider } from "@/components/notification/NotificationSSEProvider";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,6 +40,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>
+          <NotificationSSEProvider />
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1 bg-gray-50">{children}</main>

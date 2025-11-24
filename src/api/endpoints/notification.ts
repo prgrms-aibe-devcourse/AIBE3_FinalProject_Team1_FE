@@ -2,7 +2,11 @@
  * 알림 관련 API 엔드포인트
  */
 import type { PaginatedApiResponse } from "@/types/api";
-import type { Notification } from "@/types/domain";
+import type {
+  NotificationData,
+  NotificationResBody,
+  NotificationUnreadResBody,
+} from "@/types/domain";
 
 import { buildQueryParams } from "@/lib/utils/api-params";
 
@@ -10,45 +14,28 @@ import { apiClient } from "@/api/client";
 
 /**
  * 알림 목록 조회
+ * @param pageable 페이지네이션 파라미터 (page, size, sort 등)
+ * @returns 페이지네이션된 알림 목록
  */
-export async function getNotificationList(
-  filters?: Record<string, unknown>,
-): Promise<PaginatedApiResponse<Notification>> {
-  const params = buildQueryParams(filters);
+export async function getNotifications(pageable?: {
+  page?: number;
+  size?: number;
+  sort?: string; // "createdAt,DESC" 형식
+}): Promise<PaginatedApiResponse<NotificationResBody<NotificationData>>> {
+  const params = buildQueryParams(pageable);
   const endpoint = `/api/v1/notifications${params.toString() ? `?${params.toString()}` : ""}`;
-  return apiClient.get<PaginatedApiResponse<Notification>>(endpoint);
+  return apiClient.get<
+    PaginatedApiResponse<NotificationResBody<NotificationData>>
+  >(endpoint);
 }
 
 /**
- * 읽지 않은 알림 목록 조회
+ * 읽지 않은 알림 여부 조회
+ * @returns 읽지 않은 알림 존재 여부
  */
-export async function getUnreadNotifications(
-  filters?: Record<string, unknown>,
-): Promise<PaginatedApiResponse<Notification>> {
-  const params = buildQueryParams(filters);
-  params.append("isRead", "false");
-  const endpoint = `/api/v1/notifications${params.toString() ? `?${params.toString()}` : ""}`;
-  return apiClient.get<PaginatedApiResponse<Notification>>(endpoint);
-}
-
-/**
- * 알림 상세 조회
- */
-export async function getNotification(
-  notificationId: number,
-): Promise<Notification> {
-  return apiClient.get<Notification>(`/api/v1/notifications/${notificationId}`);
-}
-
-/**
- * 알림 읽음 처리
- */
-export async function markNotificationAsRead(
-  notificationId: number,
-): Promise<Notification> {
-  return apiClient.put<Notification>(
-    `/api/v1/notifications/${notificationId}/read`,
-    {},
+export async function hasUnreadNotifications(): Promise<NotificationUnreadResBody> {
+  return apiClient.get<NotificationUnreadResBody>(
+    "/api/v1/notifications/unread",
   );
 }
 
@@ -56,21 +43,15 @@ export async function markNotificationAsRead(
  * 모든 알림 읽음 처리
  */
 export async function markAllNotificationsAsRead(): Promise<void> {
-  return apiClient.put<void>("/api/v1/notifications/read-all", {});
+  return apiClient.post<void>("/api/v1/notifications", {});
 }
 
 /**
- * 알림 삭제
+ * 특정 알림 읽음 처리
+ * @param notificationId 알림 ID
  */
-export async function deleteNotification(
+export async function markNotificationAsRead(
   notificationId: number,
 ): Promise<void> {
-  return apiClient.delete<void>(`/api/v1/notifications/${notificationId}`);
-}
-
-/**
- * 읽지 않은 알림 개수 조회
- */
-export async function getUnreadNotificationCount(): Promise<{ count: number }> {
-  return apiClient.get<{ count: number }>("/api/v1/notifications/unread/count");
+  return apiClient.post<void>(`/api/v1/notifications/${notificationId}`, {});
 }

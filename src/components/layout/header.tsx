@@ -5,17 +5,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Calendar, MessageCircle, User, LogOut, LogIn, UserPlus, Settings } from "lucide-react";
+import {
+  Home,
+  FileText,
+  Calendar,
+  MessageCircle,
+  User,
+  LogOut,
+  LogIn,
+  UserPlus,
+  Settings,
+  Bell,
+} from "lucide-react";
 
 import { MemberRole } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
+import { useNotificationStore } from "@/store/notificationStore";
 import { useLogoutMutation } from "@/queries/auth";
 
 export function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuthStore();
+  const { hasUnread } = useNotificationStore();
   const logoutMutation = useLogoutMutation();
 
   const handleLogout = () => {
@@ -69,6 +82,21 @@ export function Header() {
               >
                 <MessageCircle className="h-5 w-5" />
                 <span className="hidden sm:inline">채팅</span>
+              </Link>
+              <Link
+                href="/notifications"
+                className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  pathname === "/notifications"
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+                title="알림"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="hidden sm:inline">알림</span>
+                {hasUnread && (
+                  <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-red-500" />
+                )}
               </Link>
               {user?.role === MemberRole.ADMIN && (
                 <Link
