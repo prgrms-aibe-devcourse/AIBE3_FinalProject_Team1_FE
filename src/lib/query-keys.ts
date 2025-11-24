@@ -97,6 +97,7 @@ export const regionKeys = createQueryKeys("region", {
  */
 export const notificationKeys = createQueryKeys("notification", {
   all: null,
+  list: (pageable?: Record<string, unknown>) => [pageable ?? {}],
   unread: null,
   detail: (notificationId: number) => [notificationId],
 });

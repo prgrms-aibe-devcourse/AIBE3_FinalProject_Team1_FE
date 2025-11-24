@@ -4,6 +4,8 @@
  */
 import { type ClassValue, clsx } from "clsx";
 
+export * from "./notification";
+
 /**
  * className을 병합하는 함수
  */
@@ -22,7 +24,12 @@ export function parseLocalDate(dateStr: string | Date): Date {
 
   // 서버가 UTC로 보내는 경우
   // 시간대 정보가 없으면 UTC로 명시적으로 파싱
-  if (dateStr.includes("T") && !dateStr.includes("Z") && !dateStr.includes("+") && !dateStr.includes("-", 10)) {
+  if (
+    dateStr.includes("T") &&
+    !dateStr.includes("Z") &&
+    !dateStr.includes("+") &&
+    !dateStr.includes("-", 10)
+  ) {
     // "2025-01-15T10:30:00" 형식을 UTC로 명시적으로 파싱
     // 끝에 "Z"를 추가하여 UTC임을 명시
     return new Date(dateStr + "Z");
