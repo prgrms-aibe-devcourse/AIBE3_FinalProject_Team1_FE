@@ -263,11 +263,13 @@ export default function MyReservationsPage() {
                 );
 
               // 후기 작성 가능 여부 확인
+              const hasReviewed = reservation.hasReviewed ?? false;
               const canWriteReview =
-                status === "RETURN_COMPLETED" ||
-                status === "INSPECTING_RETURN" ||
-                status === "PENDING_REFUND" ||
-                status === "REFUND_COMPLETED";
+                !hasReviewed &&
+                (status === "RETURN_COMPLETED" ||
+                  status === "INSPECTING_RETURN" ||
+                  status === "PENDING_REFUND" ||
+                  status === "REFUND_COMPLETED");
 
               // 취소 가능 여부 확인 (승인 대기, 결제 대기, 수령 대기에서 가능)
               const canCancel =

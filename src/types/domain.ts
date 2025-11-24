@@ -394,6 +394,7 @@ export interface Reservation extends BaseEntity {
   postId: number;
   authorId: number;
   totalAmount?: number; // 총 금액 (API 응답)
+  hasReviewed?: boolean; // 후기 작성 여부 (API 응답)
   // 관계 데이터
   post?: Post;
   author?: MemberResponse;
