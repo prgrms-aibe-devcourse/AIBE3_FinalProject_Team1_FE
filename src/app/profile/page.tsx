@@ -5,7 +5,7 @@
 
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDateString } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 import Image from "next/image";
@@ -430,7 +430,7 @@ export default function ProfilePage() {
               <p className="text-sm text-blue-100">
                 가입일:{" "}
                 {meFinal?.createdAt
-                  ? format(parseLocalDate(meFinal.createdAt), "yyyy. MM. dd.", {
+                  ? format(parseLocalDateString(meFinal.createdAt), "yyyy. MM. dd.", {
                       locale: ko,
                     })
                   : ""}
@@ -720,7 +720,7 @@ export default function ProfilePage() {
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {format(
-                          parseLocalDate(reservation.createdAt),
+                          parseLocalDateString(reservation.createdAt),
                           "yyyy. MM. dd. HH:mm",
                           { locale: ko },
                         )}

@@ -26,7 +26,7 @@ import {
 
 import { useReviewsByMemberQuery } from "@/queries/review";
 import { useUserQuery } from "@/queries/user";
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDateString } from "@/lib/utils";
 
 import { useAuthStore } from "@/store/authStore";
 
@@ -87,7 +87,7 @@ export function ProfileReviewDialog({
   const joinedAtText =
     createdAt != null
       ? (() => {
-          const date = parseLocalDate(createdAt);
+          const date = parseLocalDateString(createdAt);
           const yyyy = date.getFullYear();
           const mm = String(date.getMonth() + 1).padStart(2, "0");
           const dd = String(date.getDate()).padStart(2, "0");
@@ -188,7 +188,7 @@ export function ProfileReviewDialog({
                       {review.createdAt && (
                         <span className="text-xs text-gray-500">
                           {(() => {
-                            const date = parseLocalDate(review.createdAt);
+                            const date = parseLocalDateString(review.createdAt);
                             const yyyy = date.getFullYear();
                             const mm = String(
                               date.getMonth() + 1,

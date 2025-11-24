@@ -15,7 +15,7 @@ import { ReportType } from "@/types/domain";
 import { useReportListQuery } from "@/queries/report";
 import { useDeleteReportMutation } from "@/queries/report";
 
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDateString } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
@@ -90,7 +90,7 @@ export default function AdminReportsPage() {
   };
 
   const formatDateTime = (date: string | Date) => {
-    const dateObj = typeof date === "string" ? parseLocalDate(date) : date;
+    const dateObj = typeof date === "string" ? parseLocalDateString(date) : date;
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
     const dd = String(dateObj.getDate()).padStart(2, "0");
