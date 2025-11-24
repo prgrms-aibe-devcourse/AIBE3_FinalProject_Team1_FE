@@ -5,7 +5,7 @@ import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { differenceInMinutes, format, isSameDay, isToday } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Suspense } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,7 +22,7 @@ import { getQueryKey, queryKeys } from "@/lib/query-keys";
 /* ======================
    유틸 함수
 ====================== */
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,13 +43,13 @@ import { useMeQuery } from "@/queries/user";
 import { MessageSquare, Send, User } from "lucide-react";
 
 function formatTimestamp(date: Date | string): string {
-  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  const d = typeof date === "string" ? parseLocalDateString(date) : date;
   return format(d, "a h:mm", { locale: ko });
 }
 
 function formatLastMessageTime(date?: Date | string | null): string {
   if (!date) return "";
-  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  const d = typeof date === "string" ? parseLocalDateString(date) : date;
 
   const mins = differenceInMinutes(new Date(), d);
   if (mins < 1) return "방금";
@@ -61,7 +61,7 @@ function formatLastMessageTime(date?: Date | string | null): string {
 
 // 날짜 구분선 포맷팅 함수
 function formatDateDivider(date: Date | string): string {
-  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  const d = typeof date === "string" ? parseLocalDateString(date) : date;
   return format(d, "yyyy년 M월 d일 EEEE", { locale: ko });
 }
 
@@ -112,8 +112,20 @@ function ChatPage() {
 
   const [chatRooms, setChatRooms] = useState<ChatRoomListDto[]>([]);
 
+  // 이전 chatRoomsInitial 값을 추적하여 실제 변경 시에만 업데이트
+  const prevChatRoomsInitialRef = useRef<ChatRoomListDto[]>([]);
+
   useEffect(() => {
-    setChatRooms(chatRoomsInitial);
+    // 실제 내용이 변경되었을 때만 업데이트 (참조 비교 방지)
+    const prevIds = prevChatRoomsInitialRef.current.map((r) => r.id).join(",");
+    const currentIds = chatRoomsInitial.map((r) => r.id).join(",");
+    const prevLength = prevChatRoomsInitialRef.current.length;
+    const currentLength = chatRoomsInitial.length;
+
+    if (prevIds !== currentIds || prevLength !== currentLength) {
+      setChatRooms(chatRoomsInitial);
+      prevChatRoomsInitialRef.current = chatRoomsInitial;
+    }
   }, [chatRoomsInitial]);
 
   /* ======================
@@ -162,8 +174,8 @@ function ChatPage() {
 
     return deduped.sort(
       (a, b) =>
-        parseLocalDate(a.createdAt).getTime() -
-        parseLocalDate(b.createdAt).getTime(),
+        parseLocalDateString(a.createdAt).getTime() -
+        parseLocalDateString(b.createdAt).getTime(),
     );
   })();
 
@@ -620,10 +632,10 @@ function ChatPage() {
 
                       {messages.map((msg, index) => {
                         const isMine = msg.authorId === me?.id;
-                        const currentDate = parseLocalDate(msg.createdAt);
+                        const currentDate = parseLocalDateString(msg.createdAt);
                         const prevDate =
                           index > 0
-                            ? parseLocalDate(messages[index - 1].createdAt)
+                            ? parseLocalDateString(messages[index - 1].createdAt)
                             : null;
 
                         // 날짜가 바뀌면 날짜 구분선 표시

@@ -7,7 +7,6 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils";
 import Image from "next/image";
 import {
   Calendar,
@@ -25,7 +24,9 @@ import {
   X,
 } from "lucide-react";
 
+import type { ReservationLog } from "@/types/domain";
 import { ReceiveMethod, ReservationStatus } from "@/types/domain";
+import { parseLocalDateString } from "@/lib/utils";
 
 import { getImageUrl } from "@/lib/utils/image";
 
@@ -326,8 +327,8 @@ function ReservationDetailPageContent() {
   const totalDeposit = baseDeposit + optionsDeposit;
   const totalAmount = totalRentalFee + totalDeposit;
 
-  // 예약 로그 (타임라인) - 향후 사용 예정
-  // const logs = reservation.logs || [];
+  // 예약 로그 (타임라인)
+  const logs = (reservation.logs || []) as ReservationLog[];
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -758,117 +759,130 @@ function ReservationDetailPageContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* 예약 신청 */}
-                {reservation.createdAt && (
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                        <Clock className="h-5 w-5 text-yellow-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 mb-1">
-                        대여 신청이 접수되었습니다.
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <User className="h-4 w-4" />
-                        <span>
-                          {reservation.author?.nickname || "예약자"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {format(parseLocalDate(reservation.createdAt), "yyyy. MM. dd. a h:mm:ss", {
-                          locale: ko,
-                        })}
-                      </p>
-                    </div>
+                {logs.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    진행 상황이 없습니다.
                   </div>
-                )}
+                ) : (
+                  logs.map((log, index) => {
+                    const logStatus = log.status as string;
+                    const isLast = index === logs.length - 1;
+                    const isCompleted = [
+                      ReservationStatus.RETURN_COMPLETED,
+                      ReservationStatus.REFUND_COMPLETED,
+                      ReservationStatus.CLAIM_COMPLETED,
+                      ReservationStatus.REJECTED,
+                      ReservationStatus.CANCELLED,
+                    ].includes(logStatus as ReservationStatus);
 
-                {/* 예약 승인 (승인 대기 → 결제 대기) */}
-                {status === ReservationStatus.PENDING_PAYMENT && (
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 mb-1">
-                        호스트가 예약을 승인했습니다.
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <User className="h-4 w-4" />
-                        <span>{post?.author?.nickname || post?.authorNickname || "호스트"}</span>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {reservation.updatedAt &&
-                          format(
-                            parseLocalDate(reservation.updatedAt),
-                            "yyyy. MM. dd. a h:mm:ss",
-                            { locale: ko },
+                    // 상태에 따른 메시지 생성
+                    const getStatusMessage = (status: string): string => {
+                      switch (status) {
+                        case ReservationStatus.PENDING_APPROVAL:
+                          return "대여 신청이 접수되었습니다.";
+                        case ReservationStatus.PENDING_PAYMENT:
+                          return "호스트가 예약을 승인했습니다.";
+                        case ReservationStatus.PENDING_PICKUP:
+                          return "결제가 성공적으로 완료되었습니다.";
+                        case ReservationStatus.INSPECTING_RENTAL:
+                          return "대여 검수가 진행 중입니다.";
+                        case ReservationStatus.RENTING:
+                          return "대여가 시작되었습니다.";
+                        case ReservationStatus.PENDING_RETURN:
+                          return "반납 대기 중입니다.";
+                        case ReservationStatus.INSPECTING_RETURN:
+                          return "반납 검수가 진행 중입니다.";
+                        case ReservationStatus.RETURN_COMPLETED:
+                          return "반납이 완료되었습니다.";
+                        case ReservationStatus.PENDING_REFUND:
+                          return "환급이 예정되었습니다.";
+                        case ReservationStatus.REFUND_COMPLETED:
+                          return "환급이 완료되었습니다.";
+                        case ReservationStatus.REJECTED:
+                          return "예약이 거절되었습니다.";
+                        case ReservationStatus.CANCELLED:
+                          return "예약이 취소되었습니다.";
+                        case ReservationStatus.LOST_OR_UNRETURNED:
+                          return "장비가 미반납 또는 분실되었습니다.";
+                        case ReservationStatus.CLAIMING:
+                          return "청구가 진행 중입니다.";
+                        case ReservationStatus.CLAIM_COMPLETED:
+                          return "청구가 완료되었습니다.";
+                        default:
+                          return statusLabels[status] || status;
+                      }
+                    };
+
+                    // 상태에 따른 아이콘과 색상 결정
+                    let iconColor = "bg-gray-100 text-gray-600";
+                    let Icon = Clock;
+                    if (isCompleted) {
+                      if (
+                        logStatus === ReservationStatus.REJECTED ||
+                        logStatus === ReservationStatus.CANCELLED
+                      ) {
+                        iconColor = "bg-red-100 text-red-600";
+                        Icon = X;
+                      } else {
+                        iconColor = "bg-green-100 text-green-600";
+                        Icon = CheckCircle2;
+                      }
+                    } else if (
+                      logStatus === ReservationStatus.PENDING_APPROVAL ||
+                      logStatus === ReservationStatus.PENDING_PAYMENT ||
+                      logStatus === ReservationStatus.PENDING_PICKUP ||
+                      logStatus === ReservationStatus.PENDING_RETURN ||
+                      logStatus === ReservationStatus.PENDING_REFUND
+                    ) {
+                      iconColor = "bg-yellow-100 text-yellow-600";
+                      Icon = Clock;
+                    } else if (
+                      logStatus === ReservationStatus.INSPECTING_RENTAL ||
+                      logStatus === ReservationStatus.INSPECTING_RETURN
+                    ) {
+                      iconColor = "bg-purple-100 text-purple-600";
+                      Icon = Package;
+                    } else if (logStatus === ReservationStatus.RENTING) {
+                      iconColor = "bg-blue-100 text-blue-600";
+                      Icon = CheckCircle2;
+                    }
+
+                    // 시간 파싱 (서버가 현지 시간으로 보내는 경우를 가정)
+                    const formatLogTime = (dateStr: string | Date): string => {
+                      const date =
+                        dateStr instanceof Date
+                          ? dateStr
+                          : parseLocalDateString(dateStr);
+                      return format(date, "yyyy. MM. dd. a h:mm:ss", {
+                        locale: ko,
+                      });
+                    };
+
+                    return (
+                      <div key={log.id} className="flex gap-4">
+                        <div className="flex-shrink-0">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center ${iconColor}`}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          {!isLast && (
+                            <div className="w-0.5 h-6 bg-gray-200 mx-auto mt-2" />
                           )}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 결제 완료 (결제 대기 → 수령 대기/배송 등) */}
-                {status === ReservationStatus.PENDING_PICKUP && (
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="flex-1 pb-6">
+                          <p className="font-medium text-gray-900 mb-1">
+                            {getStatusMessage(logStatus)}
+                          </p>
+                          {log.createdAt && (
+                            <p className="text-xs text-gray-500">
+                              {formatLogTime(log.createdAt)}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 mb-1">
-                        결제가 성공적으로 완료되었습니다.
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <User className="h-4 w-4" />
-                        <span>시스템</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 거절 */}
-                {status === ReservationStatus.REJECTED && reservation.rejectReason && (
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                        <X className="h-5 w-5 text-red-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 mb-1">
-                        예약이 거절되었습니다.
-                      </p>
-                      <p className="text-sm text-gray-600 mb-1">
-                        사유: {reservation.rejectReason}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 취소 */}
-                {status === ReservationStatus.CANCELLED && reservation.cancelReason && (
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                        <X className="h-5 w-5 text-gray-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 mb-1">
-                        예약이 취소되었습니다.
-                      </p>
-                      <p className="text-sm text-gray-600 mb-1">
-                        사유: {reservation.cancelReason}
-                      </p>
-                    </div>
-                  </div>
+                    );
+                  })
                 )}
               </div>
             </CardContent>

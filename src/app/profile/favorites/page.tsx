@@ -12,7 +12,7 @@ import type { Post, Category, Region } from "@/types/domain";
 import { ReceiveMethod } from "@/types/domain";
 
 import { getImageUrl } from "@/lib/utils/image";
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -269,7 +269,7 @@ export default function FavoritePostsPage() {
                           )}
                           {post.createdAt && (
                             <span>
-                              {format(parseLocalDate(post.createdAt), "yyyy-MM-dd", {
+                              {format(parseLocalDateString(post.createdAt), "yyyy-MM-dd", {
                                 locale: ko,
                               })}
                             </span>

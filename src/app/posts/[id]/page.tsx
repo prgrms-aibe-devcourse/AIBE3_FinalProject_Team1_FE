@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,7 +309,7 @@ export default function PostDetailPage() {
                 <p className="text-sm text-gray-500">
                   작성일:{" "}
                   {(() => {
-                    const date = parseLocalDate(post.createdAt);
+                    const date = parseLocalDateString(post.createdAt);
                     return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, "0")}. ${String(date.getDate()).padStart(2, "0")}.`;
                   })()}
                 </p>
@@ -358,7 +358,7 @@ export default function PostDetailPage() {
                     {post.author?.createdAt && (
                       <p className="text-xs text-gray-500 mt-1">
                         {(() => {
-                          const date = parseLocalDate(post.author.createdAt);
+                          const date = parseLocalDateString(post.author.createdAt);
                           return `${date.getFullYear()}년 ${date.getMonth() + 1}월 가입`;
                         })()}
                       </p>
@@ -651,7 +651,7 @@ export default function PostDetailPage() {
                                 <span className="text-xs text-gray-500">
                                   작성일:{" "}
                                   {(() => {
-                                    const date = parseLocalDate(
+                                    const date = parseLocalDateString(
                                       review.createdAt,
                                     );
                                     const yyyy = date.getFullYear();

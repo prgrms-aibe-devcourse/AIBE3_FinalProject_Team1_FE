@@ -16,6 +16,7 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * 서버에서 받은 UTC 날짜 문자열을 로컬 시간으로 올바르게 변환
  * 서버가 UTC로 보내는 경우를 가정하고 로컬 시간으로 변환
+ * @deprecated Use parseUTCDate for UTC timestamps or parseLocalDateString for local timestamps
  */
 export function parseLocalDate(dateStr: string | Date): Date {
   if (dateStr instanceof Date) {
@@ -35,6 +36,45 @@ export function parseLocalDate(dateStr: string | Date): Date {
     return new Date(dateStr + "Z");
   }
   // 이미 시간대 정보가 있으면 그대로 파싱
+  return new Date(dateStr);
+}
+
+/**
+ * 서버에서 받은 UTC 날짜 문자열을 로컬 시간으로 올바르게 변환
+ * 서버가 UTC로 보내는 경우를 가정하고 로컬 시간으로 변환
+ * 채팅 메시지, 게시글 작성일 등 UTC로 내려오는 경우에 사용
+ */
+export function parseUTCDate(dateStr: string | Date): Date {
+  if (dateStr instanceof Date) {
+    return dateStr;
+  }
+
+  // 서버가 UTC로 보내는 경우
+  // 시간대 정보가 없으면 UTC로 명시적으로 파싱
+  if (
+    dateStr.includes("T") &&
+    !dateStr.includes("Z") &&
+    !dateStr.includes("+") &&
+    !dateStr.includes("-", 10)
+  ) {
+    // "2025-01-15T10:30:00" 형식을 UTC로 명시적으로 파싱
+    // 끝에 "Z"를 추가하여 UTC임을 명시
+    return new Date(dateStr + "Z");
+  }
+  // 이미 시간대 정보가 있으면 그대로 파싱
+  return new Date(dateStr);
+}
+
+/**
+ * 서버에서 받은 현지 시간 날짜 문자열을 그대로 파싱
+ * 서버가 현지 시간(KST)으로 보내는 경우에 사용
+ * 예약 로그 등 현지 시간으로 내려오는 경우에 사용
+ */
+export function parseLocalDateString(dateStr: string | Date): Date {
+  if (dateStr instanceof Date) {
+    return dateStr;
+  }
+  // 현지 시간으로 그대로 파싱 (UTC 변환 없음)
   return new Date(dateStr);
 }
 
