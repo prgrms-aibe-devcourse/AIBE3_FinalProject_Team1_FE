@@ -348,7 +348,7 @@ function NewReservationPageContent() {
       return;
     }
 
-    if (endDate <= startDate) {
+    if (endDate < startDate) {
       showToast("종료일은 시작일보다 이후여야 합니다.", "error");
       return;
     }

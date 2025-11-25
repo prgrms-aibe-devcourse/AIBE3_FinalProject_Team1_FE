@@ -95,6 +95,11 @@ export function CalendarRangePicker({
         // 종료일이 시작일보다 이전이면 시작일을 변경
         onChange(date, null);
       } else {
+        // 같은 날짜인 경우 (당일 예약 허용)
+        if (isSameDay(date, selectedStartDate)) {
+          onChange(selectedStartDate, date);
+          return;
+        }
         // 시작일과 선택한 종료일 사이에 예약된 날짜가 있는지 확인
         if (hasExcludedDateBetween(selectedStartDate, date)) {
           // 예약된 날짜가 있으면 시작일 선택 해제
