@@ -32,7 +32,8 @@ export function Header() {
   const { hasUnread } = useNotificationStore();
   const logoutMutation = useLogoutMutation();
   
-  // me API 호출하여 계정 정보 갱신 (OAuth2 소셜 로그인 후 자동 갱신)
+  // 인증된 경우에만 me API 호출 (React Query 캐싱으로 불필요한 재요청 방지)
+  // 소셜 로그인 후에는 콜백 페이지에서 이미 호출했으므로 캐시된 데이터 사용
   useMeQuery();
 
   const handleLogout = () => {
