@@ -577,18 +577,6 @@ export interface SendChatMessageDto {
 }
 
 /**
- * 채팅방 생성 응답 DTO
- */
-export interface CreateChatRoomResBody {
-  id: number;
-  postId: number;
-  teacherId: number;
-  studentId: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
  * 새로운 채팅방 알림 (기존 코드와 호환)
  */
 export interface NewRoomNotiDto {

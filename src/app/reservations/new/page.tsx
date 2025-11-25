@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Heart, MapPin, User, Truck, CheckCircle } from "lucide-react";
+import { Heart, MapPin, User, Truck, CheckCircle, ArrowLeft } from "lucide-react";
 
 import type { CreateReservationDto } from "@/types/domain";
 import { ReceiveMethod } from "@/types/domain";
@@ -778,7 +778,7 @@ function NewReservationPageContent() {
                 disabled={createReservationMutation.isPending}
                 className="flex items-center gap-2"
               >
-                <Heart className="h-4 w-4" />
+                취소
               </Button>
               <Button
                 type="submit"

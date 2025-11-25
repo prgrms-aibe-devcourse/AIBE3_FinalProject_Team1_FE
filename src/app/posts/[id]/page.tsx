@@ -175,8 +175,12 @@ export default function PostDetailPage() {
     try {
       // 채팅방 생성 (API가 이미 존재하는 채팅방이 있으면 chatRoomId 반환, 없으면 생성)
       const result = await createChatRoomMutation.mutateAsync(postId);
-      // response가 { id: number } 또는 ChatRoom 객체이므로 항상 id 속성 있음
-      router.push(`/chat?roomId=${result.id}`);
+      // API 응답: { message: string; chatRoomId: number }
+      if (result.chatRoomId) {
+        router.push(`/chat?roomId=${result.chatRoomId}`);
+      } else {
+        console.error("Failed to get chatRoomId from response:", result);
+      }
     } catch (error) {
       console.error("Failed to create chat room:", error);
       // API 실패 시 페이지 이동하지 않음
