@@ -446,7 +446,7 @@ export interface UpdateReservationDto {
 export interface ReservationLog extends BaseEntity {
   status: ReservationStatus;
   reservationId: number;
-  authorName: string;
+  authorNickname: string;
 }
 
 /**

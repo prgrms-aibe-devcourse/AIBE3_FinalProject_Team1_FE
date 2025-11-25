@@ -67,6 +67,10 @@ import {
  * 예약 상세 페이지
  */
 
+/**
+ * 예약 상세 페이지
+ */
+
 const statusLabels: Record<string, string> = {
   PENDING_APPROVAL: "승인 대기",
   PENDING_PAYMENT: "결제 대기",
@@ -923,7 +927,9 @@ function ReservationDetailPageContent() {
                           {log.createdAt && (
                             <p className="text-xs text-gray-500">
                               {formatLogTime(log.createdAt)}
-                              <span className="ml-2">· {log.authorName}</span>
+                              <span className="ml-2">
+                                · {log.authorNickname}
+                              </span>
                             </p>
                           )}
                         </div>
