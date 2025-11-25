@@ -3,32 +3,19 @@
  */
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { Suspense, useEffect, useState } from "react";
+
 import Image from "next/image";
-import {
-  Calendar,
-  User,
-  Truck,
-  MapPin,
-  ArrowLeft,
-  CreditCard,
-  Wrench,
-  CheckCircle2,
-  Clock,
-  Package,
-  Info,
-  Pencil,
-  X,
-} from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 
 import type { ReservationLog } from "@/types/domain";
 import { ReceiveMethod, ReservationStatus } from "@/types/domain";
-import { parseLocalDateString } from "@/lib/utils";
 
 import { getImageUrl } from "@/lib/utils/image";
+
+import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,13 +31,41 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 
+import { usePostQuery } from "@/queries/post";
 import { useReservationQuery } from "@/queries/reservation";
 import {
   useApproveReservationMutation,
-  useRejectReservationMutation,
   useCancelReservationMutation,
+  useRejectReservationMutation,
 } from "@/queries/reservation";
-import { usePostQuery } from "@/queries/post";
+
+import {
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Info,
+  MapPin,
+  Package,
+  Pencil,
+  Truck,
+  User,
+  Wrench,
+  X,
+} from "lucide-react";
+
+/**
+ * 예약 상세 페이지
+ */
+
+/**
+ * 예약 상세 페이지
+ */
+
+/**
+ * 예약 상세 페이지
+ */
 
 const statusLabels: Record<string, string> = {
   PENDING_APPROVAL: "승인 대기",
@@ -142,8 +157,7 @@ function ReservationDetailPageContent() {
     // 호스트(게시글 작성자) 식별: 예약 응답 안에 포함된 post 정보 또는 별도 조회한 post 정보 모두 사용
     const postAuthorIdFromReservation =
       reservation.post?.author?.id ?? reservation.post?.authorId;
-    const postAuthorIdFromPost =
-      post?.author?.id ?? post?.authorId;
+    const postAuthorIdFromPost = post?.author?.id ?? post?.authorId;
     const postAuthorId = postAuthorIdFromReservation ?? postAuthorIdFromPost;
 
     const isPostOwner = postAuthorId !== undefined && postAuthorId === user.id;
@@ -231,11 +245,15 @@ function ReservationDetailPageContent() {
           <CardContent className="p-6 text-center space-y-4">
             {!user ? (
               <>
-                <p className="text-gray-700 font-semibold">로그인이 필요합니다</p>
+                <p className="text-gray-700 font-semibold">
+                  로그인이 필요합니다
+                </p>
                 <p className="text-sm text-gray-500">
                   예약 상세 정보를 확인하려면 먼저 로그인해주세요.
                 </p>
-                <Button onClick={() => router.push("/login")}>로그인하러 가기</Button>
+                <Button onClick={() => router.push("/login")}>
+                  로그인하러 가기
+                </Button>
               </>
             ) : (
               <>
@@ -282,7 +300,9 @@ function ReservationDetailPageContent() {
     );
   const daysDiff =
     startDate && endDate
-      ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      ? Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        ) + 1
       : 0;
 
   // 옵션 목록 (예약에는 id와 이름만 있고, 가격은 post의 options에서 가져옴)
@@ -291,19 +311,22 @@ function ReservationDetailPageContent() {
       id: ro.optionId || ro.id,
       name: ro.option?.name || `옵션 #${ro.optionId || ro.id}`,
     })) ||
-    (reservation.option?.map((opt: unknown, index: number) => {
-      if (
-        opt &&
-        typeof opt === "object" &&
-        ("name" in opt || "id" in opt)
-      ) {
-        return {
-          id: ("id" in opt && typeof opt.id === "number" ? opt.id : null) || index,
-          name: ("name" in opt && typeof opt.name === "string" ? opt.name : `옵션 #${index}`) || `옵션 #${index}`,
-        };
-      }
-      return null;
-    }).filter(Boolean) as Array<{ id: number; name: string }>) ||
+    (reservation.option
+      ?.map((opt: unknown, index: number) => {
+        if (opt && typeof opt === "object" && ("name" in opt || "id" in opt)) {
+          return {
+            id:
+              ("id" in opt && typeof opt.id === "number" ? opt.id : null) ||
+              index,
+            name:
+              ("name" in opt && typeof opt.name === "string"
+                ? opt.name
+                : `옵션 #${index}`) || `옵션 #${index}`,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{ id: number; name: string }>) ||
     [];
 
   // post의 options에서 가격 정보를 가져와서 매칭
@@ -321,8 +344,14 @@ function ReservationDetailPageContent() {
   const baseFee = post?.fee || 0;
   const baseDeposit = post?.deposit || 0;
   const rentalFee = baseFee * daysDiff;
-  const optionsFee = options.reduce((sum, opt) => sum + (opt.fee || 0) * daysDiff, 0);
-  const optionsDeposit = options.reduce((sum, opt) => sum + (opt.deposit || 0), 0);
+  const optionsFee = options.reduce(
+    (sum, opt) => sum + (opt.fee || 0) * daysDiff,
+    0,
+  );
+  const optionsDeposit = options.reduce(
+    (sum, opt) => sum + (opt.deposit || 0),
+    0,
+  );
   const totalRentalFee = rentalFee + optionsFee;
   const totalDeposit = baseDeposit + optionsDeposit;
   const totalAmount = totalRentalFee + totalDeposit;
@@ -367,8 +396,8 @@ function ReservationDetailPageContent() {
                 <Image
                   src={getImageUrl(
                     post.thumbnailImageUrl ||
-                    post.images?.[0]?.file ||
-                    post.images?.[0]?.url,
+                      post.images?.[0]?.file ||
+                      post.images?.[0]?.url,
                   )}
                   alt={post.title}
                   width={200}
@@ -379,11 +408,16 @@ function ReservationDetailPageContent() {
 
               {/* 정보 */}
               <div className="flex-1 space-y-3">
-                <h2 className="text-2xl font-bold text-gray-900">{post.title}</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {post.title}
+                </h2>
 
                 <div className="flex items-center gap-2 text-gray-600">
                   <User className="h-4 w-4" />
-                  <span>호스트: {post.author?.nickname || post.authorNickname || "호스트"}</span>
+                  <span>
+                    호스트:{" "}
+                    {post.author?.nickname || post.authorNickname || "호스트"}
+                  </span>
                 </div>
 
                 {post.regions && post.regions.length > 0 && (
@@ -508,7 +542,11 @@ function ReservationDetailPageContent() {
                       {post.author?.profileImgUrl ? (
                         <Image
                           src={getImageUrl(post.author.profileImgUrl)}
-                          alt={post.author?.nickname || post.authorNickname || "호스트"}
+                          alt={
+                            post.author?.nickname ||
+                            post.authorNickname ||
+                            "호스트"
+                          }
                           width={48}
                           height={48}
                           className="rounded-full"
@@ -520,7 +558,9 @@ function ReservationDetailPageContent() {
                       )}
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {post.author?.nickname || post.authorNickname || "호스트"}
+                          {post.author?.nickname ||
+                            post.authorNickname ||
+                            "호스트"}
                         </p>
                         <p className="text-sm text-gray-600">호스트</p>
                       </div>
@@ -592,7 +632,9 @@ function ReservationDetailPageContent() {
                               <span>{reservation.receiveAddress1}</span>
                             </div>
                             {reservation.receiveAddress2 && (
-                              <p className="ml-6">{reservation.receiveAddress2}</p>
+                              <p className="ml-6">
+                                {reservation.receiveAddress2}
+                              </p>
                             )}
                           </div>
                         )}
@@ -665,7 +707,9 @@ function ReservationDetailPageContent() {
                           <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded mb-2">
                             기본 장비
                           </span>
-                          <p className="font-semibold text-gray-900">{post.title}</p>
+                          <p className="font-semibold text-gray-900">
+                            {post.title}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium text-gray-900">
@@ -689,7 +733,9 @@ function ReservationDetailPageContent() {
                           <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded mb-2">
                             추가 옵션
                           </span>
-                          <p className="font-semibold text-gray-900">{option.name}</p>
+                          <p className="font-semibold text-gray-900">
+                            {option.name}
+                          </p>
                         </div>
                         <div className="text-right">
                           {option.fee > 0 ? (
@@ -697,7 +743,9 @@ function ReservationDetailPageContent() {
                               {option.fee.toLocaleString()}원/일
                             </p>
                           ) : (
-                            <p className="text-sm font-medium text-gray-900">무료</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              무료
+                            </p>
                           )}
                           {option.deposit > 0 && (
                             <p className="text-xs text-gray-600 mt-1">
@@ -715,16 +763,14 @@ function ReservationDetailPageContent() {
             {/* 결제 정보 */}
             <Card>
               <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2">
                   <CreditCard className="h-5 w-5" />
                   결제 정보
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">
-                    대여료 ({daysDiff}일)
-                  </span>
+                  <span className="text-gray-600">대여료 ({daysDiff}일)</span>
                   <span className="font-medium">
                     {totalRentalFee.toLocaleString()}원
                   </span>
@@ -877,6 +923,7 @@ function ReservationDetailPageContent() {
                           {log.createdAt && (
                             <p className="text-xs text-gray-500">
                               {formatLogTime(log.createdAt)}
+                              <span className="ml-2">· {log.authorName}</span>
                             </p>
                           )}
                         </div>
@@ -909,7 +956,8 @@ function ReservationDetailPageContent() {
                       <Truck className="h-5 w-5 text-gray-500" />
                     )}
                     <span className="font-medium">
-                      수령 방식: {RECEIVE_METHOD_LABELS[reservation.receiveMethod]}
+                      수령 방식:{" "}
+                      {RECEIVE_METHOD_LABELS[reservation.receiveMethod]}
                     </span>
                   </div>
                   {reservation.receiveMethod === ReceiveMethod.DELIVERY &&
@@ -927,7 +975,9 @@ function ReservationDetailPageContent() {
                   {reservation.receiveTrackingNumber && (
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">운송장 번호</span>
+                        <span className="text-sm text-gray-600">
+                          운송장 번호
+                        </span>
                         <span className="text-sm font-medium">
                           {reservation.receiveTrackingNumber}
                         </span>
@@ -963,7 +1013,8 @@ function ReservationDetailPageContent() {
                       <Truck className="h-5 w-5 text-gray-500" />
                     )}
                     <span className="font-medium">
-                      반납 방식: {RETURN_METHOD_LABELS[reservation.returnMethod]}
+                      반납 방식:{" "}
+                      {RETURN_METHOD_LABELS[reservation.returnMethod]}
                     </span>
                   </div>
                   {reservation.returnMethod === ReceiveMethod.DELIVERY &&
@@ -971,19 +1022,27 @@ function ReservationDetailPageContent() {
                       <div className="space-y-2 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          <span>{post.author?.nickname || post.authorNickname || "호스트"}</span>
+                          <span>
+                            {post.author?.nickname ||
+                              post.authorNickname ||
+                              "호스트"}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
                           <span>반납 주소: {post.returnAddress1}</span>
                         </div>
-                        {post.returnAddress2 && <p className="ml-6">{post.returnAddress2}</p>}
+                        {post.returnAddress2 && (
+                          <p className="ml-6">{post.returnAddress2}</p>
+                        )}
                       </div>
                     )}
                   {reservation.returnTrackingNumber && (
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">운송장 번호</span>
+                        <span className="text-sm text-gray-600">
+                          운송장 번호
+                        </span>
                         <span className="text-sm font-medium">
                           {reservation.returnTrackingNumber}
                         </span>
