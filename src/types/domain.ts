@@ -57,7 +57,7 @@ export interface UpdateMemberDto {
   address1: string;
   address2: string;
   nickname: string;
-  phoneNumber: string;
+  phoneNumber?: string; // 선택사항
   removeProfileImage: boolean;
 }
 

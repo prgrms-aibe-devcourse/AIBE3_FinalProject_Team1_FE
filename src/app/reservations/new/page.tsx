@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Heart, MapPin, User, Truck, CheckCircle, ArrowLeft } from "lucide-react";
+import { MapPin, User, Truck, CheckCircle } from "lucide-react";
 
 import type { CreateReservationDto } from "@/types/domain";
 import { ReceiveMethod } from "@/types/domain";

@@ -24,12 +24,16 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useLogoutMutation } from "@/queries/auth";
+import { useMeQuery } from "@/queries/user";
 
 export function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuthStore();
   const { hasUnread } = useNotificationStore();
   const logoutMutation = useLogoutMutation();
+  
+  // me API 호출하여 계정 정보 갱신 (OAuth2 소셜 로그인 후 자동 갱신)
+  useMeQuery();
 
   const handleLogout = () => {
     logoutMutation.mutate();
