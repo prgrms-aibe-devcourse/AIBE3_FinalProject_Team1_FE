@@ -25,6 +25,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 
 import { usePostQuery } from "@/queries/post";
+import { getReservedDates } from "@/api/endpoints/post";
 import {
   useCreateReservationMutation,
   useReservationQuery,
@@ -65,6 +66,26 @@ function NewReservationPageContent() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isOptionPickerOpen, setIsOptionPickerOpen] = useState(false);
+  const [reservedDates, setReservedDates] = useState<Date[]>([]);
+
+  // 예약된 날짜 조회
+  useEffect(() => {
+    if (!postId || postId === 0) return;
+    
+    getReservedDates(postId)
+      .then((dates) => {
+        // 문자열 날짜를 Date 객체로 변환
+        const dateObjects = dates.map((dateStr) => {
+          // "2025-11-26T00:00:00" 형식을 Date로 변환
+          return new Date(dateStr);
+        });
+        setReservedDates(dateObjects);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch reserved dates:", error);
+        setReservedDates([]);
+      });
+  }, [postId]);
 
   // 게시글 정보가 로드되면 기본값 설정 (새 예약일 때만)
   useEffect(() => {
@@ -484,6 +505,7 @@ function NewReservationPageContent() {
                     selectedEndDate={endDate}
                     minDate={new Date()}
                     monthsShown={4}
+                    excludeDates={reservedDates}
                     onChange={(start, end) => {
                       setStartDate(start);
                       setEndDate(end);

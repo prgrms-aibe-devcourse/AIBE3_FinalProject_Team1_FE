@@ -11,6 +11,7 @@ interface CalendarRangePickerProps {
   monthsShown?: number;
   onChange: (startDate: Date | null, endDate: Date | null) => void;
   disabled?: boolean;
+  excludeDates?: Date[]; // 선택 불가능한 날짜 목록
 }
 
 /**
@@ -23,6 +24,7 @@ export function CalendarRangePicker({
   monthsShown = 4,
   onChange,
   disabled = false,
+  excludeDates = [],
 }: CalendarRangePickerProps) {
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 
@@ -33,6 +35,36 @@ export function CalendarRangePicker({
       return addMonths(startMonth, i);
     });
   }, [minDate, monthsShown]);
+
+  // 날짜가 제외된 날짜인지 확인
+  const isExcludedDate = (date: Date): boolean => {
+    const dateAtStartOfDay = new Date(date);
+    dateAtStartOfDay.setHours(0, 0, 0, 0);
+    
+    return excludeDates.some((excludedDate) => {
+      const excludedAtStartOfDay = new Date(excludedDate);
+      excludedAtStartOfDay.setHours(0, 0, 0, 0);
+      return isSameDay(dateAtStartOfDay, excludedAtStartOfDay);
+    });
+  };
+
+  // 시작일과 종료일 사이에 예약된 날짜가 있는지 확인
+  const hasExcludedDateBetween = (start: Date, end: Date): boolean => {
+    const startAtStartOfDay = new Date(start);
+    startAtStartOfDay.setHours(0, 0, 0, 0);
+    const endAtStartOfDay = new Date(end);
+    endAtStartOfDay.setHours(0, 0, 0, 0);
+
+    return excludeDates.some((excludedDate) => {
+      const excludedAtStartOfDay = new Date(excludedDate);
+      excludedAtStartOfDay.setHours(0, 0, 0, 0);
+      // 시작일과 종료일 사이에 있는지 확인 (시작일과 종료일은 제외)
+      return (
+        excludedAtStartOfDay > startAtStartOfDay &&
+        excludedAtStartOfDay < endAtStartOfDay
+      );
+    });
+  };
 
   // 날짜 클릭 핸들러
   const handleDateClick = (date: Date) => {
@@ -48,6 +80,11 @@ export function CalendarRangePicker({
       return;
     }
 
+    // 제외된 날짜는 선택 불가
+    if (isExcludedDate(date)) {
+      return;
+    }
+
     // 시작일과 종료일 선택 로직
     if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
       // 시작일 선택 또는 재선택
@@ -58,6 +95,12 @@ export function CalendarRangePicker({
         // 종료일이 시작일보다 이전이면 시작일을 변경
         onChange(date, null);
       } else {
+        // 시작일과 선택한 종료일 사이에 예약된 날짜가 있는지 확인
+        if (hasExcludedDateBetween(selectedStartDate, date)) {
+          // 예약된 날짜가 있으면 시작일 선택 해제
+          onChange(null, null);
+          return;
+        }
         // 정상적인 종료일 선택
         onChange(selectedStartDate, date);
       }
@@ -76,6 +119,11 @@ export function CalendarRangePicker({
     minDateAtStartOfDay.setHours(0, 0, 0, 0);
 
     if (dateAtStartOfDay < minDateAtStartOfDay) {
+      return "unselectable";
+    }
+
+    // 제외된 날짜는 선택 불가
+    if (isExcludedDate(date)) {
       return "unselectable";
     }
 
