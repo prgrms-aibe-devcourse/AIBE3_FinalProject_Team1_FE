@@ -924,12 +924,17 @@ function ReservationDetailPageContent() {
                           <p className="font-medium text-gray-900 mb-1">
                             {getStatusMessage(logStatus)}
                           </p>
+                          {/* 사용자 아이콘과 닉네임 */}
+                          <div className="flex items-center gap-2 mb-1">
+                            <User className="h-4 w-4 text-gray-500" />
+                            <span className="text-xs text-gray-600">
+                              {log.authorNickname || "알 수 없는 사용자"}
+                            </span>
+                          </div>
+                          {/* 날짜 */}
                           {log.createdAt && (
                             <p className="text-xs text-gray-500">
                               {formatLogTime(log.createdAt)}
-                              <span className="ml-2">
-                                · {log.authorNickname}
-                              </span>
                             </p>
                           )}
                         </div>
