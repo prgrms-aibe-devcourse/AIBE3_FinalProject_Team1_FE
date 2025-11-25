@@ -104,3 +104,10 @@ export async function getPostsByRegion(
   const endpoint = `/api/v1/posts/region/${regionId}${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Post>>(endpoint);
 }
+
+/**
+ * 게시글의 예약된 날짜 목록 조회
+ */
+export async function getReservedDates(postId: number): Promise<string[]> {
+  return apiClient.get<string[]>(`/api/v1/posts/${postId}/reserved-dates`);
+}

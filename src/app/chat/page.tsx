@@ -5,7 +5,7 @@ import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { differenceInMinutes, format, isSameDay, isToday } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Suspense } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -266,19 +266,19 @@ function ChatPage() {
      언마운트 fallback
   ====================== */
   useEffect(() => {
+    // cleanup 함수에서 사용할 값들을 effect 내부에서 미리 저장
+    const roomId = prevRoomRef.current;
+    const lastId = roomId ? lastMessageIdByRoom.current[roomId] : undefined;
+    const prevMarked = roomId
+      ? lastMarkedMessageIdByRoom.current[roomId]
+      : undefined;
+
     return () => {
       const hot =
         "hot" in import.meta ? (import.meta as { hot?: unknown }).hot : false;
 
       if (hot) return;
-
-      const roomId = prevRoomRef.current;
-      if (!roomId) return;
-
-      const lastId = lastMessageIdByRoom.current[roomId];
-      const prevMarked = lastMarkedMessageIdByRoom.current[roomId];
-
-      if (!lastId) return;
+      if (!roomId || !lastId) return;
       if (prevMarked && prevMarked >= lastId) return;
 
       console.log("🔥 READ (unmount fallback)", { roomId, lastId });
