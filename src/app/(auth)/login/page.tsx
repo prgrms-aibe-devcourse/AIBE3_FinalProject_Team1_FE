@@ -33,9 +33,9 @@ function LoginForm() {
     e.preventDefault();
     try {
       await loginMutation.mutateAsync({ email, password });
-      // 리다이렉트 파라미터가 있으면 해당 경로로, 없으면 /posts로
+      // 리다이렉트 파라미터가 있으면 해당 경로로, 없으면 메인 페이지로
       const redirect = searchParams.get("redirect");
-      router.push(redirect || "/posts");
+      router.push(redirect || "/");
     } catch (error) {
       console.error("Login failed:", error);
     }
@@ -91,6 +91,40 @@ function LoginForm() {
               {loginMutation.isPending ? "로그인 중..." : "로그인"}
             </Button>
           </form>
+          
+          {/* 소셜 로그인 구분선 */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">또는</span>
+            </div>
+          </div>
+
+          {/* 카카오 소셜 로그인 */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full bg-[#FEE500] text-[#000000] hover:bg-[#FDD835] border-[#FEE500]"
+            onClick={() => {
+              const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+              // 일반 로그인과 동일하게 redirect 파라미터가 있으면 해당 경로로, 없으면 메인 페이지로
+              const redirect = searchParams.get("redirect");
+              const redirectUrl = encodeURIComponent(redirect ? `${window.location.origin}${redirect}` : `${window.location.origin}/`);
+              window.location.href = `${apiBaseUrl}/oauth2/authorization/kakao?redirectUrl=${redirectUrl}`;
+            }}
+            disabled={loginMutation.isPending}
+          >
+            <svg
+              className="mr-2 h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z" />
+            </svg>
+            카카오로 로그인
+          </Button>
         </CardContent>
       </Card>
     </div>

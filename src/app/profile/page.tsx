@@ -207,7 +207,7 @@ export default function ProfilePage() {
         address1: formData.address1,
         address2: formData.address2,
         nickname: formData.nickname,
-        phoneNumber: formData.phoneNumber,
+        ...(formData.phoneNumber && { phoneNumber: formData.phoneNumber }), // 전화번호가 있을 때만 포함
         removeProfileImage: formData.removeProfileImage,
       };
       formDataToSend.append(
@@ -578,7 +578,7 @@ export default function ProfilePage() {
                       name="phoneNumber"
                       value={formData.phoneNumber}
                       onChange={handleChange}
-                      required
+                      placeholder="전화번호를 입력하세요"
                       disabled={updateUserMutation.isPending}
                     />
                   </div>
@@ -679,7 +679,7 @@ export default function ProfilePage() {
                       전화번호
                     </label>
                     <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {formData.phoneNumber}
+                      {formData.phoneNumber || "없음"}
                     </p>
                   </div>
                   <div>
@@ -687,8 +687,7 @@ export default function ProfilePage() {
                       주소
                     </label>
                     <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {`${formData.address1} ${formData.address2}`.trim() ||
-                        "주소 없음"}
+                      {`${formData.address1} ${formData.address2}`.trim() || "없음"}
                     </p>
                   </div>
                 </div>

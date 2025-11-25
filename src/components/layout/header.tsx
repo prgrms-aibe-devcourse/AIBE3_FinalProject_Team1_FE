@@ -24,12 +24,17 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useLogoutMutation } from "@/queries/auth";
+import { useMeQuery } from "@/queries/user";
 
 export function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuthStore();
   const { hasUnread } = useNotificationStore();
   const logoutMutation = useLogoutMutation();
+  
+  // 인증된 경우에만 me API 호출 (React Query 캐싱으로 불필요한 재요청 방지)
+  // 소셜 로그인 후에는 콜백 페이지에서 이미 호출했으므로 캐시된 데이터 사용
+  useMeQuery();
 
   const handleLogout = () => {
     logoutMutation.mutate();
