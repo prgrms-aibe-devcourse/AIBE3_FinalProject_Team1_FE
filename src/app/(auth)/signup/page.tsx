@@ -16,7 +16,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MapPin } from "lucide-react";
 
 import type { ApiError } from "@/types/api";
 
@@ -56,10 +55,7 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    name: "",
-    phoneNumber: "",
-    address1: "",
-    address2: "",
+    passwordConfirm: "",
     nickname: "",
   });
   const [nicknameError, setNicknameError] = useState<string>("");
@@ -74,30 +70,9 @@ export default function SignupPage() {
   const [codeError, setCodeError] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState<number>(0); // 초 단위
   const [isCodeSent, setIsCodeSent] = useState(false); // 인증 코드 발송 성공 여부
+  const [passwordError, setPasswordError] = useState<string>("");
   const signupMutation = useSignupMutation();
 
-  // 다음 주소 검색 스크립트 로드
-  useEffect(() => {
-    if (window.daum && window.daum.Postcode) {
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src =
-      "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-    script.async = true;
-    document.head.appendChild(script);
-
-    return () => {
-      try {
-        if (document.head.contains(script)) {
-          document.head.removeChild(script);
-        }
-      } catch {
-        // 스크립트가 이미 제거되었을 수 있음
-      }
-    };
-  }, []);
 
   // 인증 코드 타이머
   useEffect(() => {
@@ -117,42 +92,6 @@ export default function SignupPage() {
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  // 주소 검색 팝업 열기
-  const handleOpenAddressSearch = () => {
-    if (typeof window === "undefined" || !window.daum) {
-      alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
-      return;
-    }
-
-    new window.daum.Postcode({
-      oncomplete: function (data: daum.PostcodeData) {
-        let fullAddress = data.address;
-        let extraAddress = "";
-
-        if (data.addressType === "R") {
-          if (data.bname !== "") {
-            extraAddress += data.bname;
-          }
-          if (data.buildingName !== "") {
-            extraAddress +=
-              extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
-          }
-          fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
-        }
-
-        setFormData({
-          ...formData,
-          address1: fullAddress,
-        });
-      },
-      width: "100%",
-      height: "100%",
-    }).open({
-      q: formData.address1,
-      left: window.screen.width / 2 - 300,
-      top: window.screen.height / 2 - 300,
-    });
-  };
 
   // 이메일 인증 코드 발송
   const handleSendVerificationCode = async () => {
@@ -289,6 +228,12 @@ export default function SignupPage() {
       return;
     }
 
+    // 비밀번호 확인
+    if (formData.password !== formData.passwordConfirm) {
+      setPasswordError("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
     // 닉네임이 입력되었지만 체크하지 않은 경우
     if (formData.nickname && !isNicknameChecked) {
       setNicknameError("닉네임 중복 확인을 해주세요.");
@@ -302,7 +247,12 @@ export default function SignupPage() {
     }
 
     try {
-      await signupMutation.mutateAsync(formData);
+      // 이메일, 비밀번호, 닉네임만 전송
+      await signupMutation.mutateAsync({
+        email: formData.email,
+        password: formData.password,
+        nickname: formData.nickname,
+      });
       // 회원가입 성공 후 로그인 페이지로 이동
       router.push("/login");
     } catch (error) {
@@ -312,10 +262,27 @@ export default function SignupPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({
+    const newFormData = {
       ...formData,
       [name]: value,
-    });
+    };
+    setFormData(newFormData);
+
+    // 비밀번호 확인 필드 변경 시 일치 여부 확인
+    if (name === "password" || name === "passwordConfirm") {
+      const password = name === "password" ? value : newFormData.password;
+      const passwordConfirm = name === "passwordConfirm" ? value : newFormData.passwordConfirm;
+      
+      if (password && passwordConfirm) {
+        if (password !== passwordConfirm) {
+          setPasswordError("비밀번호가 일치하지 않습니다.");
+        } else {
+          setPasswordError("");
+        }
+      } else {
+        setPasswordError("");
+      }
+    }
 
     // 닉네임 필드가 변경되면 체크 상태 초기화
     if (name === "nickname") {
@@ -452,7 +419,27 @@ export default function SignupPage() {
                 onChange={handleChange}
                 required
                 disabled={signupMutation.isPending}
+                error={!!passwordError}
               />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="passwordConfirm" className="text-sm font-medium">
+                비밀번호 확인
+              </label>
+              <Input
+                id="passwordConfirm"
+                name="passwordConfirm"
+                type="password"
+                placeholder="비밀번호를 다시 입력하세요"
+                value={formData.passwordConfirm}
+                onChange={handleChange}
+                required
+                disabled={signupMutation.isPending}
+                error={!!passwordError}
+              />
+              {passwordError && (
+                <p className="text-sm text-red-600">{passwordError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label htmlFor="nickname" className="text-sm font-medium">
@@ -500,81 +487,6 @@ export default function SignupPage() {
                   </p>
                 )}
             </div>
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                이름
-              </label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="이름을 입력하세요"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                disabled={signupMutation.isPending}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="phoneNumber" className="text-sm font-medium">
-                전화번호
-              </label>
-              <Input
-                id="phoneNumber"
-                name="phoneNumber"
-                type="tel"
-                placeholder="010-1234-5678"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                required
-                disabled={signupMutation.isPending}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="address1" className="text-sm font-medium">
-                도로명 주소 <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  id="address1"
-                  name="address1"
-                  type="text"
-                  placeholder="도로명 주소를 검색해주세요"
-                  value={formData.address1}
-                  onChange={handleChange}
-                  required
-                  disabled={signupMutation.isPending}
-                  className="flex-1"
-                  readOnly
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleOpenAddressSearch}
-                  disabled={signupMutation.isPending}
-                  className="flex items-center gap-2 whitespace-nowrap"
-                >
-                  <MapPin className="h-4 w-4" />
-                  주소 검색
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="address2" className="text-sm font-medium">
-                상세주소 <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="address2"
-                name="address2"
-                type="text"
-                placeholder="상세 주소 (예: 123-45, 101호)"
-                value={formData.address2}
-                onChange={handleChange}
-                required
-                disabled={signupMutation.isPending}
-                className="w-full"
-              />
-            </div>
             {signupMutation.isError && (
               <p className="text-sm text-red-600">
                 회원가입에 실패했습니다. 입력 정보를 확인해주세요.
@@ -588,7 +500,10 @@ export default function SignupPage() {
                 !isEmailVerified ||
                 isNicknameDuplicated ||
                 isCheckingNickname ||
-                Boolean(formData.nickname && !isNicknameChecked)
+                Boolean(formData.nickname && !isNicknameChecked) ||
+                !!passwordError ||
+                !formData.password ||
+                !formData.passwordConfirm
               }
             >
               {signupMutation.isPending ? "가입 중..." : "회원가입"}
