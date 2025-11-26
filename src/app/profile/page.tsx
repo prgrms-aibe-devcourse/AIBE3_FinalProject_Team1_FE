@@ -5,7 +5,6 @@
 
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { parseLocalDateString } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 import Image from "next/image";
@@ -13,9 +12,10 @@ import { useRouter } from "next/navigation";
 
 import type { Reservation, UpdateMemberDto } from "@/types/domain";
 
+import { parseLocalDateString } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
 import { useAuthStore } from "@/store/authStore";
@@ -24,7 +24,52 @@ import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
 import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
 
-import { Calendar, Edit, MapPin, Star, User } from "lucide-react";
+import {
+  Calendar,
+  Edit,
+  MapPin,
+  Pencil,
+  Plus,
+  Star,
+  User,
+  X,
+} from "lucide-react";
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
+
+/**
+ * 마이페이지 - 내 정보
+ */
 
 /**
  * 마이페이지 - 내 정보
@@ -200,49 +245,61 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      // FormData 생성
-      const formDataToSend = new FormData();
+    // FormData 생성
+    const formDataToSend = new FormData();
 
-      // reqBody를 JSON Blob으로 추가
-      const reqBody = {
-        address1: formData.address1,
-        address2: formData.address2,
-        nickname: formData.nickname,
-        ...(formData.phoneNumber && { phoneNumber: formData.phoneNumber }), // 전화번호가 있을 때만 포함
+    // reqBody를 JSON Blob으로 추가
+    const reqBody = {
+      address1: formData.address1,
+      address2: formData.address2,
+      name: formData.name,
+      ...(formData.phoneNumber && { phoneNumber: formData.phoneNumber }), // 전화번호가 있을 때만 포함
+      removeProfileImage: formData.removeProfileImage,
+    };
+    formDataToSend.append(
+      "reqBody",
+      new Blob([JSON.stringify(reqBody)], { type: "application/json" }),
+    );
+
+    // 프로필 이미지 파일 추가
+    // removeProfileImage가 true면 파일을 보내지 않음 (백엔드에서 삭제 처리)
+    // removeProfileImage가 false이고 파일이 있으면 새 이미지 업로드
+    if (profileImageFile && !formData.removeProfileImage) {
+      formDataToSend.append("profileImage", profileImageFile);
+    }
+    // removeProfileImage가 true이고 파일이 없으면 백엔드에서 이미지 삭제 처리
+    // (reqBody에 removeProfileImage: true가 포함되어 있음)
+
+    // 디버깅용 로그
+    if (process.env.NODE_ENV === "development") {
+      console.log("프로필 수정 요청:", {
         removeProfileImage: formData.removeProfileImage,
-      };
-      formDataToSend.append(
-        "reqBody",
-        new Blob([JSON.stringify(reqBody)], { type: "application/json" }),
-      );
+        hasProfileImageFile: !!profileImageFile,
+        reqBody,
+      });
+    }
 
-      // 프로필 이미지 파일 추가
-      // removeProfileImage가 true면 파일을 보내지 않음 (백엔드에서 삭제 처리)
-      // removeProfileImage가 false이고 파일이 있으면 새 이미지 업로드
-      if (profileImageFile && !formData.removeProfileImage) {
-        formDataToSend.append("profileImage", profileImageFile);
-      }
-      // removeProfileImage가 true이고 파일이 없으면 백엔드에서 이미지 삭제 처리
-      // (reqBody에 removeProfileImage: true가 포함되어 있음)
-
-      // 디버깅용 로그
-      if (process.env.NODE_ENV === "development") {
-        console.log("프로필 수정 요청:", {
-          removeProfileImage: formData.removeProfileImage,
-          hasProfileImageFile: !!profileImageFile,
-          reqBody,
-        });
-      }
-
-      await updateUserMutation.mutateAsync(
+    try {
+      const response = await updateUserMutation.mutateAsync(
         formDataToSend as unknown as UpdateMemberDto,
       );
+      // 응답으로 받은 최신 데이터로 formData 업데이트
+      if (response) {
+        setFormData({
+          name: response.name || "",
+          nickname: response.nickname || "",
+          phoneNumber: response.phoneNumber || "",
+          address1: response.address1 || "",
+          address2: response.address2 || "",
+          removeProfileImage: false,
+        });
+        setProfileImagePreview(response.profileImgUrl || null);
+      }
       setIsEditing(false);
       setProfileImageFile(null);
-      setProfileImagePreview(null);
-      alert("프로필이 업데이트되었습니다.");
+      // 성공/실패 toast는 useUpdateUserMutation의 onSuccess/onError에서 처리됨
     } catch (error) {
+      // 에러는 useUpdateUserMutation의 onError에서 toast로 처리됨
       console.error("Update profile failed:", error);
     }
   };
@@ -423,7 +480,9 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              <h2 className="text-2xl font-bold mb-1 text-gray-900">{meFinal?.nickname}</h2>
+              <h2 className="text-2xl font-bold mb-1 text-gray-900">
+                {meFinal?.nickname}
+              </h2>
               <p className="text-gray-600 mb-3">{meFinal?.email}</p>
               <div className="flex items-center justify-center gap-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
@@ -433,9 +492,13 @@ export default function ProfilePage() {
               <p className="text-sm text-gray-600">
                 가입일:{" "}
                 {meFinal?.createdAt
-                  ? format(parseLocalDateString(meFinal.createdAt), "yyyy. MM. dd.", {
-                      locale: ko,
-                    })
+                  ? format(
+                      parseLocalDateString(meFinal.createdAt),
+                      "yyyy. MM. dd.",
+                      {
+                        locale: ko,
+                      },
+                    )
                   : ""}
               </p>
             </CardContent>
@@ -473,21 +536,15 @@ export default function ProfilePage() {
               {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* 프로필 이미지 */}
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="profileImage"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      프로필 이미지
-                    </label>
-                    <div className="flex items-center gap-4">
+                  <div className="flex justify-center">
+                    <div className="relative h-24 w-24">
                       <div className="relative h-24 w-24 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-300">
                         {profileImagePreview ? (
                           <Image
                             src={profileImagePreview}
                             alt="프로필 미리보기"
                             fill
-                            className="object-cover"
+                            className="object-cover rounded-full"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">
@@ -495,47 +552,50 @@ export default function ProfilePage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <Input
+                      {/* 삭제 버튼 (오른쪽 상단) - 이미지가 있을 때만 표시 */}
+                      {profileImagePreview && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              removeProfileImage: true,
+                            });
+                            setProfileImageFile(null);
+                            setProfileImagePreview(null);
+                          }}
+                          disabled={updateUserMutation.isPending}
+                          className="absolute -top-1 -right-1 p-1 bg-red-500 hover:bg-red-600 rounded-full text-white transition-colors disabled:opacity-50 shadow-md z-10"
+                          title="프로필 이미지 삭제"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                      {/* 파일 선택 버튼 (오른쪽 하단) */}
+                      <label
+                        htmlFor="profileImage"
+                        className="absolute -bottom-1 -right-1 p-2 bg-blue-500 hover:bg-blue-600 rounded-full text-white shadow-md transition-colors disabled:opacity-50 cursor-pointer z-10"
+                        title={
+                          profileImagePreview
+                            ? "프로필 이미지 변경"
+                            : "프로필 이미지 추가"
+                        }
+                      >
+                        {profileImagePreview ? (
+                          <Pencil className="h-4 w-4" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                        <input
                           id="profileImage"
                           name="profileImage"
                           type="file"
                           accept="image/*"
                           onChange={handleImageChange}
                           disabled={updateUserMutation.isPending}
-                          className="cursor-pointer"
+                          className="hidden"
                         />
-                        {meFinal?.profileImgUrl && (
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="removeProfileImage"
-                              name="removeProfileImage"
-                              checked={formData.removeProfileImage}
-                              onCheckedChange={(checked) => {
-                                setFormData({
-                                  ...formData,
-                                  removeProfileImage: checked === true,
-                                });
-                                if (checked) {
-                                  setProfileImageFile(null);
-                                  setProfileImagePreview(null);
-                                } else {
-                                  setProfileImagePreview(
-                                    meFinal?.profileImgUrl || null,
-                                  );
-                                }
-                              }}
-                              disabled={updateUserMutation.isPending}
-                            />
-                            <label
-                              htmlFor="removeProfileImage"
-                              className="text-sm text-gray-700 cursor-pointer"
-                            >
-                              프로필 이미지 삭제
-                            </label>
-                          </div>
-                        )}
-                      </div>
+                      </label>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -727,7 +787,7 @@ export default function ProfilePage() {
                     key={reservation.id}
                     className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
                   >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <div className="shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                       <Calendar className="h-5 w-5 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">

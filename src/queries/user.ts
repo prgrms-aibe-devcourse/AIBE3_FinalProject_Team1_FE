@@ -8,8 +8,6 @@ import type { MemberResponse, UpdateMemberDto } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
-import { useUIStore } from "@/store/uiStore";
-
 import {
   banUser,
   deleteUser,
@@ -22,6 +20,7 @@ import {
 } from "@/api/endpoints/user";
 
 import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
 
 /**
  * 사용자 정보 조회 query
@@ -60,7 +59,10 @@ export function useUserQuery(userId?: number) {
           logout();
         } else {
           // 네트워크 에러, CORS 에러, 또는 기타 에러는 로그만 남기고 로그아웃하지 않음
-          console.error("[useUserQuery] Failed to fetch user (non-auth error):", error);
+          console.error(
+            "[useUserQuery] Failed to fetch user (non-auth error):",
+            error,
+          );
         }
         // API 실패 시 null 반환하여 정상 동작
         return null;
@@ -104,7 +106,10 @@ export function useMeQuery() {
           logout();
         } else {
           // 네트워크 에러, CORS 에러, 또는 기타 에러는 로그만 남기고 로그아웃하지 않음
-          console.error("[useMeQuery] Failed to fetch me (non-auth error):", error);
+          console.error(
+            "[useMeQuery] Failed to fetch me (non-auth error):",
+            error,
+          );
         }
         // API 실패 시 null 반환하여 정상 동작
         return null;
@@ -151,6 +156,8 @@ export function useUpdateUserMutation() {
   return useMutation({
     mutationFn: (data: UpdateMemberDto) => updateUser(data),
     onSuccess: (response) => {
+      // React Query 캐시에 즉시 업데이트
+      queryClient.setQueryData(getQueryKey(queryKeys.user.me), response);
       // 사용자 정보 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.user.all),
@@ -167,7 +174,8 @@ export function useUpdateUserMutation() {
     onError: (error: unknown) => {
       console.error("Update user error:", error);
       const apiError = error as ApiError;
-      const errorMessage = apiError.message || "사용자 정보 수정에 실패했습니다.";
+      const errorMessage =
+        apiError.message || "사용자 정보 수정에 실패했습니다.";
       showToast(errorMessage, "error");
     },
   });
@@ -198,7 +206,8 @@ export function useUpdateUserByAdminMutation() {
     onError: (error: unknown) => {
       console.error("Update user by admin error:", error);
       const apiError = error as ApiError;
-      const errorMessage = apiError.message || "사용자 정보 수정에 실패했습니다.";
+      const errorMessage =
+        apiError.message || "사용자 정보 수정에 실패했습니다.";
       showToast(errorMessage, "error");
     },
   });
@@ -287,7 +296,8 @@ export function useUnbanUserMutation() {
     onError: (error: unknown) => {
       console.error("Unban user error:", error);
       const apiError = error as ApiError;
-      const errorMessage = apiError.message || "사용자 제재 해제에 실패했습니다.";
+      const errorMessage =
+        apiError.message || "사용자 제재 해제에 실패했습니다.";
       showToast(errorMessage, "error");
     },
   });
