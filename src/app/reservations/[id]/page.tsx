@@ -59,18 +59,6 @@ import {
  * 예약 상세 페이지
  */
 
-/**
- * 예약 상세 페이지
- */
-
-/**
- * 예약 상세 페이지
- */
-
-/**
- * 예약 상세 페이지
- */
-
 const statusLabels: Record<string, string> = {
   PENDING_APPROVAL: "승인 대기",
   PENDING_PAYMENT: "결제 대기",
@@ -393,7 +381,7 @@ function ReservationDetailPageContent() {
       {/* 게시글 정보 카드 */}
       {post && (
         <Card className="mb-6">
-          <CardContent className="p-6">
+          <CardContent className="p-6 pt-6">
             <div className="flex gap-6">
               {/* 이미지 */}
               <div className="flex-shrink-0">
