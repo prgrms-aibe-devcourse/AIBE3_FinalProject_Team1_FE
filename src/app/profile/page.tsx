@@ -24,7 +24,7 @@ import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
 import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
 
-import { Calendar, Edit, MapPin, Star } from "lucide-react";
+import { Calendar, Edit, MapPin, Star, User } from "lucide-react";
 
 /**
  * 마이페이지 - 내 정보
@@ -418,8 +418,8 @@ export default function ProfilePage() {
                     key={meFinal.profileImgUrl}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-3xl font-semibold text-gray-600">
-                    {meFinal?.nickname?.[0]?.toUpperCase() || "U"}
+                  <div className="flex h-full items-center justify-center">
+                    <User className="h-12 w-12 text-gray-400" />
                   </div>
                 )}
               </div>
@@ -490,8 +490,8 @@ export default function ProfilePage() {
                             className="object-cover"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center text-2xl font-semibold text-gray-400">
-                            {formData.nickname?.[0]?.toUpperCase() || "U"}
+                          <div className="flex h-full items-center justify-center">
+                            <User className="h-12 w-12 text-gray-400" />
                           </div>
                         )}
                       </div>

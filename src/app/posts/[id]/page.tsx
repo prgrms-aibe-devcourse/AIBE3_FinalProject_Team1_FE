@@ -42,6 +42,7 @@ import {
   RotateCcw,
   Star,
   Truck,
+  User,
 } from "lucide-react";
 
 /**
@@ -641,10 +642,8 @@ export default function PostDetailPage() {
                         )}
 
                         <div className="flex items-start gap-4 mb-3 pr-16">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <span className="text-gray-600">
-                              {review.author?.nickname?.[0] || "U"}
-                            </span>
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User className="h-5 w-5 text-gray-400" />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
