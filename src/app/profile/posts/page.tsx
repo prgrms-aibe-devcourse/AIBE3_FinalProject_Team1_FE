@@ -5,7 +5,6 @@
 
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { parseLocalDateString } from "@/lib/utils";
 import { useMemo, useState } from "react";
 
 import Image from "next/image";
@@ -15,6 +14,8 @@ import type { Post, Reservation } from "@/types/domain";
 import { ReceiveMethod, ReservationStatus } from "@/types/domain";
 
 import { getImageUrl } from "@/lib/utils/image";
+
+import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +48,10 @@ import {
   User,
   X,
 } from "lucide-react";
+
+/**
+ * 마이페이지 - 내 게시글
+ */
 
 /**
  * 마이페이지 - 내 게시글
@@ -280,9 +285,13 @@ function PostCard({ post }: { post: Post }) {
                 )}
                 <p className="text-sm text-gray-600 mb-2">
                   {post.createdAt &&
-                    `작성일 : ${format(parseLocalDateString(post.createdAt), "yyyy-MM-dd", {
-                      locale: ko,
-                    })}`}
+                    `작성일 : ${format(
+                      parseLocalDateString(post.createdAt),
+                      "yyyy-MM-dd",
+                      {
+                        locale: ko,
+                      },
+                    )}`}
                 </p>
                 <p className="text-lg font-semibold text-blue-600">
                   {post.fee?.toLocaleString() || 0}원/일
@@ -436,7 +445,7 @@ function PostCard({ post }: { post: Post }) {
 
                     return (
                       <Card key={reservation.id} className="bg-gray-50">
-                        <CardContent className="p-4">
+                        <CardContent className="p-4 pt-4">
                           <div className="flex items-start justify-between mb-4">
                             {/* 예약자 정보 */}
                             <div className="flex items-center gap-3">
@@ -445,7 +454,11 @@ function PostCard({ post }: { post: Post }) {
                                   src={getImageUrl(
                                     reservation.author.profileImgUrl,
                                   )}
-                                  alt={reservation.author.nickname || reservation.author?.name || "예약자"}
+                                  alt={
+                                    reservation.author.nickname ||
+                                    reservation.author?.name ||
+                                    "예약자"
+                                  }
                                   width={48}
                                   height={48}
                                   className="rounded-full"
@@ -457,13 +470,17 @@ function PostCard({ post }: { post: Post }) {
                               )}
                               <div>
                                 <p className="font-semibold text-gray-900">
-                                  {reservation.author?.nickname || reservation.author?.name || "예약자"}
+                                  {reservation.author?.nickname ||
+                                    reservation.author?.name ||
+                                    "예약자"}
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   신청일:{" "}
                                   {reservation.createdAt &&
                                     format(
-                                      parseLocalDateString(reservation.createdAt),
+                                      parseLocalDateString(
+                                        reservation.createdAt,
+                                      ),
                                       "yyyy-MM-dd",
                                       { locale: ko },
                                     )}
@@ -1039,7 +1056,6 @@ export default function MyPostsPage() {
     setSort([`${currentSortField},${orderUpper}`]);
     setPage(0); // 정렬 변경 시 첫 페이지로
   };
-
 
   return (
     <div className="p-0">
