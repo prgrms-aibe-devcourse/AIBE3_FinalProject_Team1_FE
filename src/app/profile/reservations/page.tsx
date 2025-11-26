@@ -210,9 +210,9 @@ export default function MyReservationsPage() {
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="flex gap-4">
-                  <div className="h-24 w-24 bg-gray-200 rounded-lg" />
+              <CardContent className="p-4 pt-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-24 w-24 bg-gray-200 rounded-lg shrink-0" />
                   <div className="flex-1 space-y-2">
                     <div className="h-4 bg-gray-200 rounded w-3/4" />
                     <div className="h-4 bg-gray-200 rounded w-1/2" />
@@ -224,7 +224,7 @@ export default function MyReservationsPage() {
         </div>
       ) : reservations.length === 0 ? (
         <Card>
-          <CardContent className="p-12 text-center">
+          <CardContent className="p-12 pt-12 text-center">
             <p className="text-gray-500 mb-4">예약 내역이 없습니다.</p>
             <Link href="/posts">
               <Button>게시글 보기</Button>
@@ -296,7 +296,7 @@ export default function MyReservationsPage() {
 
               return (
                 <Card key={reservation.id} className="transition-shadow hover:shadow-md">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 pt-4">
                     <div className="flex gap-4">
                       {/* 이미지 */}
                       <div className="flex-shrink-0">

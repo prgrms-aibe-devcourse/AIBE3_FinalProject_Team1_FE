@@ -113,7 +113,7 @@ export default function FavoritePostsPage() {
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <div className="h-48 bg-gray-200" />
-              <CardContent className="p-4">
+              <CardContent className="p-4 pt-4">
                 <div className="h-4 bg-gray-200 rounded mb-2" />
                 <div className="h-4 bg-gray-200 rounded w-3/4" />
               </CardContent>
@@ -137,7 +137,7 @@ export default function FavoritePostsPage() {
       {/* 게시글 목록 */}
       {posts.length === 0 ? (
         <Card>
-          <CardContent className="p-12 text-center">
+          <CardContent className="p-12 pt-12 text-center">
             <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 mb-4">즐겨찾기한 게시글이 없습니다.</p>
             <Link href="/posts">
@@ -206,7 +206,7 @@ export default function FavoritePostsPage() {
                       </button>
                     </div>
 
-                    <CardContent className="p-4">
+                    <CardContent className="p-4 pt-4">
                       {/* 제목 */}
                       <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                         {post.title}

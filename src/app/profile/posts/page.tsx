@@ -242,9 +242,9 @@ function PostCard({ post }: { post: Post }) {
 
   return (
     <Card className="mb-6">
-      <CardContent className="p-6">
+      <CardContent className="p-4 pt-4">
         {/* 게시글 정보 */}
-        <div className="flex gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-4">
           {/* 이미지 */}
           <div className="shrink-0">
             <Image
@@ -261,7 +261,7 @@ function PostCard({ post }: { post: Post }) {
           </div>
 
           {/* 정보 */}
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col justify-center">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -1089,9 +1089,9 @@ export default function MyPostsPage() {
         <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="flex gap-4">
-                  <div className="h-24 w-24 bg-gray-200 rounded-lg" />
+              <CardContent className="p-4 pt-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-24 w-24 bg-gray-200 rounded-lg shrink-0" />
                   <div className="flex-1 space-y-2">
                     <div className="h-4 bg-gray-200 rounded w-3/4" />
                     <div className="h-4 bg-gray-200 rounded w-1/2" />
@@ -1103,7 +1103,7 @@ export default function MyPostsPage() {
         </div>
       ) : posts.length === 0 ? (
         <Card>
-          <CardContent className="p-12 text-center">
+          <CardContent className="p-12 pt-12 text-center">
             <p className="text-gray-500 mb-4">게시글이 없습니다.</p>
             <Link href="/posts/new">
               <Button>게시글 작성하기</Button>
