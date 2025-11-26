@@ -141,6 +141,7 @@ export default function ProfilePage() {
   const [isMounted, setIsMounted] = useState(false);
 
   const [formData, setFormData] = useState({
+    name: meFinal?.name || "",
     nickname: meFinal?.nickname || "",
     phoneNumber: meFinal?.phoneNumber || "",
     address1: meFinal?.address1 || "",
@@ -185,6 +186,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (meFinal) {
       setFormData({
+        name: meFinal.name || "",
         nickname: meFinal.nickname || "",
         phoneNumber: meFinal.phoneNumber || "",
         address1: meFinal.address1 || "",
@@ -248,6 +250,7 @@ export default function ProfilePage() {
   const handleCancel = () => {
     if (meFinal) {
       setFormData({
+        name: meFinal.name || "",
         nickname: meFinal.nickname || "",
         phoneNumber: meFinal.phoneNumber || "",
         address1: meFinal.address1 || "",
@@ -402,9 +405,9 @@ export default function ProfilePage() {
         {/* 좌측: 프로필 카드 및 통계 */}
         <div className="lg:col-span-1 space-y-4">
           {/* 프로필 카드 */}
-          <Card className="bg-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6 text-center">
-              <div className="relative mx-auto mb-4 h-24 w-24 rounded-full bg-white/20 ring-4 ring-white/30">
+          <Card className="bg-white border-0 shadow-lg">
+            <CardContent className="p-6 pt-6 text-center">
+              <div className="relative mx-auto mb-4 h-24 w-24 rounded-full bg-gray-200 ring-4 ring-gray-300">
                 {/* 항상 원본 이미지만 표시 */}
                 {meFinal?.profileImgUrl ? (
                   <Image
@@ -415,19 +418,19 @@ export default function ProfilePage() {
                     key={meFinal.profileImgUrl}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-3xl font-semibold text-white">
+                  <div className="flex h-full items-center justify-center text-3xl font-semibold text-gray-600">
                     {meFinal?.nickname?.[0]?.toUpperCase() || "U"}
                   </div>
                 )}
               </div>
-              <h2 className="text-2xl font-bold mb-1">{meFinal?.nickname}</h2>
-              <p className="text-blue-100 mb-3">{meFinal?.email}</p>
+              <h2 className="text-2xl font-bold mb-1 text-gray-900">{meFinal?.nickname}</h2>
+              <p className="text-gray-600 mb-3">{meFinal?.email}</p>
               <div className="flex items-center justify-center gap-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">4.8</span>
-                <span className="text-blue-100">(24개 리뷰)</span>
+                <span className="font-semibold text-gray-900">4.8</span>
+                <span className="text-gray-600">(24개 리뷰)</span>
               </div>
-              <p className="text-sm text-blue-100">
+              <p className="text-sm text-gray-600">
                 가입일:{" "}
                 {meFinal?.createdAt
                   ? format(parseLocalDateString(meFinal.createdAt), "yyyy. MM. dd.", {
@@ -441,7 +444,7 @@ export default function ProfilePage() {
           {/* 통계 카드 */}
           <div className="grid grid-cols-2 gap-4">
             <Card className="shadow-sm">
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-4 pt-4 text-center">
                 <p className="text-3xl font-bold text-green-600 mb-1">
                   {posts.length}
                 </p>
@@ -449,7 +452,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
             <Card className="shadow-sm">
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-4 pt-4 text-center">
                 <p className="text-3xl font-bold text-green-600 mb-1">
                   {completedReservations}
                 </p>
@@ -466,7 +469,7 @@ export default function ProfilePage() {
             <CardHeader className="border-b border-gray-200">
               <CardTitle className="text-xl">기본 정보</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-6 pt-6">
               {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* 프로필 이미지 */}
@@ -537,22 +540,6 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <label
-                      htmlFor="nickname"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      닉네임
-                    </label>
-                    <Input
-                      id="nikname"
-                      name="nickname"
-                      value={formData.nickname}
-                      onChange={handleChange}
-                      required
-                      disabled={updateUserMutation.isPending}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
                       htmlFor="email"
                       className="block text-sm font-medium text-gray-700"
                     >
@@ -564,6 +551,39 @@ export default function ProfilePage() {
                       value={meFinal?.email || ""}
                       disabled
                       className="bg-gray-50"
+                      readOnly
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="nickname"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      닉네임
+                    </label>
+                    <Input
+                      id="nickname"
+                      name="nickname"
+                      value={formData.nickname}
+                      disabled
+                      className="bg-gray-50"
+                      readOnly
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      이름
+                    </label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="이름을 입력하세요"
+                      disabled={updateUserMutation.isPending}
                     />
                   </div>
                   <div className="space-y-2">
@@ -660,18 +680,10 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">
-                      닉네임
+                      이름
                     </label>
                     <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {formData.nickname}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">
-                      이메일
-                    </label>
-                    <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {meFinal?.email}
+                      {meFinal?.name || "없음"}
                     </p>
                   </div>
                   <div>
@@ -684,10 +696,18 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">
-                      주소
+                      도로명 주소
                     </label>
                     <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                      {`${formData.address1} ${formData.address2}`.trim() || "없음"}
+                      {formData.address1 || "없음"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">
+                      상세주소
+                    </label>
+                    <p className="text-base text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {formData.address2 || "없음"}
                     </p>
                   </div>
                 </div>
@@ -700,7 +720,7 @@ export default function ProfilePage() {
             <CardHeader className="border-b border-gray-200">
               <CardTitle className="text-xl">최근 활동</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-6 pt-6">
               <div className="space-y-4">
                 {reservations.slice(0, 3).map((reservation: Reservation) => (
                   <div
