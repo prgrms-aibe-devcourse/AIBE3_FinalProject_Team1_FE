@@ -16,12 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 import { useAuthStore } from "@/store/authStore";
 import { useFilterStore } from "@/store/filterStore";
@@ -32,14 +26,6 @@ import { useToggleFavoriteMutation } from "@/queries/post-favorite";
 import { useRegionListQuery } from "@/queries/region";
 
 import { Filter, Heart, Search, X } from "lucide-react";
-
-/**
- * 게시글 목록 페이지
- */
-
-/**
- * 게시글 목록 페이지
- */
 
 /**
  * 게시글 목록 페이지
@@ -165,46 +151,28 @@ export default function PostsPage() {
     return null;
   };
 
-  // 선택된 지역 이름들 가져오기 (부모-자식 관계 포함)
+  // 선택된 지역 이름들 가져오기
   const getSelectedRegionNames = () => {
     if (!postFilters.regionIds || postFilters.regionIds.length === 0) {
       return [];
     }
-    const result: Array<{ id: number; name: string; parentId?: number }> = [];
-
-    for (const id of postFilters.regionIds) {
-      // 시/도에서 찾기
-      for (const province of provinces) {
-        if (province.id === id) {
-          // 시/도인 경우, 하위 시/군/구가 선택되어 있는지 확인
-          const districts = province.child || province.children || [];
-          const hasSelectedDistrict = districts.some((district) =>
-            postFilters.regionIds?.includes(district.id),
-          );
-
-          // 하위 시/군/구가 선택되어 있지 않으면 시/도만 표시
-          if (!hasSelectedDistrict) {
-            result.push({ id, name: province.name });
+    return postFilters.regionIds
+      .map((id) => {
+        // 시/도에서 찾기
+        for (const province of provinces) {
+          if (province.id === id) {
+            return { id, name: province.name };
           }
-          break;
-        }
-        // 시/군/구에서 찾기
-        const districts = province.child || province.children || [];
-        for (const district of districts) {
-          if (district.id === id) {
-            // 시/군/구인 경우 부모 시/도와 함께 표시
-            result.push({
-              id,
-              name: `${province.name} > ${district.name}`,
-              parentId: province.id,
-            });
-            break;
+          if (province.child) {
+            const child = province.child.find((c) => c.id === id);
+            if (child) {
+              return { id, name: `${province.name} > ${child.name}` };
+            }
           }
         }
-      }
-    }
-
-    return result;
+        return null;
+      })
+      .filter((item): item is { id: number; name: string } => item !== null);
   };
 
   const handleSortChange = (sort: "createdAt" | "deposit" | "fee") => {
@@ -321,7 +289,7 @@ export default function PostsPage() {
                     required={!!selectedMainCategory}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">소분류 선택</option>
+                    <option value="">소분류 선택 (필수)</option>
                     {filteredSubCategories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
@@ -344,41 +312,9 @@ export default function PostsPage() {
                         ? parseInt(e.target.value, 10)
                         : null;
                       setSelectedProvince(provinceId);
+                      setSelectedDistrict(null);
                       if (provinceId) {
-                        // 시/도 선택 시 시/군/구를 "전체"로 자동 선택
-                        setSelectedDistrict(null);
-                        // "전체" 선택 처리: 시/도만 선택하고 하위 시/군/구 제거
-                        const currentRegionIds = postFilters.regionIds || [];
-                        const provinceData = provinces.find(
-                          (p) => p.id === provinceId,
-                        );
-                        if (provinceData) {
-                          const districts =
-                            provinceData.child || provinceData.children || [];
-                          // 해당 시/도의 모든 하위 시/군/구 제거
-                          const newRegionIds = currentRegionIds.filter(
-                            (id) =>
-                              id !== provinceId &&
-                              !districts.some((d) => d.id === id),
-                          );
-                          // 시/도 추가
-                          if (!newRegionIds.includes(provinceId)) {
-                            setPostFilters({
-                              regionIds: [...newRegionIds, provinceId],
-                              page: 0,
-                            });
-                          } else {
-                            setPostFilters({
-                              regionIds:
-                                newRegionIds.length > 0
-                                  ? newRegionIds
-                                  : undefined,
-                              page: 0,
-                            });
-                          }
-                        }
-                      } else {
-                        setSelectedDistrict(null);
+                        handleProvinceSelect(provinceId);
                       }
                     }}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2"
@@ -396,57 +332,20 @@ export default function PostsPage() {
                     지역 (시/군/구)
                   </label>
                   <select
-                    value={
-                      selectedDistrict === null && selectedProvince
-                        ? "all"
-                        : selectedDistrict || ""
-                    }
+                    value={selectedDistrict || ""}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "all" && selectedProvince) {
-                        // "전체" 선택 시 시/도만 선택하고 하위 시/군/구 제거
-                        const currentRegionIds = postFilters.regionIds || [];
-                        const newRegionIds = currentRegionIds.filter(
-                          (id) =>
-                            id !== selectedProvince &&
-                            !filteredDistricts.some((d) => d.id === id),
-                        );
-                        if (!newRegionIds.includes(selectedProvince)) {
-                          setPostFilters({
-                            regionIds: [...newRegionIds, selectedProvince],
-                            page: 0,
-                          });
-                        } else {
-                          setPostFilters({
-                            regionIds:
-                              newRegionIds.length > 0
-                                ? newRegionIds
-                                : undefined,
-                            page: 0,
-                          });
-                        }
-                        setSelectedDistrict(null);
-                      } else {
-                        const districtId = value ? parseInt(value, 10) : null;
-                        setSelectedDistrict(districtId);
-                        if (districtId) {
-                          // 시/군/구 선택 시 해당 시/도가 이미 선택되어 있으면 유지, 아니면 추가
-                          const currentRegionIds = postFilters.regionIds || [];
-                          if (
-                            selectedProvince &&
-                            !currentRegionIds.includes(selectedProvince)
-                          ) {
-                            handleProvinceSelect(selectedProvince);
-                          }
-                          handleDistrictSelect(districtId);
-                        }
+                      const districtId = e.target.value
+                        ? parseInt(e.target.value, 10)
+                        : null;
+                      setSelectedDistrict(districtId);
+                      if (districtId) {
+                        handleDistrictSelect(districtId);
                       }
                     }}
                     disabled={!selectedProvince}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">시/군/구 선택</option>
-                    <option value="all">전체</option>
+                    <option value="">시/군/구 선택 (선택사항)</option>
                     {filteredDistricts.map((district) => (
                       <option key={district.id} value={district.id}>
                         {district.name}
@@ -483,63 +382,24 @@ export default function PostsPage() {
                   key={region.id}
                   className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm text-green-800"
                 >
-                  <span>{region.name}</span>
+                  <span>지역: {region.name}</span>
                   <button
                     onClick={() => {
-                      // 시/군/구를 제거할 때는 해당 시/군/구만 제거
-                      // 시/도를 제거할 때는 해당 시/도의 모든 하위 시/군/구도 제거
-                      if (region.parentId) {
-                        // 시/군/구인 경우 해당 시/군/구만 제거
-                        const newRegionIds =
-                          postFilters.regionIds?.filter(
-                            (id) => id !== region.id,
-                          ) || [];
-                        setPostFilters({
-                          regionIds:
-                            newRegionIds.length > 0 ? newRegionIds : undefined,
-                          page: 0,
-                        });
-                        if (region.id === selectedDistrict) {
-                          setSelectedDistrict(null);
-                        }
-                      } else {
-                        // 시/도인 경우 해당 시/도와 모든 하위 시/군/구 제거
-                        const province = provinces.find(
-                          (p) => p.id === region.id,
-                        );
-                        if (province) {
-                          const districts =
-                            province.child || province.children || [];
-                          const districtIds = districts.map((d) => d.id);
-                          const newRegionIds =
-                            postFilters.regionIds?.filter(
-                              (id) =>
-                                id !== region.id && !districtIds.includes(id),
-                            ) || [];
-                          setPostFilters({
-                            regionIds:
-                              newRegionIds.length > 0
-                                ? newRegionIds
-                                : undefined,
-                            page: 0,
-                          });
-                        } else {
-                          const newRegionIds =
-                            postFilters.regionIds?.filter(
-                              (id) => id !== region.id,
-                            ) || [];
-                          setPostFilters({
-                            regionIds:
-                              newRegionIds.length > 0
-                                ? newRegionIds
-                                : undefined,
-                            page: 0,
-                          });
-                        }
-                        if (region.id === selectedProvince) {
-                          setSelectedProvince(null);
-                          setSelectedDistrict(null);
-                        }
+                      const newRegionIds =
+                        postFilters.regionIds?.filter(
+                          (id) => id !== region.id,
+                        ) || [];
+                      setPostFilters({
+                        regionIds:
+                          newRegionIds.length > 0 ? newRegionIds : undefined,
+                        page: 0,
+                      });
+                      // 선택된 시/도나 시/군/구가 제거되면 상태도 초기화
+                      if (region.id === selectedProvince) {
+                        setSelectedProvince(null);
+                        setSelectedDistrict(null);
+                      } else if (region.id === selectedDistrict) {
+                        setSelectedDistrict(null);
                       }
                     }}
                     className="ml-1 hover:text-green-600"
@@ -701,15 +561,15 @@ export default function PostsPage() {
                           className="object-cover"
                         />
                         {/* 카테고리 배지 (좌측 상단) */}
-                        <div className="absolute left-2 top-2 z-10 flex flex-col gap-1 items-start">
+                        <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
                           {mainCategory && (
-                            <span className="inline-block rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white whitespace-nowrap">
+                            <span className="rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
                               {mainCategory.name}
                             </span>
                           )}
                           {subCategory &&
                             subCategory.id !== mainCategory?.id && (
-                              <span className="inline-block rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white whitespace-nowrap">
+                              <span className="rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
                                 {subCategory.name}
                               </span>
                             )}
@@ -752,44 +612,16 @@ export default function PostsPage() {
 
                       {/* 지역 표시 */}
                       {regionNames.length > 0 && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className={`mb-3 flex items-center gap-1 text-xs text-gray-500 ${
-                                  regionNames.length > MAX_VISIBLE_REGIONS
-                                    ? "cursor-pointer"
-                                    : ""
-                                }`}
-                              >
-                                <span>📍</span>
-                                <span className="line-clamp-1">
-                                  {regionNames
-                                    .slice(0, MAX_VISIBLE_REGIONS)
-                                    .join(", ")}
-                                  {regionNames.length > MAX_VISIBLE_REGIONS &&
-                                    ` +${regionNames.length - MAX_VISIBLE_REGIONS}`}
-                                </span>
-                              </div>
-                            </TooltipTrigger>
-                            {regionNames.length > MAX_VISIBLE_REGIONS && (
-                              <TooltipContent>
-                                <div className="max-w-xs">
-                                  <p className="font-medium mb-2 text-sm">
-                                    전체 지역 ({regionNames.length}개)
-                                  </p>
-                                  <div className="space-y-1">
-                                    {regionNames.map((name, index) => (
-                                      <div key={index} className="text-xs">
-                                        {name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
+                        <div className="mb-3 flex items-center gap-1 text-xs text-gray-500">
+                          <span>📍</span>
+                          <span className="line-clamp-1">
+                            {regionNames
+                              .slice(0, MAX_VISIBLE_REGIONS)
+                              .join(", ")}
+                            {regionNames.length > MAX_VISIBLE_REGIONS &&
+                              ` +${regionNames.length - MAX_VISIBLE_REGIONS}`}
+                          </span>
+                        </div>
                       )}
 
                       {/* 작성자 이름 및 작성일 (하단) */}
