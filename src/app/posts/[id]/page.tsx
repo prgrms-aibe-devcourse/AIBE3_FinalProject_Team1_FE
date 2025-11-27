@@ -56,6 +56,10 @@ import {
 /**
  * 게시글 상세 페이지
  */
+
+/**
+ * 게시글 상세 페이지
+ */
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -439,44 +443,44 @@ export default function PostDetailPage() {
                 </div>
 
                 {/* 좋아요 및 신고 버튼 */}
-                <div className="flex gap-2 mb-4 bg-gray-50 rounded-lg p-4">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="flex-1 whitespace-nowrap"
-                          onClick={handleFavorite}
-                          disabled={
-                            toggleFavoriteMutation.isPending ||
-                            !isAuthenticated ||
-                            isAuthor
-                          }
-                        >
-                          <Heart
-                            className={`h-4 w-4 mr-2 ${
-                              isFavorite ? "fill-red-500 text-red-500" : ""
-                            }`}
-                          />
-                          즐겨찾기
-                        </Button>
-                      </TooltipTrigger>
-                      {isAuthor && (
-                        <TooltipContent sideOffset={12}>
-                          <p>자신의 게시글에는 즐겨찾기를 할 수 없습니다.</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                  <Button
-                    variant="outline"
-                    className="flex-1 whitespace-nowrap"
-                    onClick={() => setReportDialogOpen(true)}
-                  >
-                    <Flag className="h-4 w-4 mr-2" />
-                    신고하기
-                  </Button>
-                </div>
+                {isAuthenticated && (
+                  <div className="flex gap-2 mb-4 bg-gray-50 rounded-lg p-4">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="flex-1 whitespace-nowrap"
+                            onClick={handleFavorite}
+                            disabled={
+                              toggleFavoriteMutation.isPending || isAuthor
+                            }
+                          >
+                            <Heart
+                              className={`h-4 w-4 mr-2 ${
+                                isFavorite ? "fill-red-500 text-red-500" : ""
+                              }`}
+                            />
+                            즐겨찾기
+                          </Button>
+                        </TooltipTrigger>
+                        {isAuthor && (
+                          <TooltipContent sideOffset={12}>
+                            <p>자신의 게시글에는 즐겨찾기를 할 수 없습니다.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Button
+                      variant="outline"
+                      className="flex-1 whitespace-nowrap"
+                      onClick={() => setReportDialogOpen(true)}
+                    >
+                      <Flag className="h-4 w-4 mr-2" />
+                      신고하기
+                    </Button>
+                  </div>
+                )}
 
                 {/* 메시지 보내기 및 대여 신청 버튼 */}
                 <div className="space-y-2">

@@ -76,6 +76,14 @@ import {
  * 게시글 작성 페이지
  */
 
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
 interface PostOptionInput {
   name: string;
   deposit: number;
@@ -130,7 +138,7 @@ export default function NewPostPage() {
     null,
   );
   const [selectedProvince, setSelectedProvince] = useState<number | null>(null);
-  const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
+  const [selectedRegionIds, setSelectedRegionIds] = useState<number[]>([]);
   interface ImageData {
     file: File;
     isPrimary: boolean;
@@ -347,14 +355,65 @@ export default function NewPostPage() {
   const filteredDistricts =
     selectedProvinceData?.child || selectedProvinceData?.children || [];
 
+  // 지역 추가 핸들러
+  const handleAddRegion = (regionId: number) => {
+    if (!selectedRegionIds.includes(regionId)) {
+      setSelectedRegionIds([...selectedRegionIds, regionId]);
+    }
+  };
+
+  // 지역 제거 핸들러
+  const handleRemoveRegion = (regionId: number) => {
+    setSelectedRegionIds(selectedRegionIds.filter((id) => id !== regionId));
+    // 제거된 지역이 선택된 시/도나 시/군/구인 경우 상태 초기화
+    if (regionId === selectedProvince) {
+      setSelectedProvince(null);
+    }
+  };
+
+  // 선택된 지역 이름 가져오기 (부모-자식 관계 포함)
+  const getSelectedRegionNames = () => {
+    const result: Array<{ id: number; name: string; parentId?: number }> = [];
+
+    for (const id of selectedRegionIds) {
+      // 시/도에서 찾기
+      for (const province of provinces) {
+        if (province.id === id) {
+          // 시/도인 경우, 하위 시/군/구가 선택되어 있는지 확인
+          const districts = province.child || province.children || [];
+          const hasSelectedDistrict = districts.some((district) =>
+            selectedRegionIds.includes(district.id),
+          );
+
+          // 하위 시/군/구가 선택되어 있지 않으면 시/도만 표시
+          if (!hasSelectedDistrict) {
+            result.push({ id, name: province.name });
+          }
+          break;
+        }
+        // 시/군/구에서 찾기
+        const districts = province.child || province.children || [];
+        for (const district of districts) {
+          if (district.id === id) {
+            // 시/군/구인 경우 부모 시/도와 함께 표시
+            result.push({
+              id,
+              name: `${province.name} > ${district.name}`,
+              parentId: province.id,
+            });
+            break;
+          }
+        }
+      }
+    }
+
+    return result;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 지역 선택 검증
-    const selectedRegionIds: number[] = [];
-    if (selectedProvince) selectedRegionIds.push(selectedProvince);
-    if (selectedDistrict) selectedRegionIds.push(selectedDistrict);
-
     if (selectedRegionIds.length === 0) {
       alert("지역을 선택해주세요.");
       return;
@@ -594,7 +653,27 @@ export default function NewPostPage() {
                       ? Number(e.target.value)
                       : null;
                     setSelectedProvince(value);
-                    setSelectedDistrict(null);
+                    if (value) {
+                      // 시/도 선택 시 자동으로 추가
+                      // 단, 해당 시/도의 시/군/구가 이미 선택되어 있으면 시/도도 추가
+                      const provinceData = provinces.find(
+                        (p) => p.id === value,
+                      );
+                      if (provinceData) {
+                        const districts =
+                          provinceData.child || provinceData.children || [];
+                        const hasSelectedDistrict = districts.some((d) =>
+                          selectedRegionIds.includes(d.id),
+                        );
+                        // 시/군/구가 선택되어 있지 않으면 시/도만 추가
+                        if (
+                          !hasSelectedDistrict &&
+                          !selectedRegionIds.includes(value)
+                        ) {
+                          handleAddRegion(value);
+                        }
+                      }
+                    }
                   }}
                   required
                   disabled={createPostMutation.isPending}
@@ -616,16 +695,41 @@ export default function NewPostPage() {
                 <select
                   id="district"
                   className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                  value={selectedDistrict || ""}
+                  value=""
                   onChange={(e) => {
-                    const value = e.target.value
-                      ? Number(e.target.value)
-                      : null;
-                    setSelectedDistrict(value);
+                    const value = e.target.value;
+                    if (value === "all" && selectedProvince) {
+                      // "전체" 선택 시 시/도만 선택하고 하위 시/군/구 제거
+                      const districts = filteredDistricts;
+                      const newRegionIds = selectedRegionIds.filter(
+                        (id) =>
+                          id !== selectedProvince &&
+                          !districts.some((d) => d.id === id),
+                      );
+                      if (!newRegionIds.includes(selectedProvince)) {
+                        setSelectedRegionIds([
+                          ...newRegionIds,
+                          selectedProvince,
+                        ]);
+                      } else {
+                        setSelectedRegionIds(newRegionIds);
+                      }
+                    } else if (value) {
+                      const districtId = Number(value);
+                      // 시/군/구 선택 시 해당 시/도가 이미 선택되어 있으면 유지, 아니면 추가
+                      if (
+                        selectedProvince &&
+                        !selectedRegionIds.includes(selectedProvince)
+                      ) {
+                        handleAddRegion(selectedProvince);
+                      }
+                      handleAddRegion(districtId);
+                    }
                   }}
                   disabled={!selectedProvince || createPostMutation.isPending}
                 >
                   <option value="">시/군/구 선택</option>
+                  <option value="all">전체</option>
                   {filteredDistricts.map((district) => (
                     <option key={district.id} value={district.id}>
                       {district.name}
@@ -634,6 +738,53 @@ export default function NewPostPage() {
                 </select>
               </div>
             </div>
+
+            {/* 선택된 지역 Chip 표시 */}
+            {getSelectedRegionNames().length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {getSelectedRegionNames().map((region) => (
+                  <div
+                    key={region.id}
+                    className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm text-green-800"
+                  >
+                    <span>{region.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // 시/군/구를 제거할 때는 해당 시/군/구만 제거
+                        // 시/도를 제거할 때는 해당 시/도의 모든 하위 시/군/구도 제거
+                        if (region.parentId) {
+                          // 시/군/구인 경우 해당 시/군/구만 제거
+                          handleRemoveRegion(region.id);
+                        } else {
+                          // 시/도인 경우 해당 시/도와 모든 하위 시/군/구 제거
+                          const province = provinces.find(
+                            (p) => p.id === region.id,
+                          );
+                          if (province) {
+                            const districts =
+                              province.child || province.children || [];
+                            const districtIds = districts.map((d) => d.id);
+                            setSelectedRegionIds(
+                              selectedRegionIds.filter(
+                                (id) =>
+                                  id !== region.id && !districtIds.includes(id),
+                              ),
+                            );
+                          } else {
+                            handleRemoveRegion(region.id);
+                          }
+                        }
+                      }}
+                      className="ml-1 hover:text-green-600"
+                      disabled={createPostMutation.isPending}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* 대여료 및 보증금 */}
             <div className="grid gap-4 md:grid-cols-2">

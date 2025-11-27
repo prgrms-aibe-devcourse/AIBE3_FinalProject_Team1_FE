@@ -8,28 +8,32 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import type {
-  Post,
-  ReceiveMethod,
-  Category,
-  Region,
-} from "@/types/domain";
+import type { Category, Post, ReceiveMethod, Region } from "@/types/domain";
+
+import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import { parseLocalDateString } from "@/lib/utils";
 
-import { useFilterStore } from "@/store/filterStore";
 import { useAuthStore } from "@/store/authStore";
+import { useFilterStore } from "@/store/filterStore";
 
 import { useCategoryListQuery } from "@/queries/category";
 import { usePostListQuery } from "@/queries/post";
-import { useRegionListQuery } from "@/queries/region";
 import { useToggleFavoriteMutation } from "@/queries/post-favorite";
+import { useRegionListQuery } from "@/queries/region";
 
-import { Filter, Search, X, Heart } from "lucide-react";
+import { Filter, Heart, Search, X } from "lucide-react";
+
+/**
+ * 게시글 목록 페이지
+ */
+
+/**
+ * 게시글 목록 페이지
+ */
 
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   DIRECT: "직거래",
@@ -67,9 +71,9 @@ export default function PostsPage() {
   const [selectedMainCategory, setSelectedMainCategory] = useState<
     number | null
   >(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<
-    number | null
-  >(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(
+    null,
+  );
 
   // 지역 선택을 위한 상태 (시/도, 시/군/구)
   const [selectedProvince, setSelectedProvince] = useState<number | null>(null);
@@ -151,28 +155,46 @@ export default function PostsPage() {
     return null;
   };
 
-  // 선택된 지역 이름들 가져오기
+  // 선택된 지역 이름들 가져오기 (부모-자식 관계 포함)
   const getSelectedRegionNames = () => {
     if (!postFilters.regionIds || postFilters.regionIds.length === 0) {
       return [];
     }
-    return postFilters.regionIds
-      .map((id) => {
-        // 시/도에서 찾기
-        for (const province of provinces) {
-          if (province.id === id) {
-            return { id, name: province.name };
+    const result: Array<{ id: number; name: string; parentId?: number }> = [];
+
+    for (const id of postFilters.regionIds) {
+      // 시/도에서 찾기
+      for (const province of provinces) {
+        if (province.id === id) {
+          // 시/도인 경우, 하위 시/군/구가 선택되어 있는지 확인
+          const districts = province.child || province.children || [];
+          const hasSelectedDistrict = districts.some((district) =>
+            postFilters.regionIds?.includes(district.id),
+          );
+
+          // 하위 시/군/구가 선택되어 있지 않으면 시/도만 표시
+          if (!hasSelectedDistrict) {
+            result.push({ id, name: province.name });
           }
-          if (province.child) {
-            const child = province.child.find((c) => c.id === id);
-            if (child) {
-              return { id, name: `${province.name} > ${child.name}` };
-            }
+          break;
+        }
+        // 시/군/구에서 찾기
+        const districts = province.child || province.children || [];
+        for (const district of districts) {
+          if (district.id === id) {
+            // 시/군/구인 경우 부모 시/도와 함께 표시
+            result.push({
+              id,
+              name: `${province.name} > ${district.name}`,
+              parentId: province.id,
+            });
+            break;
           }
         }
-        return null;
-      })
-      .filter((item): item is { id: number; name: string } => item !== null);
+      }
+    }
+
+    return result;
   };
 
   const handleSortChange = (sort: "createdAt" | "deposit" | "fee") => {
@@ -289,7 +311,7 @@ export default function PostsPage() {
                     required={!!selectedMainCategory}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">소분류 선택 (필수)</option>
+                    <option value="">소분류 선택</option>
                     {filteredSubCategories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
@@ -312,9 +334,41 @@ export default function PostsPage() {
                         ? parseInt(e.target.value, 10)
                         : null;
                       setSelectedProvince(provinceId);
-                      setSelectedDistrict(null);
                       if (provinceId) {
-                        handleProvinceSelect(provinceId);
+                        // 시/도 선택 시 시/군/구를 "전체"로 자동 선택
+                        setSelectedDistrict(null);
+                        // "전체" 선택 처리: 시/도만 선택하고 하위 시/군/구 제거
+                        const currentRegionIds = postFilters.regionIds || [];
+                        const provinceData = provinces.find(
+                          (p) => p.id === provinceId,
+                        );
+                        if (provinceData) {
+                          const districts =
+                            provinceData.child || provinceData.children || [];
+                          // 해당 시/도의 모든 하위 시/군/구 제거
+                          const newRegionIds = currentRegionIds.filter(
+                            (id) =>
+                              id !== provinceId &&
+                              !districts.some((d) => d.id === id),
+                          );
+                          // 시/도 추가
+                          if (!newRegionIds.includes(provinceId)) {
+                            setPostFilters({
+                              regionIds: [...newRegionIds, provinceId],
+                              page: 0,
+                            });
+                          } else {
+                            setPostFilters({
+                              regionIds:
+                                newRegionIds.length > 0
+                                  ? newRegionIds
+                                  : undefined,
+                              page: 0,
+                            });
+                          }
+                        }
+                      } else {
+                        setSelectedDistrict(null);
                       }
                     }}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2"
@@ -332,20 +386,57 @@ export default function PostsPage() {
                     지역 (시/군/구)
                   </label>
                   <select
-                    value={selectedDistrict || ""}
+                    value={
+                      selectedDistrict === null && selectedProvince
+                        ? "all"
+                        : selectedDistrict || ""
+                    }
                     onChange={(e) => {
-                      const districtId = e.target.value
-                        ? parseInt(e.target.value, 10)
-                        : null;
-                      setSelectedDistrict(districtId);
-                      if (districtId) {
-                        handleDistrictSelect(districtId);
+                      const value = e.target.value;
+                      if (value === "all" && selectedProvince) {
+                        // "전체" 선택 시 시/도만 선택하고 하위 시/군/구 제거
+                        const currentRegionIds = postFilters.regionIds || [];
+                        const newRegionIds = currentRegionIds.filter(
+                          (id) =>
+                            id !== selectedProvince &&
+                            !filteredDistricts.some((d) => d.id === id),
+                        );
+                        if (!newRegionIds.includes(selectedProvince)) {
+                          setPostFilters({
+                            regionIds: [...newRegionIds, selectedProvince],
+                            page: 0,
+                          });
+                        } else {
+                          setPostFilters({
+                            regionIds:
+                              newRegionIds.length > 0
+                                ? newRegionIds
+                                : undefined,
+                            page: 0,
+                          });
+                        }
+                        setSelectedDistrict(null);
+                      } else {
+                        const districtId = value ? parseInt(value, 10) : null;
+                        setSelectedDistrict(districtId);
+                        if (districtId) {
+                          // 시/군/구 선택 시 해당 시/도가 이미 선택되어 있으면 유지, 아니면 추가
+                          const currentRegionIds = postFilters.regionIds || [];
+                          if (
+                            selectedProvince &&
+                            !currentRegionIds.includes(selectedProvince)
+                          ) {
+                            handleProvinceSelect(selectedProvince);
+                          }
+                          handleDistrictSelect(districtId);
+                        }
                       }
                     }}
                     disabled={!selectedProvince}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">시/군/구 선택 (선택사항)</option>
+                    <option value="">시/군/구 선택</option>
+                    <option value="all">전체</option>
                     {filteredDistricts.map((district) => (
                       <option key={district.id} value={district.id}>
                         {district.name}
@@ -382,24 +473,63 @@ export default function PostsPage() {
                   key={region.id}
                   className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm text-green-800"
                 >
-                  <span>지역: {region.name}</span>
+                  <span>{region.name}</span>
                   <button
                     onClick={() => {
-                      const newRegionIds =
-                        postFilters.regionIds?.filter(
-                          (id) => id !== region.id,
-                        ) || [];
-                      setPostFilters({
-                        regionIds:
-                          newRegionIds.length > 0 ? newRegionIds : undefined,
-                        page: 0,
-                      });
-                      // 선택된 시/도나 시/군/구가 제거되면 상태도 초기화
-                      if (region.id === selectedProvince) {
-                        setSelectedProvince(null);
-                        setSelectedDistrict(null);
-                      } else if (region.id === selectedDistrict) {
-                        setSelectedDistrict(null);
+                      // 시/군/구를 제거할 때는 해당 시/군/구만 제거
+                      // 시/도를 제거할 때는 해당 시/도의 모든 하위 시/군/구도 제거
+                      if (region.parentId) {
+                        // 시/군/구인 경우 해당 시/군/구만 제거
+                        const newRegionIds =
+                          postFilters.regionIds?.filter(
+                            (id) => id !== region.id,
+                          ) || [];
+                        setPostFilters({
+                          regionIds:
+                            newRegionIds.length > 0 ? newRegionIds : undefined,
+                          page: 0,
+                        });
+                        if (region.id === selectedDistrict) {
+                          setSelectedDistrict(null);
+                        }
+                      } else {
+                        // 시/도인 경우 해당 시/도와 모든 하위 시/군/구 제거
+                        const province = provinces.find(
+                          (p) => p.id === region.id,
+                        );
+                        if (province) {
+                          const districts =
+                            province.child || province.children || [];
+                          const districtIds = districts.map((d) => d.id);
+                          const newRegionIds =
+                            postFilters.regionIds?.filter(
+                              (id) =>
+                                id !== region.id && !districtIds.includes(id),
+                            ) || [];
+                          setPostFilters({
+                            regionIds:
+                              newRegionIds.length > 0
+                                ? newRegionIds
+                                : undefined,
+                            page: 0,
+                          });
+                        } else {
+                          const newRegionIds =
+                            postFilters.regionIds?.filter(
+                              (id) => id !== region.id,
+                            ) || [];
+                          setPostFilters({
+                            regionIds:
+                              newRegionIds.length > 0
+                                ? newRegionIds
+                                : undefined,
+                            page: 0,
+                          });
+                        }
+                        if (region.id === selectedProvince) {
+                          setSelectedProvince(null);
+                          setSelectedDistrict(null);
+                        }
                       }
                     }}
                     className="ml-1 hover:text-green-600"
@@ -529,107 +659,125 @@ export default function PostsPage() {
               <div key={post.id} className="relative">
                 <Link href={`/posts/${post.id}`} className="block">
                   <Card className="h-full transition-shadow hover:shadow-lg relative">
-                  {/* 즐겨찾기 버튼 */}
-                  <button
-                    type="button"
-                    onClick={handleFavoriteClick}
-                    className="absolute right-2 top-2 z-10 rounded-full bg-white bg-opacity-80 p-2 shadow-md hover:bg-opacity-100 transition-all"
-                    disabled={toggleFavoriteMutation.isPending || isAuthor}
-                  >
-                    <Heart
-                      className={`h-5 w-5 ${
-                        post.isFavorite ?? false
-                          ? "fill-red-500 text-red-500"
-                          : "text-gray-400"
-                      }`}
-                    />
-                  </button>
-
-                  {/* 썸네일 이미지 */}
-                  {(post.thumbnailImageUrl || (post.images && post.images.length > 0)) && (
-                    <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
-                      <Image
-                        src={post.thumbnailImageUrl || post.images![0].file || post.images![0].url || ""}
-                        alt={post.title}
-                        fill
-                        className="object-cover"
+                    {/* 즐겨찾기 버튼 */}
+                    <button
+                      type="button"
+                      onClick={handleFavoriteClick}
+                      className="absolute right-2 top-2 z-10 rounded-full bg-white bg-opacity-80 p-2 shadow-md hover:bg-opacity-100 transition-all"
+                      disabled={toggleFavoriteMutation.isPending || isAuthor}
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${
+                          (post.isFavorite ?? false)
+                            ? "fill-red-500 text-red-500"
+                            : "text-gray-400"
+                        }`}
                       />
-                      {/* 카테고리 배지 (좌측 상단) */}
-                      <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
-                        {mainCategory && (
-                          <span className="rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
-                            {mainCategory.name}
-                          </span>
-                        )}
-                        {subCategory && subCategory.id !== mainCategory?.id && (
-                          <span className="rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
-                            {subCategory.name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    </button>
 
-                  <CardContent className="p-4">
-                    <h3 className="mb-2 text-lg font-semibold line-clamp-2">
-                      {post.title}
-                    </h3>
-                    <p className="mb-4 text-sm text-gray-600 line-clamp-2">
-                      {post.content}
-                    </p>
-
-                    {/* 수령/반납 방법 */}
-                    <div className="mb-3 flex items-center gap-2 text-xs text-gray-500">
-                      <span>
-                        수령: {RECEIVE_METHOD_LABELS[post.receiveMethod] || post.receiveMethod}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        반납: {RECEIVE_METHOD_LABELS[post.returnMethod] || post.returnMethod}
-                      </span>
-                    </div>
-
-                    {/* 가격 정보 */}
-                    <div className="mb-3 flex items-center justify-between text-sm">
-                      <span className="font-semibold text-blue-600">
-                        {post.fee.toLocaleString()}원/일
-                      </span>
-                      <span className="text-gray-500">
-                        보증금: {post.deposit.toLocaleString()}원
-                      </span>
-                    </div>
-
-                    {/* 지역 표시 */}
-                    {regionNames.length > 0 && (
-                      <div className="mb-3 flex items-center gap-1 text-xs text-gray-500">
-                        <span>📍</span>
-                        <span className="line-clamp-1">
-                          {regionNames.slice(0, MAX_VISIBLE_REGIONS).join(", ")}
-                          {regionNames.length > MAX_VISIBLE_REGIONS &&
-                            ` +${regionNames.length - MAX_VISIBLE_REGIONS}`}
-                        </span>
+                    {/* 썸네일 이미지 */}
+                    {(post.thumbnailImageUrl ||
+                      (post.images && post.images.length > 0)) && (
+                      <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
+                        <Image
+                          src={
+                            post.thumbnailImageUrl ||
+                            post.images![0].file ||
+                            post.images![0].url ||
+                            ""
+                          }
+                          alt={post.title}
+                          fill
+                          className="object-cover"
+                        />
+                        {/* 카테고리 배지 (좌측 상단) */}
+                        <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
+                          {mainCategory && (
+                            <span className="rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
+                              {mainCategory.name}
+                            </span>
+                          )}
+                          {subCategory &&
+                            subCategory.id !== mainCategory?.id && (
+                              <span className="rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
+                                {subCategory.name}
+                              </span>
+                            )}
+                        </div>
                       </div>
                     )}
 
-                    {/* 작성자 이름 및 작성일 (하단) */}
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      {post.authorNickname && (
-                        <span>{post.authorNickname}</span>
-                      )}
-                      {post.createdAt && (
+                    <CardContent className="p-4">
+                      <h3 className="mb-2 text-lg font-semibold line-clamp-2">
+                        {post.title}
+                      </h3>
+                      <p className="mb-4 text-sm text-gray-600 line-clamp-2">
+                        {post.content}
+                      </p>
+
+                      {/* 수령/반납 방법 */}
+                      <div className="mb-3 flex items-center gap-2 text-xs text-gray-500">
                         <span>
-                          {(() => {
-                            const date = parseLocalDateString(post.createdAt);
-                            const year = date.getFullYear();
-                            const month = String(date.getMonth() + 1).padStart(2, "0");
-                            const day = String(date.getDate()).padStart(2, "0");
-                            return `${year}-${month}-${day}`;
-                          })()}
+                          수령:{" "}
+                          {RECEIVE_METHOD_LABELS[post.receiveMethod] ||
+                            post.receiveMethod}
                         </span>
+                        <span>•</span>
+                        <span>
+                          반납:{" "}
+                          {RECEIVE_METHOD_LABELS[post.returnMethod] ||
+                            post.returnMethod}
+                        </span>
+                      </div>
+
+                      {/* 가격 정보 */}
+                      <div className="mb-3 flex items-center justify-between text-sm">
+                        <span className="font-semibold text-blue-600">
+                          {post.fee.toLocaleString()}원/일
+                        </span>
+                        <span className="text-gray-500">
+                          보증금: {post.deposit.toLocaleString()}원
+                        </span>
+                      </div>
+
+                      {/* 지역 표시 */}
+                      {regionNames.length > 0 && (
+                        <div className="mb-3 flex items-center gap-1 text-xs text-gray-500">
+                          <span>📍</span>
+                          <span className="line-clamp-1">
+                            {regionNames
+                              .slice(0, MAX_VISIBLE_REGIONS)
+                              .join(", ")}
+                            {regionNames.length > MAX_VISIBLE_REGIONS &&
+                              ` +${regionNames.length - MAX_VISIBLE_REGIONS}`}
+                          </span>
+                        </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+
+                      {/* 작성자 이름 및 작성일 (하단) */}
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        {post.authorNickname && (
+                          <span>{post.authorNickname}</span>
+                        )}
+                        {post.createdAt && (
+                          <span>
+                            {(() => {
+                              const date = parseLocalDateString(post.createdAt);
+                              const year = date.getFullYear();
+                              const month = String(
+                                date.getMonth() + 1,
+                              ).padStart(2, "0");
+                              const day = String(date.getDate()).padStart(
+                                2,
+                                "0",
+                              );
+                              return `${year}-${month}-${day}`;
+                            })()}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </Link>
               </div>
             );
