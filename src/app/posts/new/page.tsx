@@ -84,6 +84,22 @@ import {
  * 게시글 작성 페이지
  */
 
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
+/**
+ * 게시글 작성 페이지
+ */
+
 interface PostOptionInput {
   name: string;
   deposit: number;
@@ -138,6 +154,7 @@ export default function NewPostPage() {
     null,
   );
   const [selectedProvince, setSelectedProvince] = useState<number | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
   const [selectedRegionIds, setSelectedRegionIds] = useState<number[]>([]);
   interface ImageData {
     file: File;
@@ -374,36 +391,44 @@ export default function NewPostPage() {
   // 선택된 지역 이름 가져오기 (부모-자식 관계 포함)
   const getSelectedRegionNames = () => {
     const result: Array<{ id: number; name: string; parentId?: number }> = [];
+    const processedProvinces = new Set<number>();
 
-    for (const id of selectedRegionIds) {
-      // 시/도에서 찾기
-      for (const province of provinces) {
-        if (province.id === id) {
-          // 시/도인 경우, 하위 시/군/구가 선택되어 있는지 확인
-          const districts = province.child || province.children || [];
-          const hasSelectedDistrict = districts.some((district) =>
-            selectedRegionIds.includes(district.id),
-          );
+    // 각 시/도에 대해 확인
+    for (const province of provinces) {
+      const districts = province.child || province.children || [];
+      if (districts.length === 0) continue;
 
-          // 하위 시/군/구가 선택되어 있지 않으면 시/도만 표시
-          if (!hasSelectedDistrict) {
-            result.push({ id, name: province.name });
-          }
-          break;
-        }
-        // 시/군/구에서 찾기
-        const districts = province.child || province.children || [];
-        for (const district of districts) {
-          if (district.id === id) {
-            // 시/군/구인 경우 부모 시/도와 함께 표시
+      const districtIds = districts.map((d) => d.id);
+      const selectedDistrictIds = selectedRegionIds.filter((id) =>
+        districtIds.includes(id),
+      );
+
+      // 해당 시/도의 모든 시/군/구가 선택되어 있는지 확인
+      const allDistrictsSelected =
+        selectedDistrictIds.length > 0 &&
+        selectedDistrictIds.length === districtIds.length &&
+        selectedRegionIds.includes(province.id);
+
+      if (allDistrictsSelected) {
+        // 모든 시/군/구가 선택되어 있으면 시/도만 표시
+        result.push({
+          id: province.id,
+          name: province.name,
+        });
+        processedProvinces.add(province.id);
+      } else if (selectedDistrictIds.length > 0) {
+        // 일부 시/군/구만 선택되어 있으면 각 시/군/구를 개별적으로 표시
+        for (const districtId of selectedDistrictIds) {
+          const district = districts.find((d) => d.id === districtId);
+          if (district) {
             result.push({
-              id,
+              id: districtId,
               name: `${province.name} > ${district.name}`,
               parentId: province.id,
             });
-            break;
           }
         }
+        processedProvinces.add(province.id);
       }
     }
 
@@ -653,25 +678,32 @@ export default function NewPostPage() {
                       ? Number(e.target.value)
                       : null;
                     setSelectedProvince(value);
+                    // 시/도 변경 시 시/군/구 초기화 (기본값 "전체"로 표시)
+                    setSelectedDistrict(null);
                     if (value) {
-                      // 시/도 선택 시 자동으로 추가
-                      // 단, 해당 시/도의 시/군/구가 이미 선택되어 있으면 시/도도 추가
+                      // 시/도 선택 시 해당 시/도의 모든 시/군/구 ID 자동 추가
                       const provinceData = provinces.find(
                         (p) => p.id === value,
                       );
                       if (provinceData) {
                         const districts =
                           provinceData.child || provinceData.children || [];
-                        const hasSelectedDistrict = districts.some((d) =>
-                          selectedRegionIds.includes(d.id),
+                        const districtIds = districts.map((d) => d.id);
+
+                        // 기존에 선택된 해당 시/도의 시/군/구들 제거
+                        const newRegionIds = selectedRegionIds.filter(
+                          (id) => id !== value && !districtIds.includes(id),
                         );
-                        // 시/군/구가 선택되어 있지 않으면 시/도만 추가
-                        if (
-                          !hasSelectedDistrict &&
-                          !selectedRegionIds.includes(value)
-                        ) {
-                          handleAddRegion(value);
-                        }
+
+                        // 시/도 ID + 모든 시/군/구 ID 추가
+                        const allRegionIds = [
+                          ...newRegionIds,
+                          value,
+                          ...districtIds,
+                        ];
+                        setSelectedRegionIds(
+                          allRegionIds.length > 0 ? allRegionIds : [],
+                        );
                       }
                     }
                   }}
@@ -695,35 +727,99 @@ export default function NewPostPage() {
                 <select
                   id="district"
                   className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                  value=""
+                  value={
+                    selectedDistrict === null && selectedProvince
+                      ? "all"
+                      : selectedDistrict || ""
+                  }
                   onChange={(e) => {
                     const value = e.target.value;
                     if (value === "all" && selectedProvince) {
-                      // "전체" 선택 시 시/도만 선택하고 하위 시/군/구 제거
+                      // "전체" 선택 시 해당 시/도의 모든 시/군/구 ID 추가
                       const districts = filteredDistricts;
+                      const districtIds = districts.map((d) => d.id);
+
+                      // 기존에 선택된 해당 시/도의 시/군/구들 제거
                       const newRegionIds = selectedRegionIds.filter(
                         (id) =>
-                          id !== selectedProvince &&
-                          !districts.some((d) => d.id === id),
+                          id !== selectedProvince && !districtIds.includes(id),
                       );
-                      if (!newRegionIds.includes(selectedProvince)) {
-                        setSelectedRegionIds([
-                          ...newRegionIds,
-                          selectedProvince,
-                        ]);
-                      } else {
-                        setSelectedRegionIds(newRegionIds);
-                      }
+
+                      // 시/도 ID + 모든 시/군/구 ID 추가
+                      const allRegionIds = [
+                        ...newRegionIds,
+                        selectedProvince,
+                        ...districtIds,
+                      ];
+                      setSelectedRegionIds(
+                        allRegionIds.length > 0 ? allRegionIds : [],
+                      );
+                      setSelectedDistrict(null);
                     } else if (value) {
                       const districtId = Number(value);
-                      // 시/군/구 선택 시 해당 시/도가 이미 선택되어 있으면 유지, 아니면 추가
-                      if (
-                        selectedProvince &&
-                        !selectedRegionIds.includes(selectedProvince)
-                      ) {
-                        handleAddRegion(selectedProvince);
+                      setSelectedDistrict(districtId);
+
+                      if (selectedProvince) {
+                        const provinceData = provinces.find(
+                          (p) => p.id === selectedProvince,
+                        );
+                        if (provinceData) {
+                          const districts =
+                            provinceData.child || provinceData.children || [];
+                          const districtIds = districts.map((d) => d.id);
+
+                          // 해당 시/도의 모든 시/군/구가 이미 선택되어 있고 시/도 ID도 포함되어 있는지 확인
+                          const allDistrictsSelected =
+                            districtIds.every((id) =>
+                              selectedRegionIds.includes(id),
+                            ) && selectedRegionIds.includes(selectedProvince);
+
+                          if (allDistrictsSelected) {
+                            // "전체" 선택 상태에서 소분류를 선택하면 해당 시/도의 모든 시/군/구와 시/도 ID 제거 후 선택한 시/군/구만 추가
+                            const newRegionIds = selectedRegionIds.filter(
+                              (id) =>
+                                id !== selectedProvince &&
+                                !districtIds.includes(id),
+                            );
+                            setSelectedRegionIds([...newRegionIds, districtId]);
+                          } else {
+                            // 시/군/구 선택 시 해당 시/도가 이미 선택되어 있으면 제거
+                            let newRegionIds = selectedRegionIds.includes(
+                              selectedProvince,
+                            )
+                              ? selectedRegionIds.filter(
+                                  (id) => id !== selectedProvince,
+                                )
+                              : selectedRegionIds;
+
+                            // 선택한 시/군/구 추가
+                            if (!newRegionIds.includes(districtId)) {
+                              newRegionIds = [...newRegionIds, districtId];
+                            }
+
+                            setSelectedRegionIds(newRegionIds);
+
+                            // 선택 후 해당 시/도의 모든 시/군/구가 선택되었는지 확인
+                            const selectedDistrictIds = newRegionIds.filter(
+                              (id) => districtIds.includes(id),
+                            );
+
+                            // 모든 시/군/구가 선택되었으면 시/도 ID도 추가
+                            if (
+                              selectedDistrictIds.length ===
+                                districtIds.length &&
+                              !newRegionIds.includes(selectedProvince)
+                            ) {
+                              setSelectedRegionIds([
+                                ...newRegionIds,
+                                selectedProvince,
+                              ]);
+                            }
+                          }
+                        }
+                      } else {
+                        handleAddRegion(districtId);
                       }
-                      handleAddRegion(districtId);
                     }
                   }}
                   disabled={!selectedProvince || createPostMutation.isPending}

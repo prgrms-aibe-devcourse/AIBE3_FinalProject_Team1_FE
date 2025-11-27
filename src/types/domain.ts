@@ -301,7 +301,7 @@ export interface UpdatePostDto {
  * 게시글 목록 조회 필터
  */
 export interface PostListFilters {
-  categoryId?: number;
+  categoryIds?: number[]; // 카테고리는 여러 개 선택 가능
   regionIds?: number[]; // 지역은 여러 개 선택 가능
   keyword?: string;
   page?: number;
