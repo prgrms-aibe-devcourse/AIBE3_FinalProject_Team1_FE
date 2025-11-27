@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { format } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Suspense, useEffect, useState } from "react";
 
@@ -290,11 +290,20 @@ function ReservationDetailPageContent() {
         ? reservation.reservationEndAt
         : reservation.reservationEndAt,
     );
+  // 날짜만 추출하여 계산 (시간 부분 제거)
+  const startDateOnly = startDate
+    ? new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        startDate.getDate(),
+      )
+    : null;
+  const endDateOnly = endDate
+    ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+    : null;
   const daysDiff =
-    startDate && endDate
-      ? Math.ceil(
-          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-        ) + 1
+    startDateOnly && endDateOnly
+      ? differenceInDays(endDateOnly, startDateOnly) + 1
       : 0;
 
   // 옵션 목록 (예약에는 id와 이름만 있고, 가격은 post의 options에서 가져옴)
@@ -407,8 +416,8 @@ function ReservationDetailPageContent() {
                 <div className="flex items-center gap-2 text-gray-600">
                   <User className="h-4 w-4" />
                   <span>
-                    호스트:{" "}
-                    {post.author?.nickname || post.authorNickname || "호스트"}
+                    작성자:{" "}
+                    {post.author?.nickname || post.authorNickname || "작성자"}
                   </span>
                 </div>
 

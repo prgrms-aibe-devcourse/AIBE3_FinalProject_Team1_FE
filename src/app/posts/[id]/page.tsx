@@ -9,6 +9,8 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
+import { ReportType } from "@/types/domain";
+
 import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -25,8 +27,6 @@ import { ProfileReviewDialog } from "@/components/profile/profile-review-dialog"
 import { ReportDialog } from "@/components/report/report-dialog";
 
 import { useAuthStore } from "@/store/authStore";
-
-import { ReportType } from "@/types/domain";
 
 import { useCreateChatRoomMutation } from "@/queries/chat";
 import { usePostQuery } from "@/queries/post";
@@ -325,7 +325,7 @@ export default function PostDetailPage() {
           {/* 우측: 작성자 정보 및 액션 카드 (1/3) */}
           <div className="lg:col-span-1">
             <Card>
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="p-4 pt-4 space-y-4">
                 {/* 작성자 프로필 섹션 */}
                 <div className="flex items-start gap-4 pb-4 bg-gray-50 rounded-lg p-4 mb-4">
                   {post.author?.profileImgUrl ? (
@@ -363,7 +363,9 @@ export default function PostDetailPage() {
                     {post.author?.createdAt && (
                       <p className="text-xs text-gray-500 mt-1">
                         {(() => {
-                          const date = parseLocalDateString(post.author.createdAt);
+                          const date = parseLocalDateString(
+                            post.author.createdAt,
+                          );
                           return `${date.getFullYear()}년 ${date.getMonth() + 1}월 가입`;
                         })()}
                       </p>
@@ -704,9 +706,7 @@ export default function PostDetailPage() {
                               </span>
                             </div>
 
-                            <p className="text-gray-700">
-                              {review.comment}
-                            </p>
+                            <p className="text-gray-700">{review.comment}</p>
                           </div>
                         </div>
                       </div>

@@ -4,18 +4,23 @@
 "use client";
 
 import { useState } from "react";
-import { Flag, Trash2, Info, Clock, AlertCircle, X } from "lucide-react";
+
+import { ReportType } from "@/types/domain";
+
+import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 
-import { ReportType } from "@/types/domain";
-
 import { useReportListQuery } from "@/queries/report";
 import { useDeleteReportMutation } from "@/queries/report";
 
-import { parseLocalDateString } from "@/lib/utils";
+import { AlertCircle, Clock, Flag, Info, Trash2, X } from "lucide-react";
+
+/**
+ * 관리자 신고 목록 페이지
+ */
 
 const PAGE_SIZE = 10;
 
@@ -56,15 +61,12 @@ export default function AdminReportsPage() {
   const { data: reportsData, isLoading } = useReportListQuery(filters);
   const deleteMutation = useDeleteReportMutation();
 
-  const reports = reportsData && "content" in reportsData ? reportsData.content : [];
+  const reports =
+    reportsData && "content" in reportsData ? reportsData.content : [];
   const totalPages =
-    reportsData && "page" in reportsData
-      ? reportsData.page.totalPages
-      : 1;
+    reportsData && "page" in reportsData ? reportsData.page.totalPages : 1;
   const totalElements =
-    reportsData && "page" in reportsData
-      ? reportsData.page.totalElements
-      : 0;
+    reportsData && "page" in reportsData ? reportsData.page.totalElements : 0;
 
   // 임시 Summary 데이터
   const summaryData = {
@@ -90,7 +92,8 @@ export default function AdminReportsPage() {
   };
 
   const formatDateTime = (date: string | Date) => {
-    const dateObj = typeof date === "string" ? parseLocalDateString(date) : date;
+    const dateObj =
+      typeof date === "string" ? parseLocalDateString(date) : date;
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
     const dd = String(dateObj.getDate()).padStart(2, "0");
@@ -127,7 +130,7 @@ export default function AdminReportsPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">전체 신고</p>
@@ -143,7 +146,7 @@ export default function AdminReportsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">대기 중</p>
@@ -159,7 +162,7 @@ export default function AdminReportsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">제재 완료</p>
@@ -175,7 +178,7 @@ export default function AdminReportsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">반려</p>
@@ -269,10 +272,14 @@ export default function AdminReportsPage() {
                       ID: {report.targetId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ID: {(report as { authorId?: number }).authorId ?? report.memberId}
+                      ID:{" "}
+                      {(report as { authorId?: number }).authorId ??
+                        report.memberId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {report.createdAt ? formatDateTime(report.createdAt) : "-"}
+                      {report.createdAt
+                        ? formatDateTime(report.createdAt)
+                        : "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
                       <div className="truncate" title={report.comment}>
