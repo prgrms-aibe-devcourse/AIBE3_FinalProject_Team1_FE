@@ -16,6 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { useAuthStore } from "@/store/authStore";
 import { useFilterStore } from "@/store/filterStore";
@@ -26,6 +32,10 @@ import { useToggleFavoriteMutation } from "@/queries/post-favorite";
 import { useRegionListQuery } from "@/queries/region";
 
 import { Filter, Heart, Search, X } from "lucide-react";
+
+/**
+ * 게시글 목록 페이지
+ */
 
 /**
  * 게시글 목록 페이지
@@ -856,20 +866,34 @@ export default function PostsPage() {
                 <Link href={`/posts/${post.id}`} className="block">
                   <Card className="h-full transition-shadow hover:shadow-lg relative">
                     {/* 즐겨찾기 버튼 */}
-                    <button
-                      type="button"
-                      onClick={handleFavoriteClick}
-                      className="absolute right-2 top-2 z-10 rounded-full bg-white bg-opacity-80 p-2 shadow-md hover:bg-opacity-100 transition-all"
-                      disabled={toggleFavoriteMutation.isPending || isAuthor}
-                    >
-                      <Heart
-                        className={`h-5 w-5 ${
-                          (post.isFavorite ?? false)
-                            ? "fill-red-500 text-red-500"
-                            : "text-gray-400"
-                        }`}
-                      />
-                    </button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={handleFavoriteClick}
+                            className="absolute right-2 top-2 z-10 rounded-full bg-white bg-opacity-80 p-2 shadow-md hover:bg-opacity-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={
+                              toggleFavoriteMutation.isPending ||
+                              Boolean(isAuthor)
+                            }
+                          >
+                            <Heart
+                              className={`h-5 w-5 ${
+                                (post.isFavorite ?? false)
+                                  ? "fill-red-500 text-red-500"
+                                  : "text-gray-400"
+                              }`}
+                            />
+                          </button>
+                        </TooltipTrigger>
+                        {isAuthor && (
+                          <TooltipContent>
+                            <p>자신의 게시글에는 즐겨찾기를 할 수 없습니다.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
 
                     {/* 썸네일 이미지 */}
                     {(post.thumbnailImageUrl ||
