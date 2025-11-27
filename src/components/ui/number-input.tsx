@@ -19,8 +19,11 @@ const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
 
     // 숫자 값을 천 단위 구분자로 포맷팅
     const formatNumber = (num: number | undefined | null): string => {
-      if (num === undefined || num === null || num === 0) {
+      if (num === undefined || num === null) {
         return "";
+      }
+      if (num === 0) {
+        return "0";
       }
       return num.toLocaleString("ko-KR");
     };
@@ -75,17 +78,17 @@ const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         return;
       }
 
-      // 포맷팅하여 표시
-      const formatted = numValue.toLocaleString("ko-KR");
+      // 포맷팅하여 표시 (0도 포함)
+      const formatted = numValue === 0 ? "0" : numValue.toLocaleString("ko-KR");
       setDisplayValue(formatted);
       onChange?.(numValue);
     };
 
     const handleBlur = () => {
-      // blur 시 값이 0이면 빈 문자열로 표시
+      // blur 시 값 포맷팅 (0도 유지)
       const numValue = parseNumber(displayValue);
       if (numValue === 0) {
-        setDisplayValue("");
+        setDisplayValue("0");
       } else {
         setDisplayValue(formatNumber(numValue));
       }
