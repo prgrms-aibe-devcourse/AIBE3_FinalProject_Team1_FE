@@ -16,6 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { useAuthStore } from "@/store/authStore";
 import { useFilterStore } from "@/store/filterStore";
@@ -26,6 +32,10 @@ import { useToggleFavoriteMutation } from "@/queries/post-favorite";
 import { useRegionListQuery } from "@/queries/region";
 
 import { Filter, Heart, Search, X } from "lucide-react";
+
+/**
+ * 게시글 목록 페이지
+ */
 
 /**
  * 게시글 목록 페이지
@@ -691,15 +701,15 @@ export default function PostsPage() {
                           className="object-cover"
                         />
                         {/* 카테고리 배지 (좌측 상단) */}
-                        <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
+                        <div className="absolute left-2 top-2 z-10 flex flex-col gap-1 items-start">
                           {mainCategory && (
-                            <span className="rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
+                            <span className="inline-block rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white whitespace-nowrap">
                               {mainCategory.name}
                             </span>
                           )}
                           {subCategory &&
                             subCategory.id !== mainCategory?.id && (
-                              <span className="rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
+                              <span className="inline-block rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white whitespace-nowrap">
                                 {subCategory.name}
                               </span>
                             )}
@@ -742,16 +752,44 @@ export default function PostsPage() {
 
                       {/* 지역 표시 */}
                       {regionNames.length > 0 && (
-                        <div className="mb-3 flex items-center gap-1 text-xs text-gray-500">
-                          <span>📍</span>
-                          <span className="line-clamp-1">
-                            {regionNames
-                              .slice(0, MAX_VISIBLE_REGIONS)
-                              .join(", ")}
-                            {regionNames.length > MAX_VISIBLE_REGIONS &&
-                              ` +${regionNames.length - MAX_VISIBLE_REGIONS}`}
-                          </span>
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className={`mb-3 flex items-center gap-1 text-xs text-gray-500 ${
+                                  regionNames.length > MAX_VISIBLE_REGIONS
+                                    ? "cursor-pointer"
+                                    : ""
+                                }`}
+                              >
+                                <span>📍</span>
+                                <span className="line-clamp-1">
+                                  {regionNames
+                                    .slice(0, MAX_VISIBLE_REGIONS)
+                                    .join(", ")}
+                                  {regionNames.length > MAX_VISIBLE_REGIONS &&
+                                    ` +${regionNames.length - MAX_VISIBLE_REGIONS}`}
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            {regionNames.length > MAX_VISIBLE_REGIONS && (
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p className="font-medium mb-2 text-sm">
+                                    전체 지역 ({regionNames.length}개)
+                                  </p>
+                                  <div className="space-y-1">
+                                    {regionNames.map((name, index) => (
+                                      <div key={index} className="text-xs">
+                                        {name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
 
                       {/* 작성자 이름 및 작성일 (하단) */}
