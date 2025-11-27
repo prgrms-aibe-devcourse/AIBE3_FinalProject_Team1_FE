@@ -9,6 +9,7 @@ import { MapPin, Tag, Flag } from "lucide-react";
 import { MemberRole } from "@/types/domain";
 
 import { useAuthStore } from "@/store/authStore";
+import { useMeQuery } from "@/queries/user";
 
 type AdminLayoutProps = {
   children: ReactNode;
@@ -18,21 +19,40 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { data: meData, isLoading: isMeLoading } = useMeQuery();
 
   useEffect(() => {
+    // me API 로딩 중이면 리다이렉트하지 않음
+    if (isMeLoading) {
+      return;
+    }
+
     // 로그인하지 않았으면 로그인 페이지로 이동
-    if (!user) {
+    if (!user && !meData) {
       router.push("/login");
       return;
     }
     // 로그인은 했지만 관리자가 아니면 홈으로
-    if (user.role !== MemberRole.ADMIN) {
+    const currentUser = user || meData;
+    if (currentUser && currentUser.role !== MemberRole.ADMIN) {
       router.push("/");
     }
-  }, [user, router]);
+  }, [user, meData, isMeLoading, router]);
+
+  // me API 로딩 중이면 로딩 표시
+  if (isMeLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-gray-500">로딩 중...</div>
+        </div>
+      </div>
+    );
+  }
 
   // 관리자가 아니면 아무것도 렌더링하지 않음
-  if (!user || user.role !== MemberRole.ADMIN) {
+  const currentUser = user || meData;
+  if (!currentUser || currentUser.role !== MemberRole.ADMIN) {
     return null;
   }
 
