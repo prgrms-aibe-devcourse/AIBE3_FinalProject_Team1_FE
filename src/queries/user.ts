@@ -79,7 +79,7 @@ export function useUserQuery(userId?: number) {
  * 현재 로그인한 사용자 정보 조회 query
  */
 export function useMeQuery() {
-  const { setUser, logout } = useAuthStore();
+  const { setUser } = useAuthStore();
   const isBrowser = typeof window !== "undefined";
 
   return useQuery({
@@ -91,27 +91,25 @@ export function useMeQuery() {
         setUser(user);
         return user;
       } catch (error: unknown) {
-        // 네트워크 에러나 CORS 에러는 로그아웃하지 않음
-        // 인증 에러(401, 403)만 로그아웃 처리
+        // 인증 에러는 전역 에러 핸들러에서 처리되므로 여기서는 로그만 남김
+        // 네트워크 에러, CORS 에러는 로그만 남기고 로그아웃하지 않음
         if (
-          isBrowser &&
-          error &&
-          typeof error === "object" &&
-          "status" in error &&
-          typeof error.status === "number" &&
-          (error.status === 401 || error.status === 403)
+          !(
+            isBrowser &&
+            error &&
+            typeof error === "object" &&
+            "status" in error &&
+            typeof error.status === "number" &&
+            (error.status === 401 || error.status === 403)
+          )
         ) {
-          // 명확한 인증 에러인 경우에만 로그아웃
-          console.log("[useMeQuery] Authentication failed, logging out");
-          logout();
-        } else {
-          // 네트워크 에러, CORS 에러, 또는 기타 에러는 로그만 남기고 로그아웃하지 않음
           console.error(
             "[useMeQuery] Failed to fetch me (non-auth error):",
             error,
           );
         }
         // API 실패 시 null 반환하여 정상 동작
+        // 인증 에러의 경우 전역 핸들러에서 로그아웃 처리됨
         return null;
       }
     },
