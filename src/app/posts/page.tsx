@@ -913,13 +913,13 @@ export default function PostsPage() {
                         {/* 카테고리 배지 (좌측 상단) */}
                         <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
                           {mainCategory && (
-                            <span className="rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
+                            <span className="inline-block w-fit rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
                               {mainCategory.name}
                             </span>
                           )}
                           {subCategory &&
                             subCategory.id !== mainCategory?.id && (
-                              <span className="rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
+                              <span className="inline-block w-fit rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
                                 {subCategory.name}
                               </span>
                             )}

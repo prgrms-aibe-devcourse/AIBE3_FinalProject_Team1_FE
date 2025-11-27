@@ -36,9 +36,11 @@ import { ReportDialog } from "@/components/report/report-dialog";
 
 import { useAuthStore } from "@/store/authStore";
 
+import { useCategoryListQuery } from "@/queries/category";
 import { useCreateChatRoomMutation } from "@/queries/chat";
 import { useDeletePostMutation, usePostQuery } from "@/queries/post";
 import { useToggleFavoriteMutation } from "@/queries/post-favorite";
+import { useRegionListQuery } from "@/queries/region";
 import { useReviewsByPostQuery } from "@/queries/review";
 
 import {
@@ -54,6 +56,10 @@ import {
   Truck,
   User,
 } from "lucide-react";
+
+/**
+ * 게시글 상세 페이지
+ */
 
 /**
  * 게시글 상세 페이지
@@ -117,6 +123,8 @@ export default function PostDetailPage() {
   const { isAuthenticated, user } = useAuthStore();
   const toggleFavoriteMutation = useToggleFavoriteMutation();
   const createChatRoomMutation = useCreateChatRoomMutation();
+  const { data: categories } = useCategoryListQuery();
+  const { data: regions } = useRegionListQuery();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reviewReportDialogOpen, setReviewReportDialogOpen] = useState(false);
@@ -386,6 +394,169 @@ export default function PostDetailPage() {
             {/* 제목 및 요금 정보 */}
             <div>
               <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
+
+              {/* 카테고리 및 지역 정보 */}
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {/* 카테고리 */}
+                {post.categoryId &&
+                  categories &&
+                  (() => {
+                    // 카테고리 찾기
+                    let category = null;
+                    let mainCategory = null;
+                    for (const cat of categories) {
+                      if (cat.id === post.categoryId) {
+                        category = cat;
+                        mainCategory = cat;
+                        break;
+                      }
+                      if (cat.child) {
+                        const subCategory = cat.child.find(
+                          (c) => c.id === post.categoryId,
+                        );
+                        if (subCategory) {
+                          category = subCategory;
+                          mainCategory = cat;
+                          break;
+                        }
+                      }
+                      if (cat.children) {
+                        const subCategory = cat.children.find(
+                          (c) => c.id === post.categoryId,
+                        );
+                        if (subCategory) {
+                          category = subCategory;
+                          mainCategory = cat;
+                          break;
+                        }
+                      }
+                    }
+
+                    return (
+                      <>
+                        {mainCategory && (
+                          <span className="inline-block w-fit rounded-md bg-blue-500 px-2 py-1 text-xs font-medium text-white">
+                            {mainCategory.name}
+                          </span>
+                        )}
+                        {category && category.id !== mainCategory?.id && (
+                          <span className="inline-block w-fit rounded-md bg-blue-400 px-2 py-1 text-xs font-medium text-white">
+                            {category.name}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+
+                {/* 지역 */}
+                {post.regionIds &&
+                  post.regionIds.length > 0 &&
+                  regions &&
+                  (() => {
+                    // 게시글 목록 페이지와 동일한 로직 적용
+                    const result: Array<{ id: number; name: string }> = [];
+                    const provinces = regions;
+
+                    // 각 시/도에 대해 확인
+                    for (const province of provinces) {
+                      const districts =
+                        province.child || province.children || [];
+                      const districtIds =
+                        districts.length > 0 ? districts.map((d) => d.id) : [];
+                      const selectedDistrictIds = post.regionIds.filter((id) =>
+                        districtIds.includes(id),
+                      );
+
+                      // 시/도 ID가 선택되어 있는지 확인
+                      const isProvinceSelected = post.regionIds.includes(
+                        province.id,
+                      );
+
+                      if (districts.length === 0) {
+                        // 하위 시/군/구가 없는 시/도인 경우
+                        if (isProvinceSelected) {
+                          result.push({
+                            id: province.id,
+                            name: province.name,
+                          });
+                        }
+                        continue;
+                      }
+
+                      // 해당 시/도의 모든 시/군/구가 선택되어 있고 시/도 ID도 포함되어 있는지 확인
+                      const allDistrictsSelected =
+                        selectedDistrictIds.length > 0 &&
+                        selectedDistrictIds.length === districtIds.length &&
+                        isProvinceSelected;
+
+                      if (allDistrictsSelected) {
+                        // 모든 시/군/구가 선택되어 있으면 시/도만 표시
+                        result.push({
+                          id: province.id,
+                          name: province.name,
+                        });
+                      } else if (selectedDistrictIds.length > 0) {
+                        // 일부 시/군/구만 선택되어 있으면 각 시/군/구를 개별적으로 표시
+                        for (const districtId of selectedDistrictIds) {
+                          const district = districts.find(
+                            (d) => d.id === districtId,
+                          );
+                          if (district) {
+                            result.push({
+                              id: districtId,
+                              name: `${province.name} > ${district.name}`,
+                            });
+                          }
+                        }
+                      } else if (isProvinceSelected) {
+                        // 시/도 ID만 선택되어 있고 시/군/구가 선택되지 않은 경우
+                        result.push({
+                          id: province.id,
+                          name: province.name,
+                        });
+                      }
+                    }
+
+                    // 지역이 많을 경우를 고려한 표시 (최대 3개까지 표시, 나머지는 "+N" 형태)
+                    const MAX_VISIBLE_REGIONS = 3;
+                    const visibleRegions = result.slice(0, MAX_VISIBLE_REGIONS);
+                    const remainingCount = result.length - MAX_VISIBLE_REGIONS;
+
+                    return (
+                      <>
+                        {visibleRegions.map((region) => (
+                          <span
+                            key={region.id}
+                            className="inline-block w-fit rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white"
+                          >
+                            {region.name}
+                          </span>
+                        ))}
+                        {remainingCount > 0 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-block w-fit rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white cursor-help">
+                                  +{remainingCount}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="flex flex-col gap-1">
+                                  {result
+                                    .slice(MAX_VISIBLE_REGIONS)
+                                    .map((region) => (
+                                      <span key={region.id}>{region.name}</span>
+                                    ))}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </>
+                    );
+                  })()}
+              </div>
+
               <div className="flex items-center justify-between mb-2">
                 <span className="text-2xl font-semibold text-blue-600">
                   {post.fee.toLocaleString()}원/일
