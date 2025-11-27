@@ -11,6 +11,7 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 
 import { NotificationSSEProvider } from "@/components/notification/NotificationSSEProvider";
+import { ChatRoomsProvider } from "@/components/chat/ChatRoomsProvider";
 
 import "./globals.css";
 
@@ -41,6 +42,7 @@ export default function RootLayout({
       >
         <QueryProvider>
           <NotificationSSEProvider />
+          <ChatRoomsProvider />
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1 bg-gray-50">{children}</main>

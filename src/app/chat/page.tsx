@@ -13,7 +13,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type {
   ChatMessageDto,
   ChatNotiDto,
-  ChatRoomListDto,
   NewMessageNotiDto,
   NewRoomNotiDto,
 } from "@/types/domain";
@@ -31,6 +30,8 @@ import { Input } from "@/components/ui/input";
 import { useStomp } from "@/hooks/useStomp";
 
 import { markChatRoomAsRead } from "@/api/endpoints/chat";
+
+import { useChatStore } from "@/store/chatStore";
 
 import {
   useChatMessagesQuery,
@@ -88,13 +89,6 @@ function ChatPage() {
   const isUserScrollingUpRef = useRef(false);
   const shouldAutoScrollRef = useRef(true);
 
-  /* ⭐ 채팅 페이지 처음 들어올 때 목록 강제 refetch */
-  useEffect(() => {
-    const key = getQueryKey(queryKeys.chat.rooms);
-    console.log("[ChatPage] invalidate chat rooms on mount:", key);
-    queryClient.invalidateQueries({ queryKey: key });
-  }, [queryClient]);
-
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(
     roomIdParam ? Number(roomIdParam) : null,
   );
@@ -110,23 +104,26 @@ function ChatPage() {
   const { data: chatRoomsInitial = [], isLoading: chatRoomsLoading } =
     useChatRoomListQuery();
 
-  const [chatRooms, setChatRooms] = useState<ChatRoomListDto[]>([]);
+  const chatRooms = useChatStore((state) => state.rooms);
+  const setRooms = useChatStore((state) => state.setRooms);
+  const setCurrentRoomId = useChatStore((state) => state.setCurrentRoomId);
+  const resetUnread = useChatStore((state) => state.resetUnread);
+  const updateRoom = useChatStore((state) => state.updateRoom);
+  const addRoom = useChatStore((state) => state.addRoom);
 
-  // 이전 chatRoomsInitial 값을 추적하여 실제 변경 시에만 업데이트
-  const prevChatRoomsInitialRef = useRef<ChatRoomListDto[]>([]);
+  // selectedRoomId가 변경될 때 chatStore에 동기화
+  useEffect(() => {
+    setCurrentRoomId(selectedRoomId);
+
+    // 컴포넌트 unmount 시 currentRoomId 초기화
+    return () => {
+      setCurrentRoomId(null);
+    };
+  }, [selectedRoomId, setCurrentRoomId]);
 
   useEffect(() => {
-    // 실제 내용이 변경되었을 때만 업데이트 (참조 비교 방지)
-    const prevIds = prevChatRoomsInitialRef.current.map((r) => r.id).join(",");
-    const currentIds = chatRoomsInitial.map((r) => r.id).join(",");
-    const prevLength = prevChatRoomsInitialRef.current.length;
-    const currentLength = chatRoomsInitial.length;
-
-    if (prevIds !== currentIds || prevLength !== currentLength) {
-      setChatRooms(chatRoomsInitial);
-      prevChatRoomsInitialRef.current = chatRoomsInitial;
-    }
-  }, [chatRoomsInitial]);
+    setRooms(chatRoomsInitial);
+  }, [chatRoomsInitial, setRooms]);
 
   /* ======================
      메시지 페이지네이션
@@ -134,10 +131,16 @@ function ChatPage() {
   useEffect(() => {
     if (!selectedRoomId) return;
 
-    // 🔥 메시지 페이지 캐시 리셋 (중요!)
-    queryClient.removeQueries({
+    // 🔥 메시지 캐시 무효화 (캐시 유지하면서 백그라운드 refetch)
+    queryClient.invalidateQueries({
       queryKey: getQueryKey(queryKeys.chat.messages(selectedRoomId)),
+      refetchType: "active", // 현재 활성화된 쿼리만 refetch
     });
+
+    // 🔥 채팅방 변경 시 스크롤 플래그 초기화
+    initialScrollDone.current = false;
+    shouldAutoScrollRef.current = true;
+    isUserScrollingUpRef.current = false;
   }, [selectedRoomId, queryClient]);
 
   const {
@@ -187,6 +190,9 @@ function ChatPage() {
   const prevRoomRef = useRef<number | null>(null);
   const selectedRoomIdRef = useRef<number | null>(selectedRoomId);
   const hasEnterReadRunRef = useRef(false);
+  const markAsReadTimerByRoomRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const prevMessagesLengthRef = useRef<number>(0);
+  const isInitialRoomEntryRef = useRef(false); // 첫 진입 여부
 
   useEffect(() => {
     selectedRoomIdRef.current = selectedRoomId;
@@ -208,10 +214,18 @@ function ChatPage() {
       const lastId = lastMessageIdByRoom.current[roomId];
       const prev = lastMarkedMessageIdByRoom.current[roomId];
 
-      if (!lastId) return;
-      if (prev && prev >= lastId) return;
+      console.log("[READ] markRoomAsRead called", { roomId, lastId, prev });
 
-      console.log("🔥 READ", { roomId, lastId });
+      if (!lastId) {
+        console.log("[READ] ❌ Skip: no lastId");
+        return;
+      }
+      if (prev && prev >= lastId) {
+        console.log("[READ] ❌ Skip: already marked", { prev, lastId });
+        return;
+      }
+
+      console.log("🔥 [READ] Marking as read", { roomId, lastId });
 
       lastMarkedMessageIdByRoom.current[roomId] = lastId;
 
@@ -228,24 +242,26 @@ function ChatPage() {
     const curr = selectedRoomId;
 
     if (prev && prev !== curr) {
-      console.log("🚪 EXIT ROOM", prev);
+      console.log("🚪 [READ] EXIT ROOM", prev, "→ calling markRoomAsRead");
       markRoomAsRead(prev);
     }
 
     if (curr && prev !== curr) {
-      console.log("👀 ENTER ROOM", curr);
+      console.log("👀 [READ] ENTER ROOM", curr, "→ resetUnread + reset flag");
 
-      setChatRooms((prevRooms) =>
-        prevRooms.map((room) =>
-          room.id === curr ? { ...room, unreadCount: 0 } : room,
-        ),
-      );
-
+      // 먼저 로컬 store에서 unreadCount를 0으로 설정
+      resetUnread(curr);
       hasEnterReadRunRef.current = false;
+      shouldAutoScrollRef.current = true; // 자동 스크롤 활성화
+
+      // 그 다음 채팅방 목록 refetch (setRooms에서 currentRoomId 체크로 0 유지)
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.chat.rooms),
+      });
     }
 
     prevRoomRef.current = curr ?? null;
-  }, [selectedRoomId, markRoomAsRead]);
+  }, [selectedRoomId, markRoomAsRead, resetUnread, queryClient]);
 
   /* ======================
      ENTER 시 읽음 처리 1번만
@@ -256,11 +272,13 @@ function ChatPage() {
     if (hasEnterReadRunRef.current) return;
 
     hasEnterReadRunRef.current = true;
-    console.log("👁️ ENTER READ after messages loaded", {
+    console.log("👁️ [READ] ENTER READ after messages loaded", {
       roomId: selectedRoomId,
+      messageCount: messages.length,
     });
     markRoomAsRead(selectedRoomId);
-  }, [selectedRoomId, messages.length, markRoomAsRead]);
+    resetUnread(selectedRoomId);
+  }, [selectedRoomId, messages.length, markRoomAsRead, resetUnread]);
 
   /* ======================
      언마운트 fallback
@@ -292,10 +310,17 @@ function ChatPage() {
   const sendMessageMutation = useSendChatMessageMutation();
   const { isConnected, subscribe, publish } = useStomp();
 
-  const handleIncomingMessage = useCallback(
-    (msg: IMessage, subscribedRoomId: number) => {
+  /* 메시지 구독 */
+  useEffect(() => {
+    if (!selectedRoomId || !isConnected) return;
+
+    const dest = `/sub/chat/${selectedRoomId}`;
+    const subId = `chat-page-${Date.now()}`;
+    console.log("🔔 STOMP SUB", { dest, subId });
+
+    const unsub = subscribe(dest, (msg: IMessage) => {
       const parsed = JSON.parse(msg.body) as ChatMessageDto;
-      const roomId = subscribedRoomId;
+      const roomId = selectedRoomId;
 
       console.log("💬 RECEIVE MESSAGE", {
         roomId,
@@ -310,12 +335,28 @@ function ChatPage() {
           const exists = old.pages.some((pg) =>
             pg.content.some((m: ChatMessageDto) => m.id === parsed.id),
           );
-          if (exists) return old;
+          if (exists) {
+            console.log(
+              "💬 [DUPLICATE] Message already exists, skipping",
+              parsed.id,
+            );
+            return old;
+          }
 
           const pages = [...old.pages];
+
+          // 낙관적 업데이트로 추가된 tempMessage 제거 (ID가 1억 이상인 경우)
           pages[0] = {
             ...pages[0],
-            content: [parsed, ...(pages[0].content || [])],
+            content: pages[0].content.filter(
+              (m: ChatMessageDto) => m.id < 1000000000000,
+            ),
+          };
+
+          // 실제 메시지 추가
+          pages[0] = {
+            ...pages[0],
+            content: [parsed, ...pages[0].content],
           };
 
           return { ...old, pages };
@@ -324,116 +365,147 @@ function ChatPage() {
 
       lastMessageIdByRoom.current[roomId] = parsed.id;
 
+      // Zustand store 직접 호출
+      useChatStore.getState().updateRoom(roomId, (room) => ({
+        ...room,
+        lastMessage: parsed.content,
+        lastMessageTime: parsed.createdAt,
+        unreadCount: 0,
+      }));
+
+      useChatStore.getState().resetUnread(roomId);
+
+      // 읽음 처리는 메시지 수신마다 하지 않고, 일정 시간 후 한 번만 처리
+      // (디바운스: 마지막 메시지 이후 1초 대기)
+      if (markAsReadTimerByRoomRef.current[roomId]) {
+        clearTimeout(markAsReadTimerByRoomRef.current[roomId]);
+        console.log("⏱️ [READ] Timer cancelled, will restart", { roomId });
+      }
+      console.log("⏱️ [READ] Starting new timer (1000ms)", {
+        roomId,
+        msgId: parsed.id,
+      });
+      markAsReadTimerByRoomRef.current[roomId] = setTimeout(() => {
+        const lastId = lastMessageIdByRoom.current[roomId];
+        const prev = lastMarkedMessageIdByRoom.current[roomId];
+        console.log("💬 [READ] Debounced mark as read FIRED after 1000ms", {
+          roomId,
+          lastId,
+          prev,
+        });
+        if (lastId && (!prev || prev < lastId)) {
+          console.log("🔥 [READ] Marking as read", { roomId, lastId });
+          lastMarkedMessageIdByRoom.current[roomId] = lastId;
+          markAsReadMutation.mutate({ roomId, lastMessageId: lastId });
+        }
+      }, 1000);
+
       // 새 메시지를 받을 때, 사용자가 맨 아래에 있으면 자동 스크롤 가능
       shouldAutoScrollRef.current = true;
-    },
-    [queryClient],
-  );
-
-  /* 메시지 구독 */
-  useEffect(() => {
-    if (!selectedRoomId || !isConnected) return;
-
-    const dest = `/sub/chat/${selectedRoomId}`;
-    console.log("🔔 STOMP SUB", dest);
-
-    const unsub = subscribe(dest, (msg) =>
-      handleIncomingMessage(msg, selectedRoomId),
-    );
+    });
 
     return () => {
-      console.log("🔕 STOMP UNSUB", dest);
-      unsub();
-    };
-  }, [selectedRoomId, isConnected, subscribe, handleIncomingMessage]);
-
-  /* ======================
-     알림 구독
-  ====================== */
-  const handleNewRoom = useCallback((room: NewRoomNotiDto) => {
-    setChatRooms((prev) => {
-      if (prev.some((r) => r.id === room.id)) return prev;
-      return [room, ...prev];
-    });
-  }, []);
-
-  const handleNewMessageNoti = useCallback((payload: NewMessageNotiDto) => {
-    const currentRoomId = selectedRoomIdRef.current;
-    const isCurrentRoom = currentRoomId === payload.chatRoomId;
-
-    setChatRooms((prev) =>
-      prev.map((room) =>
-        room.id !== payload.chatRoomId
-          ? room
-          : {
-              ...room,
-              lastMessage: payload.content,
-              lastMessageTime: payload.createdAt,
-              unreadCount: isCurrentRoom ? 0 : (room.unreadCount ?? 0) + 1,
-            },
-      ),
-    );
-  }, []);
-
-  useEffect(() => {
-    if (!isConnected || !me?.id) return;
-
-    const dest = `/sub/notifications/${me.id}`;
-    console.log("🔔 STOMP SUB", dest);
-
-    const unsub = subscribe(dest, (msg) => {
-      try {
-        const noti: ChatNotiDto = JSON.parse(msg.body);
-
-        if (noti.type === "NEW_ROOM") {
-          handleNewRoom(noti.payload as NewRoomNotiDto);
-        } else if (noti.type === "NEW_MESSAGE") {
-          handleNewMessageNoti(noti.payload as NewMessageNotiDto);
-        }
-      } catch (e) {
-        console.error("Notification parse error:", e);
+      console.log("🔕 STOMP UNSUB", { dest, subId });
+      if (markAsReadTimerByRoomRef.current[selectedRoomId]) {
+        clearTimeout(markAsReadTimerByRoomRef.current[selectedRoomId]);
+        delete markAsReadTimerByRoomRef.current[selectedRoomId];
       }
-    });
-
-    return () => {
-      console.log("🔕 STOMP UNSUB", dest);
       unsub();
     };
-  }, [isConnected, me?.id, subscribe, handleNewRoom, handleNewMessageNoti]);
+  }, [selectedRoomId, isConnected, subscribe, queryClient]);
 
   /* ======================
      메시지 전송
   ====================== */
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRoomId || !message.trim()) return;
+    if (!selectedRoomId || !message.trim() || !me?.id) return;
 
     const trimmed = message.trim();
+    setMessage("");
+
+    // 낙관적 업데이트: 임시 메시지 즉시 표시
+    const tempId = Date.now(); // 임시 ID
+    const tempMessage: ChatMessageDto = {
+      id: tempId,
+      authorId: me.id,
+      content: trimmed,
+      createdAt: new Date(),
+    };
+
+    // 메시지 목록에 즉시 추가
+    queryClient.setQueryData(
+      getQueryKey(queryKeys.chat.messages(selectedRoomId)),
+      (old: InfiniteData<{ content: ChatMessageDto[] }> | null) => {
+        if (!old) return old;
+
+        const pages = [...old.pages];
+        pages[0] = {
+          ...pages[0],
+          content: [tempMessage, ...(pages[0].content || [])],
+        };
+
+        return { ...old, pages };
+      },
+    );
 
     try {
-      publish(`/pub/chat/${selectedRoomId}`, { content: trimmed });
-      setMessage("");
-    } catch {
-      await sendMessageMutation.mutateAsync({
-        roomId: selectedRoomId,
-        content: trimmed,
-      });
-      setMessage("");
+      if (isConnected) {
+        publish(`/pub/chat/${selectedRoomId}`, { content: trimmed });
+      } else {
+        await sendMessageMutation.mutateAsync({
+          roomId: selectedRoomId,
+          content: trimmed,
+        });
+      }
+
+      // 메시지 전송 후 스크롤을 맨 아래로
+      setTimeout(() => {
+        const container = messagesEndRef.current?.parentElement;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+          shouldAutoScrollRef.current = true; // 자동 스크롤 활성화
+        }
+      }, 100);
+    } catch (error) {
+      console.error("메시지 전송 실패:", error);
+      // REST API 폴백
+      try {
+        await sendMessageMutation.mutateAsync({
+          roomId: selectedRoomId,
+          content: trimmed,
+        });
+      } catch (restError) {
+        console.error("REST API 폴백도 실패:", restError);
+
+        // 실패 시 임시 메시지 제거
+        queryClient.setQueryData(
+          getQueryKey(queryKeys.chat.messages(selectedRoomId)),
+          (old: InfiniteData<{ content: ChatMessageDto[] }> | null) => {
+            if (!old) return old;
+
+            const pages = [...old.pages];
+            pages[0] = {
+              ...pages[0],
+              content: pages[0].content.filter((m) => m.id !== tempId),
+            };
+
+            return { ...old, pages };
+          },
+        );
+
+        setMessage(trimmed); // 입력값 복원
+        return;
+      }
     }
 
-    // ⭐ 내가 보낸 메시지를 채팅 목록에서도 즉시 업데이트 (방법 A)
-    setChatRooms((prev) =>
-      prev.map((room) =>
-        room.id === selectedRoomId
-          ? ({
-              ...room,
-              lastMessage: trimmed,
-              lastMessageTime: new Date(), // 🔥 타입 맞춤
-              unreadCount: 0,
-            } as unknown as ChatRoomListDto) // ⭐ unknown → ChatRoomListDto 캐스팅
-          : room,
-      ),
-    );
+    updateRoom(selectedRoomId, (room) => ({
+      ...room,
+      lastMessage: trimmed,
+      lastMessageTime: new Date(),
+      unreadCount: 0,
+    }));
+    resetUnread(selectedRoomId);
   };
 
   /* URL sync */
@@ -453,21 +525,71 @@ function ChatPage() {
   /* ======================
      자동 스크롤 (🔥 수정된 부분)
   ====================== */
+  // 채팅방 진입 시 맨 아래로 스크롤 (메시지 로드 완료 후)
+  useEffect(() => {
+    if (!selectedRoomId || messages.length === 0) return;
+
+    console.log("📜 [SCROLL] Scrolling to bottom", {
+      roomId: selectedRoomId,
+      messagesCount: messages.length,
+    });
+
+    // 첫 진입 플래그 설정
+    isInitialRoomEntryRef.current = true;
+    prevMessagesLengthRef.current = messages.length; // 현재 길이로 초기화
+
+    // 즉시 스크롤 (딜레이 없음)
+    const container = messagesEndRef.current?.parentElement;
+    if (container) {
+      // requestAnimationFrame을 사용하여 렌더링 직후 즉시 스크롤
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+        console.log("📜 [SCROLL] Scrolled to bottom", {
+          scrollTop: container.scrollTop,
+          scrollHeight: container.scrollHeight,
+        });
+        // 스크롤 완료 후 플래그 해제
+        isInitialRoomEntryRef.current = false;
+      });
+    }
+
+    return () => {
+      isInitialRoomEntryRef.current = false;
+    };
+  }, [selectedRoomId, messages.length]);
+
+  // 새 메시지 도착 시 자동 스크롤 (사용자가 아래에 있을 때만)
   useEffect(() => {
     if (messages.length === 0) return;
 
-    // 1) 최초 1회 → 무조건 맨 아래
-    if (!initialScrollDone.current) {
-      initialScrollDone.current = true;
-      messagesEndRef.current?.scrollIntoView();
+    // 첫 진입 중이면 스킵 (위의 useEffect에서 처리)
+    if (isInitialRoomEntryRef.current) {
+      console.log("📜 [SCROLL] Initial entry, skipping new message scroll");
       return;
     }
 
-    // 2) 사용자가 위로 스크롤하면 자동 스크롤 금지
+    const prevLength = prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = messages.length;
+
+    // 사용자가 위로 스크롤한 상태면 자동 스크롤 안 함
     if (!shouldAutoScrollRef.current) return;
 
-    // 3) 새 메시지 오면 부드럽게 이동
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // 메시지가 증가했을 때만 스크롤 (새 메시지 도착)
+    if (messages.length > prevLength) {
+      console.log("📜 [SCROLL] New message, auto-scrolling", {
+        prev: prevLength,
+        current: messages.length,
+      });
+
+      const timer = setTimeout(() => {
+        const container = messagesEndRef.current?.parentElement;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }, 50);
+
+      return () => clearTimeout(timer);
+    }
   }, [messages.length]);
 
   /* ======================
@@ -605,15 +727,16 @@ function ChatPage() {
                       shouldAutoScrollRef.current = true;
                     }
 
-                    // 초기 scrollTop === 0 방지
-                    if (t.scrollTop === 0) return;
-
-                    // 위로 충분히 올렸을 때 page=1 요청
+                    // 위로 충분히 올렸을 때만 page=1 요청 (맨 위 20px 이내)
                     if (
-                      t.scrollTop < 80 &&
+                      t.scrollTop > 0 &&
+                      t.scrollTop < 20 &&
                       hasNextPage &&
                       !isFetchingNextPage
                     ) {
+                      console.log("📄 [SCROLL] Fetching previous page", {
+                        scrollTop: t.scrollTop,
+                      });
                       handleFetchNextPage();
                     }
                   }}
@@ -635,7 +758,9 @@ function ChatPage() {
                         const currentDate = parseLocalDateString(msg.createdAt);
                         const prevDate =
                           index > 0
-                            ? parseLocalDateString(messages[index - 1].createdAt)
+                            ? parseLocalDateString(
+                                messages[index - 1].createdAt,
+                              )
                             : null;
 
                         // 날짜가 바뀌면 날짜 구분선 표시
