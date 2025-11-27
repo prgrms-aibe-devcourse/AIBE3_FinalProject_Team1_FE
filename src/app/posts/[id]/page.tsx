@@ -15,6 +15,14 @@ import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Tooltip,
@@ -29,18 +37,20 @@ import { ReportDialog } from "@/components/report/report-dialog";
 import { useAuthStore } from "@/store/authStore";
 
 import { useCreateChatRoomMutation } from "@/queries/chat";
-import { usePostQuery } from "@/queries/post";
+import { useDeletePostMutation, usePostQuery } from "@/queries/post";
 import { useToggleFavoriteMutation } from "@/queries/post-favorite";
 import { useReviewsByPostQuery } from "@/queries/review";
 
 import {
   ChevronLeft,
   ChevronRight,
+  Edit,
   Flag,
   Heart,
   MapPin,
   RotateCcw,
   Star,
+  Trash2,
   Truck,
   User,
 } from "lucide-react";
@@ -80,11 +90,24 @@ import {
 /**
  * 게시글 상세 페이지
  */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const postId = Number(params.id);
-  const { data: post, isLoading } = usePostQuery(postId);
+  const deletePostMutation = useDeletePostMutation();
+  const [isDeleted, setIsDeleted] = useState(false); // 삭제 성공 여부 추적
+  const { data: post, isLoading } = usePostQuery(postId, {
+    enabled: !deletePostMutation.isPending && !isDeleted, // 삭제 중이거나 삭제 완료 시 쿼리 비활성화
+  });
   const [reviewPage, setReviewPage] = useState(0);
   const reviewPageSize = 5;
   const { data: reviewsData } = useReviewsByPostQuery(postId, {
@@ -97,6 +120,7 @@ export default function PostDetailPage() {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reviewReportDialogOpen, setReviewReportDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<{
     id: number;
     comment: string;
@@ -241,12 +265,45 @@ export default function PostDetailPage() {
 
   const isAuthor = Boolean(user?.id === (post.author?.id ?? post.authorId));
 
+  const handleDelete = async () => {
+    try {
+      await deletePostMutation.mutateAsync(postId);
+      setIsDeleted(true); // 삭제 성공 시 상태 업데이트하여 쿼리 비활성화
+      setDeleteDialogOpen(false);
+      // 삭제 성공 시 바로 목록 페이지로 이동
+      router.push("/posts");
+    } catch (error) {
+      console.error("Failed to delete post:", error);
+      // 에러 발생 시 dialog는 유지 (사용자가 다시 시도할 수 있도록)
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <Button variant="ghost" onClick={() => router.back()}>
           ← 뒤로가기
         </Button>
+        {isAuthor && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/posts/${postId}/edit`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              수정
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={deletePostMutation.isPending}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              삭제
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -842,6 +899,35 @@ export default function PostDetailPage() {
           targetTitle={`후기: ${selectedReview.comment.substring(0, 30)}${selectedReview.comment.length > 30 ? "..." : ""}`}
         />
       )}
+
+      {/* 게시글 삭제 확인 다이얼로그 */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader className="border-b-0 pb-0">
+            <DialogTitle>게시글 삭제</DialogTitle>
+            <DialogDescription>
+              정말로 이 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="border-t-0 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deletePostMutation.isPending}
+            >
+              취소
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+              disabled={deletePostMutation.isPending}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              {deletePostMutation.isPending ? "삭제 중..." : "삭제"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

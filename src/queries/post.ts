@@ -85,7 +85,10 @@ export function usePostListQuery(filters?: PostListFilters) {
 /**
  * 게시글 상세 조회 query
  */
-export function usePostQuery(postId: number) {
+export function usePostQuery(
+  postId: number,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.post.detail(postId)),
     queryFn: async (): Promise<Post | null> => {
@@ -97,7 +100,7 @@ export function usePostQuery(postId: number) {
         return null;
       }
     },
-    enabled: !!postId, // postId가 있을 때만 쿼리 실행
+    enabled: options?.enabled !== false && !!postId, // postId가 있을 때만 쿼리 실행
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     retry: false, // 재시도하지 않음
   });
@@ -248,9 +251,12 @@ export function useDeletePostMutation() {
       queryClient.removeQueries({
         queryKey: getQueryKey(queryKeys.post.detail(postId)),
       });
-      // 게시글 목록 쿼리 무효화
+      // 게시글 목록 쿼리 무효화 (모든 필터 조합 포함)
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.all),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.post.list()),
       });
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.post.myPosts()),
