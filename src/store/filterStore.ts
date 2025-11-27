@@ -24,7 +24,7 @@ interface FilterState {
 }
 
 const defaultPostFilters: PostListFilters = {
-  categoryId: undefined,
+  categoryIds: undefined,
   regionIds: undefined,
   keyword: undefined,
   page: 0,
