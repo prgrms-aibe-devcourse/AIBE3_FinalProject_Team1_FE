@@ -157,24 +157,33 @@ export function ProfileReviewDialog({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedReview({
-                                    id: review.id,
-                                    comment: review.comment,
-                                  });
-                                  setReviewReportDialogOpen(true);
-                                }}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                              >
-                                <Flag className="h-4 w-4" />
-                              </Button>
+                              <span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedReview({
+                                      id: review.id,
+                                      comment: review.comment,
+                                    });
+                                    setReviewReportDialogOpen(true);
+                                  }}
+                                  disabled={user.id === review.author?.id}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <Flag className="h-4 w-4" />
+                                </Button>
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              <p>신고하기</p>
-                            </TooltipContent>
+                            {user.id === review.author?.id ? (
+                              <TooltipContent>
+                                <p>자신의 후기는 신고할 수 없습니다.</p>
+                              </TooltipContent>
+                            ) : (
+                              <TooltipContent>
+                                <p>신고하기</p>
+                              </TooltipContent>
+                            )}
                           </Tooltip>
                         </TooltipProvider>
                       </div>
@@ -253,15 +262,29 @@ export function ProfileReviewDialog({
           )}
 
           <div className="pt-2 flex justify-end gap-2">
-            {!isSelf && effectiveMemberId && (
-              <Button
-                variant="outline"
-                onClick={() => setReportDialogOpen(true)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Flag className="h-4 w-4 mr-2" />
-                신고하기
-              </Button>
+            {effectiveMemberId && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        variant="outline"
+                        onClick={() => setReportDialogOpen(true)}
+                        disabled={isSelf}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Flag className="h-4 w-4 mr-2" />
+                        신고하기
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {isSelf && (
+                    <TooltipContent>
+                      <p>자신은 신고할 수 없습니다.</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
             <Button
               variant="outline"

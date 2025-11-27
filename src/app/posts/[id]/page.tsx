@@ -60,6 +60,26 @@ import {
 /**
  * 게시글 상세 페이지
  */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -177,6 +197,11 @@ export default function PostDetailPage() {
       return;
     }
 
+    // 자신의 게시글에는 메시지를 보낼 수 없음
+    if (isAuthor) {
+      return;
+    }
+
     try {
       // 채팅방 생성 (API가 이미 존재하는 채팅방이 있으면 chatRoomId 반환, 없으면 생성)
       const result = await createChatRoomMutation.mutateAsync(postId);
@@ -214,7 +239,7 @@ export default function PostDetailPage() {
     );
   }
 
-  const isAuthor = user?.id === (post.author?.id ?? post.authorId);
+  const isAuthor = Boolean(user?.id === (post.author?.id ?? post.authorId));
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -453,7 +478,8 @@ export default function PostDetailPage() {
                             className="flex-1 whitespace-nowrap"
                             onClick={handleFavorite}
                             disabled={
-                              toggleFavoriteMutation.isPending || isAuthor
+                              toggleFavoriteMutation.isPending ||
+                              Boolean(isAuthor)
                             }
                           >
                             <Heart
@@ -471,60 +497,96 @@ export default function PostDetailPage() {
                         )}
                       </Tooltip>
                     </TooltipProvider>
-                    <Button
-                      variant="outline"
-                      className="flex-1 whitespace-nowrap"
-                      onClick={() => setReportDialogOpen(true)}
-                    >
-                      <Flag className="h-4 w-4 mr-2" />
-                      신고하기
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="flex-1 whitespace-nowrap"
+                            onClick={() => setReportDialogOpen(true)}
+                            disabled={Boolean(isAuthor)}
+                          >
+                            <Flag className="h-4 w-4 mr-2" />
+                            신고하기
+                          </Button>
+                        </TooltipTrigger>
+                        {isAuthor && (
+                          <TooltipContent sideOffset={12}>
+                            <p>자신의 게시글은 신고할 수 없습니다.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 )}
 
                 {/* 메시지 보내기 및 대여 신청 버튼 */}
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {isAuthenticated && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleChat}
-                      disabled={createChatRoomMutation.isPending}
-                    >
-                      {createChatRoomMutation.isPending
-                        ? "채팅방 생성 중..."
-                        : "메시지 보내기"}
-                    </Button>
+                    <div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-full">
+                              <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={handleChat}
+                                disabled={
+                                  createChatRoomMutation.isPending ||
+                                  Boolean(isAuthor)
+                                }
+                              >
+                                {createChatRoomMutation.isPending
+                                  ? "채팅방 생성 중..."
+                                  : "메시지 보내기"}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {isAuthor && (
+                            <TooltipContent sideOffset={12}>
+                              <p>자신의 게시글에는 대화신청할 수 없습니다.</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   )}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            className="w-full"
-                            onClick={() => {
-                              if (!isAuthenticated) {
-                                router.push(`/login?redirect=/posts/${postId}`);
-                                return;
-                              }
-                              if (isAuthor) {
-                                return;
-                              }
-                              router.push(`/reservations/new?postId=${postId}`);
-                            }}
-                            disabled={isAuthor}
-                          >
-                            대여 신청
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {isAuthor && (
-                        <TooltipContent sideOffset={12}>
-                          <p>자신의 게시글에는 예약신청 할 수 없습니다.</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="w-full">
+                            <Button
+                              className="w-full"
+                              onClick={() => {
+                                if (!isAuthenticated) {
+                                  router.push(
+                                    `/login?redirect=/posts/${postId}`,
+                                  );
+                                  return;
+                                }
+                                if (isAuthor) {
+                                  return;
+                                }
+                                router.push(
+                                  `/reservations/new?postId=${postId}`,
+                                );
+                              }}
+                              disabled={Boolean(isAuthor)}
+                            >
+                              대여 신청
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {isAuthor && (
+                          <TooltipContent sideOffset={12}>
+                            <p>자신의 게시글에는 예약신청 할 수 없습니다.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -624,24 +686,33 @@ export default function PostDetailPage() {
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedReview({
-                                        id: review.id,
-                                        comment: review.comment,
-                                      });
-                                      setReviewReportDialogOpen(true);
-                                    }}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                  >
-                                    <Flag className="h-4 w-4" />
-                                  </Button>
+                                  <span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedReview({
+                                          id: review.id,
+                                          comment: review.comment,
+                                        });
+                                        setReviewReportDialogOpen(true);
+                                      }}
+                                      disabled={user?.id === review.author?.id}
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <Flag className="h-4 w-4" />
+                                    </Button>
+                                  </span>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>신고하기</p>
-                                </TooltipContent>
+                                {user?.id === review.author?.id ? (
+                                  <TooltipContent>
+                                    <p>자신의 후기는 신고할 수 없습니다.</p>
+                                  </TooltipContent>
+                                ) : (
+                                  <TooltipContent>
+                                    <p>신고하기</p>
+                                  </TooltipContent>
+                                )}
                               </Tooltip>
                             </TooltipProvider>
                           </div>
