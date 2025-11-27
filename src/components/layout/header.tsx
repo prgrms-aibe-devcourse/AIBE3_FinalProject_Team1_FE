@@ -23,6 +23,7 @@ import { MemberRole } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { useChatStore } from "@/store/chatStore";
 import { useLogoutMutation } from "@/queries/auth";
 import { useMeQuery } from "@/queries/user";
 
@@ -30,11 +31,19 @@ export function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuthStore();
   const { hasUnread } = useNotificationStore();
+  const rooms = useChatStore((state) => state.rooms);
   const logoutMutation = useLogoutMutation();
-  
+
   // 인증된 경우에만 me API 호출 (React Query 캐싱으로 불필요한 재요청 방지)
   // 소셜 로그인 후에는 콜백 페이지에서 이미 호출했으므로 캐시된 데이터 사용
   useMeQuery();
+
+  const totalChatUnread = rooms.reduce(
+    (sum, room) => sum + (room.unreadCount ?? 0),
+    0,
+  );
+
+  console.log("[HEADER] rooms count:", rooms.length, "totalUnread:", totalChatUnread);
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -78,7 +87,7 @@ export function Header() {
               </Link>
               <Link
                 href="/chat"
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   pathname === "/chat"
                     ? "bg-blue-50 text-blue-600"
                     : "text-gray-700 hover:bg-gray-100"
@@ -87,6 +96,11 @@ export function Header() {
               >
                 <MessageCircle className="h-5 w-5" />
                 <span className="hidden sm:inline">채팅</span>
+                {totalChatUnread > 0 && (
+                  <span className="absolute -right-1 -top-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                    {totalChatUnread}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/notifications"

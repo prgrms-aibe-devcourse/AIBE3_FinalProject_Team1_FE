@@ -31,7 +31,7 @@ import {
 /**
  * 채팅방 목록 조회 query
  */
-export function useChatRoomListQuery() {
+export function useChatRoomListQuery(enabled = true) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.chat.rooms),
     queryFn: async (): Promise<ChatRoomListDto[]> => {
@@ -46,6 +46,7 @@ export function useChatRoomListQuery() {
         return [];
       }
     },
+    enabled,
     // ChatPage 들어올 때마다 invalidateQueries로 1번 새로 가져오고
     // 그 이후에는 staleTime 무한 + refetch X 로 유지
     staleTime: Infinity,
@@ -198,10 +199,11 @@ export function useDeleteChatRoomMutation() {
 
 /**
  * 채팅방 읽음 처리 mutation
- * ✅ 읽음 처리는 서버에만 반영하고,
- *    목록(unreadCount)은 프론트에서 직접 수정 or 알림으로만 갱신
+ * ✅ 읽음 처리 후 채팅방 목록을 다시 불러와서 최신 unreadCount 반영
  */
 export function useMarkAsReadMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       roomId,
@@ -220,6 +222,11 @@ export function useMarkAsReadMutation() {
     },
     onSuccess: (_, variables) => {
       console.log("[Mark as read SUCCESS] roomId:", variables.roomId);
+      // 읽음 처리 성공 후 채팅방 목록 갱신
+      console.log("[Mark as read] Invalidating chat rooms query");
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.chat.rooms),
+      });
     },
     onError: (error) => {
       console.error("Mark as read error:", error);
