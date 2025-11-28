@@ -73,7 +73,7 @@ const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
 
 export default function PostsPage() {
   const { postFilters, setPostFilters, resetPostFilters } = useFilterStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [showFilters, setShowFilters] = useState(false);
   const [localKeyword, setLocalKeyword] = useState(postFilters.keyword || "");
 
@@ -874,6 +874,7 @@ export default function PostsPage() {
                             onClick={handleFavoriteClick}
                             className="absolute right-2 top-2 z-10 rounded-full bg-white bg-opacity-80 p-2 shadow-md hover:bg-opacity-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={
+                              !isAuthenticated ||
                               toggleFavoriteMutation.isPending ||
                               Boolean(isAuthor)
                             }
@@ -887,7 +888,12 @@ export default function PostsPage() {
                             />
                           </button>
                         </TooltipTrigger>
-                        {isAuthor && (
+                        {!isAuthenticated && (
+                          <TooltipContent>
+                            <p>로그인이 필요합니다.</p>
+                          </TooltipContent>
+                        )}
+                        {isAuthenticated && isAuthor && (
                           <TooltipContent>
                             <p>자신의 게시글에는 즐겨찾기를 할 수 없습니다.</p>
                           </TooltipContent>
