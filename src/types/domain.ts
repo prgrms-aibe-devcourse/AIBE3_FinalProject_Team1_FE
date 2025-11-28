@@ -126,6 +126,7 @@ export enum NotificationType {
   RESERVATION_CLAIM_COMPLETED = "RESERVATION_CLAIM_COMPLETED", // 예약 : 청구 완료
   RESERVATION_REJECTED = "RESERVATION_REJECTED", // 예약 : 승인 거절
   RESERVATION_CANCELLED = "RESERVATION_CANCELLED", // 예약 : 예약 취소
+  REVIEW_CREATED = "REVIEW_CREATED", // 리뷰 : 리뷰 작성
 }
 
 /**
@@ -202,6 +203,22 @@ export interface ReservationInfo {
 export interface ReservationNotificationData extends NotificationData {
   postInfo: PostInfo;
   reservationInfo: ReservationInfo;
+}
+
+/**
+ * 리뷰 정보 (알림용)
+ */
+export interface ReviewInfo {
+  id: number;
+  author: Author;
+}
+
+/**
+ * 리뷰 알림 데이터
+ */
+export interface ReviewNotificationData extends NotificationData {
+  reviewInfo: ReviewInfo;
+  postInfo: PostInfo;
 }
 
 /**

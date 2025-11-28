@@ -5,6 +5,7 @@ import type {
   NotificationResBody,
   NotificationType,
   ReservationNotificationData,
+  ReviewNotificationData,
 } from "@/types/domain";
 
 /**
@@ -18,6 +19,20 @@ function isReservationNotificationData(
     typeof data === "object" &&
     "postInfo" in data &&
     "reservationInfo" in data
+  );
+}
+
+/**
+ * 리뷰 알림 데이터 타입 가드
+ */
+function isReviewNotificationData(
+  data: unknown,
+): data is ReviewNotificationData {
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    "reviewInfo" in data &&
+    "postInfo" in data
   );
 }
 
@@ -95,6 +110,25 @@ function formatReservationNotificationMessage(
 }
 
 /**
+ * 리뷰 알림 타입별 메시지 포맷팅
+ */
+function formatReviewNotificationMessage(
+  notificationType: NotificationType,
+  data: ReviewNotificationData,
+): string {
+  const postTitle = data.postInfo?.title || "게시글";
+  const authorNickname = data.reviewInfo?.author?.nickname || "사용자";
+
+  switch (notificationType) {
+    case "REVIEW_CREATED":
+      return `${authorNickname}님이 "${postTitle}" 게시글에 리뷰를 작성했습니다.`;
+
+    default:
+      return `"${postTitle}" 게시글과 관련된 리뷰 알림입니다.`;
+  }
+}
+
+/**
  * 알림 메시지 포맷팅 함수
  * @param notification 알림 데이터
  * @returns 포맷팅된 알림 메시지
@@ -109,7 +143,11 @@ export function formatNotificationMessage(
     return formatReservationNotificationMessage(notificationType, data);
   }
 
+  // 리뷰 알림 타입인 경우
+  if (isReviewNotificationData(data)) {
+    return formatReviewNotificationMessage(notificationType, data);
+  }
+
   // 기타 알림 타입 (추후 확장 가능)
-  // 현재는 예약 알림만 지원
   return "알림 내용이 없습니다.";
 }
