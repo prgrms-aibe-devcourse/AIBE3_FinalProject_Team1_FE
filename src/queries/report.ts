@@ -8,18 +8,17 @@ import type { CreateReportDto, Report, ReportType } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
-import { useUIStore } from "@/store/uiStore";
-
 import {
+  banReportTarget,
   createReport,
-  deleteReport,
   getMyReports,
   getReport,
   getReportList,
   getReportsByType,
-  banReportTarget,
   unbanReportTarget,
 } from "@/api/endpoints/report";
+
+import { useUIStore } from "@/store/uiStore";
 
 /**
  * 신고 목록 조회 query (관리자용)
@@ -102,35 +101,6 @@ export function useCreateReportMutation() {
       console.error("Create report error:", error);
       const apiError = error as ApiError;
       const errorMessage = apiError.message || "신고 접수에 실패했습니다.";
-      showToast(errorMessage, "error");
-    },
-  });
-}
-
-/**
- * 신고 삭제 mutation (관리자용)
- */
-export function useDeleteReportMutation() {
-  const queryClient = useQueryClient();
-  const showToast = useUIStore((state) => state.showToast);
-
-  return useMutation({
-    mutationFn: (reportId: number) => deleteReport(reportId),
-    onSuccess: (_, reportId) => {
-      // 신고 상세 쿼리 제거
-      queryClient.removeQueries({
-        queryKey: getQueryKey(queryKeys.report.detail(reportId)),
-      });
-      // 신고 목록 쿼리 무효화
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.report.all),
-      });
-      showToast("신고가 삭제되었습니다.", "success");
-    },
-    onError: (error: unknown) => {
-      console.error("Delete report error:", error);
-      const apiError = error as ApiError;
-      const errorMessage = apiError.message || "신고 삭제에 실패했습니다.";
       showToast(errorMessage, "error");
     },
   });

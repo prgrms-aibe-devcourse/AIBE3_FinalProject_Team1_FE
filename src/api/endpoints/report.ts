@@ -39,13 +39,6 @@ export async function createReport(data: CreateReportDto): Promise<Report> {
 }
 
 /**
- * 신고 삭제 (관리자용)
- */
-export async function deleteReport(reportId: number): Promise<void> {
-  return apiClient.delete<void>(`/api/v1/reports/${reportId}`);
-}
-
-/**
  * 타입별 신고 목록 조회 (관리자용)
  */
 export async function getReportsByType(

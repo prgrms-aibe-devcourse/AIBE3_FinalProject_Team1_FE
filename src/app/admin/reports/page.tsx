@@ -16,7 +16,6 @@ import { Pagination } from "@/components/ui/pagination";
 import { useReportListQuery } from "@/queries/report";
 import {
   useBanReportTargetMutation,
-  useDeleteReportMutation,
   useUnbanReportTargetMutation,
 } from "@/queries/report";
 
@@ -30,6 +29,18 @@ import {
   Unlock,
   X,
 } from "lucide-react";
+
+/**
+ * 관리자 신고 목록 페이지
+ */
+
+/**
+ * 관리자 신고 목록 페이지
+ */
+
+/**
+ * 관리자 신고 목록 페이지
+ */
 
 /**
  * 관리자 신고 목록 페이지
@@ -76,7 +87,6 @@ export default function AdminReportsPage() {
   }
 
   const { data: reportsData, isLoading } = useReportListQuery(filters);
-  const deleteMutation = useDeleteReportMutation();
   const banMutation = useBanReportTargetMutation();
   const unbanMutation = useUnbanReportTargetMutation();
 
@@ -93,16 +103,6 @@ export default function AdminReportsPage() {
     pending: Math.floor(totalElements * 0.3), // 임시: 전체의 30%
     sanctioned: Math.floor(totalElements * 0.2), // 임시: 전체의 20%
     rejected: Math.floor(totalElements * 0.1), // 임시: 전체의 10%
-  };
-
-  const handleDelete = async (reportId: number) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
-
-    try {
-      await deleteMutation.mutateAsync(reportId);
-    } catch {
-      // 에러는 mutation에서 처리됨
-    }
   };
 
   const handleBan = async (reportType: ReportType, targetId: number) => {
@@ -354,16 +354,6 @@ export default function AdminReportsPage() {
                         >
                           <Unlock className="h-4 w-4 mr-1" />
                           해제
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(report.id)}
-                          disabled={deleteMutation.isPending}
-                          className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          삭제
                         </Button>
                       </div>
                     </td>
