@@ -938,7 +938,7 @@ export default function PostDetailPage() {
                     return (
                       <div
                         key={review.id}
-                        className="border-b pb-6 last:border-0 relative"
+                        className="border-b border-gray-100 pb-6 last:border-0 relative"
                       >
                         {/* 신고하기 버튼 - 우측 상단 */}
                         {isAuthenticated && (
