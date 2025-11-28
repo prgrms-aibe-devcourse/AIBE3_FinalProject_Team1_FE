@@ -87,3 +87,17 @@ export async function getReviewByReservation(
     `/api/v1/reservations/${reservationId}/review`,
   );
 }
+
+/**
+ * 리뷰 제재 (관리자용 - 신고 처리)
+ */
+export async function banReviewByAdmin(reviewId: number): Promise<void> {
+  return apiClient.patch<void>(`/api/v1/adm/reviews/${reviewId}/ban`, {});
+}
+
+/**
+ * 리뷰 제재 해제 (관리자용 - 신고 처리)
+ */
+export async function unbanReviewByAdmin(reviewId: number): Promise<void> {
+  return apiClient.patch<void>(`/api/v1/adm/reviews/${reviewId}/unban`, {});
+}

@@ -2,11 +2,16 @@
  * 신고 관련 API 엔드포인트
  */
 import type { PaginatedApiResponse } from "@/types/api";
-import type { CreateReportDto, Report, ReportType } from "@/types/domain";
+import type { CreateReportDto, Report } from "@/types/domain";
+import { ReportType } from "@/types/domain";
 
 import { buildQueryParams } from "@/lib/utils/api-params";
 
 import { apiClient } from "@/api/client";
+
+import { banPostByAdmin, unbanPostByAdmin } from "./post";
+import { banReviewByAdmin, unbanReviewByAdmin } from "./review";
+import { banUserByAdmin, unbanUserByAdmin } from "./user";
 
 /**
  * 신고 목록 조회 (관리자용)
@@ -34,13 +39,6 @@ export async function createReport(data: CreateReportDto): Promise<Report> {
 }
 
 /**
- * 신고 삭제 (관리자용)
- */
-export async function deleteReport(reportId: number): Promise<void> {
-  return apiClient.delete<void>(`/api/v1/reports/${reportId}`);
-}
-
-/**
  * 타입별 신고 목록 조회 (관리자용)
  */
 export async function getReportsByType(
@@ -62,4 +60,42 @@ export async function getMyReports(
   const params = buildQueryParams(filters);
   const endpoint = `/api/v1/reports/me${params.toString() ? `?${params.toString()}` : ""}`;
   return apiClient.get<PaginatedApiResponse<Report>>(endpoint);
+}
+
+/**
+ * 신고 타입에 따른 제재 등록
+ */
+export async function banReportTarget(
+  reportType: ReportType,
+  targetId: number,
+): Promise<void> {
+  switch (reportType) {
+    case ReportType.MEMBER:
+      return banUserByAdmin(targetId);
+    case ReportType.POST:
+      return banPostByAdmin(targetId);
+    case ReportType.REVIEW:
+      return banReviewByAdmin(targetId);
+    default:
+      throw new Error(`Unsupported report type: ${reportType}`);
+  }
+}
+
+/**
+ * 신고 타입에 따른 제재 해제
+ */
+export async function unbanReportTarget(
+  reportType: ReportType,
+  targetId: number,
+): Promise<void> {
+  switch (reportType) {
+    case ReportType.MEMBER:
+      return unbanUserByAdmin(targetId);
+    case ReportType.POST:
+      return unbanPostByAdmin(targetId);
+    case ReportType.REVIEW:
+      return unbanReviewByAdmin(targetId);
+    default:
+      throw new Error(`Unsupported report type: ${reportType}`);
+  }
 }

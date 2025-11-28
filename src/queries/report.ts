@@ -8,16 +8,17 @@ import type { CreateReportDto, Report, ReportType } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
-import { useUIStore } from "@/store/uiStore";
-
 import {
+  banReportTarget,
   createReport,
-  deleteReport,
   getMyReports,
   getReport,
   getReportList,
   getReportsByType,
+  unbanReportTarget,
 } from "@/api/endpoints/report";
+
+import { useUIStore } from "@/store/uiStore";
 
 /**
  * 신고 목록 조회 query (관리자용)
@@ -106,29 +107,62 @@ export function useCreateReportMutation() {
 }
 
 /**
- * 신고 삭제 mutation (관리자용)
+ * 신고 대상 제재 mutation (관리자용)
  */
-export function useDeleteReportMutation() {
+export function useBanReportTargetMutation() {
   const queryClient = useQueryClient();
   const showToast = useUIStore((state) => state.showToast);
 
   return useMutation({
-    mutationFn: (reportId: number) => deleteReport(reportId),
-    onSuccess: (_, reportId) => {
-      // 신고 상세 쿼리 제거
-      queryClient.removeQueries({
-        queryKey: getQueryKey(queryKeys.report.detail(reportId)),
-      });
+    mutationFn: ({
+      reportType,
+      targetId,
+    }: {
+      reportType: ReportType;
+      targetId: number;
+    }) => banReportTarget(reportType, targetId),
+    onSuccess: () => {
       // 신고 목록 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.report.all),
       });
-      showToast("신고가 삭제되었습니다.", "success");
+      showToast("제재가 적용되었습니다.", "success");
     },
     onError: (error: unknown) => {
-      console.error("Delete report error:", error);
+      console.error("Ban report target error:", error);
       const apiError = error as ApiError;
-      const errorMessage = apiError.message || "신고 삭제에 실패했습니다.";
+      const errorMessage = apiError.message || "제재 적용에 실패했습니다.";
+      showToast(errorMessage, "error");
+    },
+  });
+}
+
+/**
+ * 신고 대상 제재 해제 mutation (관리자용)
+ */
+export function useUnbanReportTargetMutation() {
+  const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: ({
+      reportType,
+      targetId,
+    }: {
+      reportType: ReportType;
+      targetId: number;
+    }) => unbanReportTarget(reportType, targetId),
+    onSuccess: () => {
+      // 신고 목록 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.report.all),
+      });
+      showToast("제재가 해제되었습니다.", "success");
+    },
+    onError: (error: unknown) => {
+      console.error("Unban report target error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "제재 해제에 실패했습니다.";
       showToast(errorMessage, "error");
     },
   });

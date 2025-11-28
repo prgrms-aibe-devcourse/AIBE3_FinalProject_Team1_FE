@@ -79,3 +79,17 @@ export async function banUser(userId: number): Promise<MemberResponse> {
 export async function unbanUser(userId: number): Promise<MemberResponse> {
   return apiClient.put<MemberResponse>(`/api/v1/members/${userId}/unban`, {});
 }
+
+/**
+ * 사용자 제재 (관리자용 - 신고 처리, /api/v1/adm 경로)
+ */
+export async function banUserByAdmin(userId: number): Promise<void> {
+  return apiClient.patch<void>(`/api/v1/adm/members/${userId}/ban`, {});
+}
+
+/**
+ * 사용자 제재 해제 (관리자용 - 신고 처리, /api/v1/adm 경로)
+ */
+export async function unbanUserByAdmin(userId: number): Promise<void> {
+  return apiClient.patch<void>(`/api/v1/adm/members/${userId}/unban`, {});
+}
