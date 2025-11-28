@@ -111,3 +111,17 @@ export async function getPostsByRegion(
 export async function getReservedDates(postId: number): Promise<string[]> {
   return apiClient.get<string[]>(`/api/v1/posts/${postId}/reserved-dates`);
 }
+
+/**
+ * 게시글 제재 (관리자용 - 신고 처리)
+ */
+export async function banPostByAdmin(postId: number): Promise<void> {
+  return apiClient.patch<void>(`/api/v1/adm/posts/${postId}/ban`, {});
+}
+
+/**
+ * 게시글 제재 해제 (관리자용 - 신고 처리)
+ */
+export async function unbanPostByAdmin(postId: number): Promise<void> {
+  return apiClient.patch<void>(`/api/v1/adm/posts/${postId}/unban`, {});
+}

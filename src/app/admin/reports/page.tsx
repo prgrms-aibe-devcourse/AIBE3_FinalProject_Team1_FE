@@ -14,9 +14,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 
 import { useReportListQuery } from "@/queries/report";
-import { useDeleteReportMutation } from "@/queries/report";
+import {
+  useBanReportTargetMutation,
+  useDeleteReportMutation,
+  useUnbanReportTargetMutation,
+} from "@/queries/report";
 
-import { AlertCircle, Clock, Flag, Info, Trash2, X } from "lucide-react";
+import {
+  AlertCircle,
+  Ban,
+  Clock,
+  Flag,
+  Info,
+  Trash2,
+  Unlock,
+  X,
+} from "lucide-react";
+
+/**
+ * 관리자 신고 목록 페이지
+ */
 
 /**
  * 관리자 신고 목록 페이지
@@ -60,6 +77,8 @@ export default function AdminReportsPage() {
 
   const { data: reportsData, isLoading } = useReportListQuery(filters);
   const deleteMutation = useDeleteReportMutation();
+  const banMutation = useBanReportTargetMutation();
+  const unbanMutation = useUnbanReportTargetMutation();
 
   const reports =
     reportsData && "content" in reportsData ? reportsData.content : [];
@@ -81,6 +100,26 @@ export default function AdminReportsPage() {
 
     try {
       await deleteMutation.mutateAsync(reportId);
+    } catch {
+      // 에러는 mutation에서 처리됨
+    }
+  };
+
+  const handleBan = async (reportType: ReportType, targetId: number) => {
+    if (!confirm("해당 대상을 제재하시겠습니까?")) return;
+
+    try {
+      await banMutation.mutateAsync({ reportType, targetId });
+    } catch {
+      // 에러는 mutation에서 처리됨
+    }
+  };
+
+  const handleUnban = async (reportType: ReportType, targetId: number) => {
+    if (!confirm("해당 대상의 제재를 해제하시겠습니까?")) return;
+
+    try {
+      await unbanMutation.mutateAsync({ reportType, targetId });
     } catch {
       // 에러는 mutation에서 처리됨
     }
@@ -287,16 +326,46 @@ export default function AdminReportsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(report.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        삭제
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleBan(report.reportType, report.targetId)
+                          }
+                          disabled={
+                            banMutation.isPending || unbanMutation.isPending
+                          }
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Ban className="h-4 w-4 mr-1" />
+                          제재
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleUnban(report.reportType, report.targetId)
+                          }
+                          disabled={
+                            banMutation.isPending || unbanMutation.isPending
+                          }
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Unlock className="h-4 w-4 mr-1" />
+                          해제
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(report.id)}
+                          disabled={deleteMutation.isPending}
+                          className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          삭제
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

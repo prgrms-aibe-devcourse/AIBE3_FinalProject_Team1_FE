@@ -17,6 +17,8 @@ import {
   getReport,
   getReportList,
   getReportsByType,
+  banReportTarget,
+  unbanReportTarget,
 } from "@/api/endpoints/report";
 
 /**
@@ -129,6 +131,68 @@ export function useDeleteReportMutation() {
       console.error("Delete report error:", error);
       const apiError = error as ApiError;
       const errorMessage = apiError.message || "신고 삭제에 실패했습니다.";
+      showToast(errorMessage, "error");
+    },
+  });
+}
+
+/**
+ * 신고 대상 제재 mutation (관리자용)
+ */
+export function useBanReportTargetMutation() {
+  const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: ({
+      reportType,
+      targetId,
+    }: {
+      reportType: ReportType;
+      targetId: number;
+    }) => banReportTarget(reportType, targetId),
+    onSuccess: () => {
+      // 신고 목록 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.report.all),
+      });
+      showToast("제재가 적용되었습니다.", "success");
+    },
+    onError: (error: unknown) => {
+      console.error("Ban report target error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "제재 적용에 실패했습니다.";
+      showToast(errorMessage, "error");
+    },
+  });
+}
+
+/**
+ * 신고 대상 제재 해제 mutation (관리자용)
+ */
+export function useUnbanReportTargetMutation() {
+  const queryClient = useQueryClient();
+  const showToast = useUIStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: ({
+      reportType,
+      targetId,
+    }: {
+      reportType: ReportType;
+      targetId: number;
+    }) => unbanReportTarget(reportType, targetId),
+    onSuccess: () => {
+      // 신고 목록 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.report.all),
+      });
+      showToast("제재가 해제되었습니다.", "success");
+    },
+    onError: (error: unknown) => {
+      console.error("Unban report target error:", error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || "제재 해제에 실패했습니다.";
       showToast(errorMessage, "error");
     },
   });
