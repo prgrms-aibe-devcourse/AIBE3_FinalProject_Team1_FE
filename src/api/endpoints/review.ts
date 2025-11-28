@@ -101,3 +101,14 @@ export async function banReviewByAdmin(reviewId: number): Promise<void> {
 export async function unbanReviewByAdmin(reviewId: number): Promise<void> {
   return apiClient.patch<void>(`/api/v1/adm/reviews/${reviewId}/unban`, {});
 }
+
+/**
+ * 게시글별 후기 요약 조회
+ */
+export async function getPostReviewSummary(
+  postId: number,
+): Promise<import("@/types/domain").ReviewSummary> {
+  return apiClient.get<import("@/types/domain").ReviewSummary>(
+    `/api/v1/posts/${postId}/review-summary`,
+  );
+}
