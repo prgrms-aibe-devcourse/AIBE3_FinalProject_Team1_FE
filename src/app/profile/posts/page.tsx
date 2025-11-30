@@ -134,6 +134,7 @@ function PostCard({ post }: { post: Post }) {
 
   const { data: reservationsData, isLoading: reservationsLoading } =
     useReservationsByPostQuery(post.id, {
+      sort: ["id,desc"], // 최신순 정렬
       enabled: isExpanded, // 펼쳐졌을 때만 조회
     });
 

@@ -103,3 +103,12 @@ export async function getReviewSummary(
     `/api/v1/members/${memberId}/review-summary`,
   );
 }
+
+/**
+ * 회원별 AI 후기 요약 조회
+ */
+export async function getMemberReviewAISummary(
+  memberId: number,
+): Promise<string> {
+  return apiClient.get<string>(`/api/v1/members/${memberId}/reviews/summary`);
+}

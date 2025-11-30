@@ -101,9 +101,13 @@ export default function TossWidgetsPaymentPage() {
 
     // 계산된 총 금액 사용 (post 정보가 필요하므로 post가 로드된 후에만 실행)
     const amount = totalAmount;
+    // 0원인 경우 프론트엔드에서 성공 처리 (성공 페이지로 리다이렉트)
     if (amount <= 0) {
-      setError("결제 금액이 올바르지 않습니다.");
-      setLoading(false);
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const orderId = `reservation-${reservation.id}-${Date.now()}`;
+      const successUrl = `${origin}/payments/toss/success?reservationId=${reservation.id}&orderId=${orderId}&amount=0`;
+      window.location.href = successUrl;
       return;
     }
 

@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type {
   CreateReviewDto,
+  Reservation,
   Review,
   ReviewSummary,
   UpdateReviewDto,
@@ -16,6 +17,7 @@ import { getQueryKey, queryKeys } from "@/lib/query-keys";
 import {
   createReview,
   deleteReview,
+  getPostReviewAISummary,
   getPostReviewSummary,
   getReview,
   getReviewByReservation,
@@ -163,6 +165,40 @@ export function useCreateReviewMutation() {
           queryKeys.reservation.detail(response.reservationId),
         ),
       });
+      // 예약 목록 쿼리에서 해당 예약의 hasReviewed를 true로 업데이트
+      queryClient.setQueriesData<
+        PaginatedApiResponse<Reservation> | Reservation[]
+      >(
+        {
+          queryKey: getQueryKey(queryKeys.reservation.myReservations),
+        },
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          // PaginatedApiResponse인 경우
+          if ("content" in oldData && Array.isArray(oldData.content)) {
+            return {
+              ...oldData,
+              content: oldData.content.map((reservation) =>
+                reservation.id === response.reservationId
+                  ? { ...reservation, hasReviewed: true }
+                  : reservation,
+              ),
+            };
+          }
+
+          // 배열인 경우
+          if (Array.isArray(oldData)) {
+            return oldData.map((reservation) =>
+              reservation.id === response.reservationId
+                ? { ...reservation, hasReviewed: true }
+                : reservation,
+            );
+          }
+
+          return oldData;
+        },
+      );
       showToast("후기가 생성되었습니다.", "success");
     },
     onError: (error: unknown) => {
@@ -267,5 +303,31 @@ export function usePostReviewSummaryQuery(postId: number | undefined) {
     },
     enabled: !!postId,
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+  });
+}
+
+/**
+ * 게시글별 AI 후기 요약 조회 query
+ * @param postId - 게시글 ID
+ */
+export function usePostReviewAISummaryQuery(postId: number | undefined) {
+  return useQuery({
+    queryKey: getQueryKey(queryKeys.review.postSummary(postId!)).concat([
+      "ai-summary",
+    ]),
+    queryFn: async (): Promise<string | null> => {
+      if (!postId) {
+        return null;
+      }
+      try {
+        return await getPostReviewAISummary(postId);
+      } catch (error) {
+        console.error("Failed to fetch post review AI summary:", error);
+        return null;
+      }
+    },
+    enabled: !!postId,
+    staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+    retry: false, // API 실패 시 재시도하지 않음
   });
 }
