@@ -3,8 +3,11 @@
  */
 "use client";
 
+import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import type { Post } from "@/types/domain";
 
@@ -16,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 import { usePostListQuery } from "@/queries/post";
 
@@ -23,7 +27,9 @@ import {
   Camera,
   MessageSquare,
   Search,
+  Send,
   Shield,
+  Sparkles,
   Star,
   TrendingUp,
 } from "lucide-react";
@@ -77,9 +83,23 @@ import {
  */
 
 export default function Home() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: postsData, isLoading } = usePostListQuery();
   const posts = Array.isArray(postsData) ? postsData : postsData?.content || [];
   const featuredPosts = posts.slice(0, 6);
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
 
   return (
     <div className="flex flex-col">
@@ -95,6 +115,38 @@ export default function Home() {
               <p className="mb-10 text-xl text-blue-50 md:text-2xl">
                 필요한 장비를 쉽고 빠르게 대여하세요
               </p>
+              {/* AI 검색 바 */}
+              <div className="mb-8">
+                <div
+                  className="relative flex items-center rounded-lg max-w-2xl mx-auto"
+                  style={{
+                    background:
+                      "linear-gradient(white, white) padding-box, linear-gradient(135deg, rgba(51, 133, 255, 0.5), rgba(125, 94, 247, 0.5), rgba(250, 115, 227, 0.5), rgba(255, 123, 46, 0.5), rgba(51, 133, 255, 0.5)) border-box",
+                    border: "1px solid transparent",
+                  }}
+                >
+                  <div className="flex-1 flex items-center bg-white rounded-lg">
+              <div className="pl-4 pr-2">
+                <Sparkles className="h-6 w-6 text-blue-500" />
+              </div>
+                    <Input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="어떤 장비를 찾고 있나요?"
+                      className="flex-1 border-0 text-gray-900 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleSearch}
+                      className="m-2 h-12 w-12 rounded-full bg-blue-500 hover:bg-blue-600 p-0"
+                    >
+                      <Send className="h-6 w-6 text-white" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
               <div className="flex flex-col justify-center gap-4 sm:flex-row">
                 <Link href="/posts">
                   <button className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-lg font-medium text-blue-600 shadow-lg transition-colors hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">

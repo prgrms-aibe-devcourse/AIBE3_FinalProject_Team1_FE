@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type {
+  AISearchResponse,
   CreatePostDto,
   Post,
   PostListFilters,
@@ -21,6 +22,7 @@ import {
   getPostList,
   getPostsByCategory,
   getPostsByRegion,
+  searchPostsByAI,
   updatePost,
 } from "@/api/endpoints/post";
 
@@ -269,5 +271,32 @@ export function useDeletePostMutation() {
       const errorMessage = apiError.message || "게시글 삭제에 실패했습니다.";
       showToast(errorMessage, "error");
     },
+  });
+}
+
+/**
+ * AI 검색 query
+ */
+export function useAISearchQuery(query: string | null) {
+  return useQuery({
+    queryKey: getQueryKey(queryKeys.post.search(query || "")),
+    queryFn: async (): Promise<AISearchResponse | null> => {
+      if (!query || query.trim() === "") {
+        return null;
+      }
+      try {
+        const result = await searchPostsByAI(query);
+        if (process.env.NODE_ENV === "development") {
+          console.log("[useAISearchQuery] Search result:", result);
+        }
+        return result;
+      } catch (error) {
+        console.error("Failed to search posts by AI:", error);
+        throw error; // React Query가 에러를 처리하도록 throw
+      }
+    },
+    enabled: !!query && query.trim() !== "",
+    staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+    retry: false,
   });
 }

@@ -125,3 +125,19 @@ export async function banPostByAdmin(postId: number): Promise<void> {
 export async function unbanPostByAdmin(postId: number): Promise<void> {
   return apiClient.patch<void>(`/api/v1/adm/posts/${postId}/unban`, {});
 }
+
+/**
+ * AI 검색
+ */
+export async function searchPostsByAI(
+  query: string,
+): Promise<import("@/types/domain").AISearchResponse> {
+  const params = new URLSearchParams({ query });
+  const result = await apiClient.get<import("@/types/domain").AISearchResponse>(
+    `/api/v1/posts/search/ai?${params.toString()}`,
+  );
+  if (process.env.NODE_ENV === "development") {
+    console.log("[searchPostsByAI] Raw result:", result);
+  }
+  return result;
+}

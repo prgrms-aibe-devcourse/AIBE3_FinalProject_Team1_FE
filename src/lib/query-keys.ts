@@ -38,6 +38,7 @@ export const postKeys = createQueryKeys("post", {
   myPosts: (filters?: Record<string, unknown>) => [filters ?? {}],
   byCategory: (categoryId: number) => [categoryId],
   byRegion: (regionId: number) => [regionId],
+  search: (query: string) => [query],
 });
 
 /**

@@ -53,8 +53,22 @@ class ApiClient {
       }
 
       const result: ApiResponse<T> = await response.json();
+      
+      // 개발 환경에서 응답 로그
+      if (process.env.NODE_ENV === "development") {
+        console.log("[API Client] GET Response:", {
+          url,
+          status: result.status,
+          hasData: result.data !== undefined,
+          dataType: typeof result.data,
+        });
+      }
+      
       // data가 undefined인 경우를 방지
       if (result.data === undefined) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[API Client] Response data is undefined:", result);
+        }
         throw new Error("API response data is undefined");
       }
       return result.data;
