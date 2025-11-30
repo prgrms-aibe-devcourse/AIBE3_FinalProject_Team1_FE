@@ -122,8 +122,12 @@ function ChatPage() {
   }, [selectedRoomId, setCurrentRoomId]);
 
   useEffect(() => {
-    setRooms(chatRoomsInitial);
-  }, [chatRoomsInitial, setRooms]);
+    // chatRoomsInitial이 실제로 변경되었을 때만 업데이트
+    if (chatRoomsInitial.length > 0 || chatRooms.length === 0) {
+      setRooms(chatRoomsInitial);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatRoomsInitial]);
 
   /* ======================
      메시지 페이지네이션

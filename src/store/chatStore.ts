@@ -22,6 +22,19 @@ export const useChatStore = create<ChatState>((set) => ({
 
   setRooms: (rooms) =>
     set((state) => {
+      // rooms가 실제로 변경되지 않았으면 상태 업데이트하지 않음
+      if (
+        state.rooms.length === rooms.length &&
+        state.rooms.every(
+          (room, index) =>
+            room.id === rooms[index]?.id &&
+            room.unreadCount === rooms[index]?.unreadCount &&
+            room.lastMessageTime === rooms[index]?.lastMessageTime,
+        )
+      ) {
+        return state; // 상태 변경 없음
+      }
+
       console.log(
         "[STORE] setRooms called, currentRoomId:",
         state.currentRoomId,
