@@ -141,6 +141,7 @@ export default function MyReservationsPage() {
     useMyReservationsQuery({
       page: page,
       size: pageSize,
+      sort: ["id,desc"], // 최신순 정렬
       ...(statusFilter !== "all" && { status: statusFilter }),
     });
 

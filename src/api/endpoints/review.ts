@@ -112,3 +112,15 @@ export async function getPostReviewSummary(
     `/api/v1/posts/${postId}/review-summary`,
   );
 }
+
+/**
+ * 게시글별 AI 후기 요약 조회
+ */
+export async function getPostReviewAISummary(
+  postId: number,
+): Promise<string> {
+  // apiClient.get은 이미 result.data를 반환하므로 string 타입으로 지정
+  return apiClient.get<string>(
+    `/api/v1/posts/${postId}/reviews/summary`,
+  );
+}
