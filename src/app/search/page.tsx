@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -32,7 +32,7 @@ const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   ANY: "상관없음",
 };
 
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryParam = searchParams.get("q") || "";
@@ -330,6 +330,14 @@ export default function SearchPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">로딩 중...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
 
