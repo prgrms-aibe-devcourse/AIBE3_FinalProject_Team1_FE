@@ -4,13 +4,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiError, PaginatedApiResponse } from "@/types/api";
-import type { CreateReviewDto, Review, UpdateReviewDto } from "@/types/domain";
+import type {
+  CreateReviewDto,
+  Review,
+  ReviewSummary,
+  UpdateReviewDto,
+} from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
 import {
   createReview,
   deleteReview,
+  getPostReviewSummary,
   getReview,
   getReviewByReservation,
   getReviewList,
@@ -238,5 +244,28 @@ export function useDeleteReviewMutation() {
       const errorMessage = apiError.message || "후기 삭제에 실패했습니다.";
       showToast(errorMessage, "error");
     },
+  });
+}
+
+/**
+ * 게시글별 후기 요약 조회 query
+ * @param postId - 게시글 ID
+ */
+export function usePostReviewSummaryQuery(postId: number | undefined) {
+  return useQuery({
+    queryKey: getQueryKey(queryKeys.review.postSummary(postId!)),
+    queryFn: async (): Promise<ReviewSummary | null> => {
+      if (!postId) {
+        return null;
+      }
+      try {
+        return await getPostReviewSummary(postId);
+      } catch (error) {
+        console.error("Failed to fetch post review summary:", error);
+        return null;
+      }
+    },
+    enabled: !!postId,
+    staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
   });
 }

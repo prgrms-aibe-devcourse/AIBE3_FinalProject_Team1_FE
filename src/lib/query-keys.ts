@@ -25,6 +25,7 @@ export const userKeys = createQueryKeys("user", {
   detail: (userId: number) => [userId],
   me: null,
   list: (filters?: Record<string, unknown>) => [filters ?? {}],
+  reviewSummary: (memberId: number) => [memberId, "review-summary"],
 });
 
 /**
@@ -62,6 +63,7 @@ export const reviewKeys = createQueryKeys("review", {
   byPost: (postId: number) => [postId],
   byMember: (memberId: number) => [memberId],
   byReservation: (reservationId: number) => [reservationId],
+  postSummary: (postId: number) => [postId, "review-summary"],
 });
 
 /**

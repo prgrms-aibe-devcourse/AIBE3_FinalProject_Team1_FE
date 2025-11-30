@@ -99,6 +99,17 @@ export interface CreateReportDto {
 }
 
 /**
+ * 사용자 후기 요약 정보
+ */
+export interface ReviewSummary {
+  equipmentScore: number;
+  kindnessScore: number;
+  responseTimeScore: number;
+  avgScore: number;
+  count: number;
+}
+
+/**
  * 알림 그룹 타입
  */
 export enum NotificationGroupType {
