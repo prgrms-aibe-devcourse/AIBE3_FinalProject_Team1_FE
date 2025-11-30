@@ -16,6 +16,7 @@ import {
   banUser,
   deleteUser,
   getMe,
+  getMemberReviewAISummary,
   getReviewSummary,
   getUser,
   getUserList,
@@ -317,14 +318,36 @@ export function useReviewSummaryQuery(memberId: number | undefined) {
       if (!memberId) {
         return null;
       }
+      return await getReviewSummary(memberId);
+    },
+    enabled: !!memberId,
+    staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+    retry: false, // API 실패 시 재시도하지 않음
+  });
+}
+
+/**
+ * 회원별 AI 후기 요약 조회 query
+ * @param memberId - 회원 ID
+ */
+export function useMemberReviewAISummaryQuery(memberId: number | undefined) {
+  return useQuery({
+    queryKey: getQueryKey(queryKeys.user.reviewSummary(memberId!)).concat([
+      "ai-summary",
+    ]),
+    queryFn: async (): Promise<string | null> => {
+      if (!memberId) {
+        return null;
+      }
       try {
-        return await getReviewSummary(memberId);
+        return await getMemberReviewAISummary(memberId);
       } catch (error) {
-        console.error("Failed to fetch review summary:", error);
+        console.error("Failed to fetch member review AI summary:", error);
         return null;
       }
     },
     enabled: !!memberId,
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+    retry: false, // API 실패 시 재시도하지 않음
   });
 }

@@ -25,12 +25,16 @@ import {
 } from "@/components/ui/tooltip";
 
 import { useReviewsByMemberQuery } from "@/queries/review";
-import { useReviewSummaryQuery, useUserQuery } from "@/queries/user";
+import {
+  useMemberReviewAISummaryQuery,
+  useReviewSummaryQuery,
+  useUserQuery,
+} from "@/queries/user";
 import { parseLocalDateString } from "@/lib/utils";
 
 import { useAuthStore } from "@/store/authStore";
 
-import { Star, Flag } from "lucide-react";
+import { ChevronDown, ChevronUp, Flag, Sparkles, Star } from "lucide-react";
 
 type ProfileReviewDialogProps = {
   open: boolean;
@@ -52,6 +56,7 @@ export function ProfileReviewDialog({
     id: number;
     comment: string;
   } | null>(null);
+  const [isAISummaryExpanded, setIsAISummaryExpanded] = useState(true);
   const pageSize = 5;
   const { user } = useAuthStore();
 
@@ -63,6 +68,8 @@ export function ProfileReviewDialog({
   const { data: reviewSummary } = useReviewSummaryQuery(
     effectiveMemberId ?? undefined,
   );
+  const { data: aiSummary, isLoading: isAISummaryLoading } =
+    useMemberReviewAISummaryQuery(effectiveMemberId ?? undefined);
 
   const { data: reviewsData, isLoading } = useReviewsByMemberQuery(
     effectiveMemberId ?? 0,
@@ -106,9 +113,9 @@ export function ProfileReviewDialog({
           <DialogTitle>프로필</DialogTitle>
         </DialogHeader>
 
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 flex flex-col max-h-[80vh]">
           {/* 프로필 상단 요약 */}
-          <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
+          <div className="flex items-center gap-4 pb-4 border-b border-gray-200 flex-shrink-0">
             <div className="relative h-16 w-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
               {author?.profileImgUrl ? (
                 <Image
@@ -174,17 +181,70 @@ export function ProfileReviewDialog({
           </div>
 
           {/* 후기 목록 */}
-          <div className="space-y-4 max-h-[420px] overflow-y-auto">
-            {isLoading ? (
-              <div className="py-12 text-center text-gray-400 text-sm">
-                후기를 불러오는 중입니다...
+          <div className="flex flex-col flex-1 min-h-0 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex-shrink-0">
+              후기
+            </h3>
+            {/* AI 후기 요약 */}
+            {isAISummaryLoading ? (
+              <div className="mb-4 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-4 border border-blue-100 flex-shrink-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="h-5 w-5 text-blue-600 animate-pulse" />
+                  <h4 className="text-base font-semibold text-gray-900">
+                    AI 후기 요약
+                  </h4>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <div className="h-2 w-2 bg-blue-600 rounded-full animate-bounce" />
+                  <div
+                    className="h-2 w-2 bg-blue-600 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  />
+                  <div
+                    className="h-2 w-2 bg-blue-600 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.4s" }}
+                  />
+                  <p className="ml-2 text-sm">AI 후기 요약 생성중입니다...</p>
+                </div>
               </div>
-            ) : reviews.length === 0 ? (
-              <div className="py-12 text-center text-gray-400 text-sm">
-                아직 받은 후기가 없습니다.
+            ) : aiSummary &&
+              aiSummary.trim() &&
+              aiSummary.trim() !== "후기가 없습니다." ? (
+              <div className="mb-4 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-4 border border-blue-100 flex-shrink-0">
+                <button
+                  onClick={() => setIsAISummaryExpanded(!isAISummaryExpanded)}
+                  className="w-full flex items-center justify-between gap-2 mb-3 hover:opacity-80 transition-opacity"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    <h4 className="text-base font-semibold text-gray-900">
+                      AI 후기 요약
+                    </h4>
+                  </div>
+                  {isAISummaryExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-gray-600" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-gray-600" />
+                  )}
+                </button>
+                {isAISummaryExpanded && (
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed text-sm">
+                    {aiSummary}
+                  </p>
+                )}
               </div>
-            ) : (
-              reviews.map((review) => {
+            ) : null}
+            <div className="flex-1 overflow-y-auto space-y-4 min-h-0">
+              {isLoading ? (
+                <div className="py-12 text-center text-gray-400 text-sm">
+                  후기를 불러오는 중입니다...
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="py-12 text-center text-gray-400 text-sm">
+                  아직 받은 후기가 없습니다.
+                </div>
+              ) : (
+                reviews.map((review) => {
                 const overallScore =
                   (review.equipmentScore +
                     review.kindnessScore +
@@ -291,21 +351,21 @@ export function ProfileReviewDialog({
                   </div>
                 );
               })
-            )}
+              )}
+              {/* 페이지네이션 */}
+              {totalPages > 1 && (
+                <div className="pt-2 flex justify-center flex-shrink-0">
+                  <Pagination
+                    currentPage={page + 1}
+                    totalPages={totalPages}
+                    onPageChange={(newPage) => setPage(newPage - 1)}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* 페이지네이션 */}
-          {totalPages > 1 && (
-            <div className="pt-2 flex justify-center">
-              <Pagination
-                currentPage={page + 1}
-                totalPages={totalPages}
-                onPageChange={(newPage) => setPage(newPage - 1)}
-              />
-            </div>
-          )}
-
-          <div className="pt-2 flex justify-end gap-2">
+          <div className="pt-2 flex justify-end gap-2 flex-shrink-0">
             {effectiveMemberId && (
               <TooltipProvider>
                 <Tooltip>

@@ -42,6 +42,7 @@ import { useDeletePostMutation, usePostQuery } from "@/queries/post";
 import { useToggleFavoriteMutation } from "@/queries/post-favorite";
 import { useRegionListQuery } from "@/queries/region";
 import {
+  usePostReviewAISummaryQuery,
   usePostReviewSummaryQuery,
   useReviewsByPostQuery,
 } from "@/queries/review";
@@ -55,11 +56,40 @@ import {
   Heart,
   MapPin,
   RotateCcw,
+  Sparkles,
   Star,
   Trash2,
   Truck,
   User,
 } from "lucide-react";
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
+
+/**
+ * 게시글 상세 페이지
+ */
 
 /**
  * 게시글 상세 페이지
@@ -81,13 +111,19 @@ export default function PostDetailPage() {
     size: reviewPageSize,
   });
   const { data: postReviewSummary } = usePostReviewSummaryQuery(postId);
+  const { data: aiSummary, isLoading: isAISummaryLoading } =
+    usePostReviewAISummaryQuery(postId);
   const { isAuthenticated, user } = useAuthStore();
   const toggleFavoriteMutation = useToggleFavoriteMutation();
   const createChatRoomMutation = useCreateChatRoomMutation();
   const { data: categories } = useCategoryListQuery();
   const { data: regions } = useRegionListQuery();
   const authorId = post?.author?.id ?? post?.authorId;
-  const { data: reviewSummary } = useReviewSummaryQuery(authorId);
+  const {
+    data: reviewSummary,
+    isError: isReviewSummaryError,
+    isLoading: isReviewSummaryLoading,
+  } = useReviewSummaryQuery(authorId);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reviewReportDialogOpen, setReviewReportDialogOpen] = useState(false);
@@ -564,56 +600,61 @@ export default function PostDetailPage() {
                     >
                       {post.author?.nickname || post.authorNickname || "익명"}
                     </button>
-                    {reviewSummary ? (
-                      <div className="space-y-1 mt-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="flex items-center gap-0.5 text-yellow-500">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-bold text-gray-900">
-                              {reviewSummary.avgScore.toFixed(1)}
+                    {!isReviewSummaryLoading &&
+                      !isReviewSummaryError &&
+                      reviewSummary && (
+                        <div className="space-y-1 mt-1">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="flex items-center gap-0.5 text-yellow-500">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              <span className="font-bold text-gray-900">
+                                {reviewSummary.avgScore.toFixed(1)}
+                              </span>
                             </span>
-                          </span>
-                          {reviewSummary.count > 0 && (
-                            <span className="text-gray-500 text-xs">
-                              ({reviewSummary.count}개 후기)
+                            {reviewSummary.count > 0 && (
+                              <span className="text-gray-500 text-xs">
+                                ({reviewSummary.count}개 후기)
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-gray-600">
+                            <span className="flex items-center gap-1">
+                              장비
+                              <span className="flex items-center gap-0.5 text-yellow-500">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span>
+                                  {reviewSummary.equipmentScore.toFixed(1)}
+                                </span>
+                              </span>
                             </span>
-                          )}
+                            <span className="flex items-center gap-1">
+                              친절도
+                              <span className="flex items-center gap-0.5 text-yellow-500">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span>
+                                  {reviewSummary.kindnessScore.toFixed(1)}
+                                </span>
+                              </span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              응답시간
+                              <span className="flex items-center gap-0.5 text-yellow-500">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span>
+                                  {reviewSummary.responseTimeScore.toFixed(1)}
+                                </span>
+                              </span>
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-600">
-                          <span className="flex items-center gap-1">
-                            장비
-                            <span className="flex items-center gap-0.5 text-yellow-500">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span>
-                                {reviewSummary.equipmentScore.toFixed(1)}
-                              </span>
-                            </span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            친절도
-                            <span className="flex items-center gap-0.5 text-yellow-500">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span>
-                                {reviewSummary.kindnessScore.toFixed(1)}
-                              </span>
-                            </span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            응답시간
-                            <span className="flex items-center gap-0.5 text-yellow-500">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span>
-                                {reviewSummary.responseTimeScore.toFixed(1)}
-                              </span>
-                            </span>
-                          </span>
+                      )}
+                    {!isReviewSummaryLoading &&
+                      !isReviewSummaryError &&
+                      !reviewSummary && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          아직 후기가 없습니다.
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500 mt-1">
-                        아직 후기가 없습니다.
-                      </div>
-                    )}
+                      )}
                     {post.author?.createdAt && (
                       <p className="text-xs text-gray-500 mt-1">
                         {(() => {
@@ -927,6 +968,43 @@ export default function PostDetailPage() {
               ) : null}
             </CardHeader>
             <CardContent>
+              {/* AI 후기 요약 */}
+              {isAISummaryLoading ? (
+                <div className="mb-6 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-6 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-5 w-5 text-blue-600 animate-pulse" />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      AI 후기 요약
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <div className="h-2 w-2 bg-blue-600 rounded-full animate-bounce" />
+                    <div
+                      className="h-2 w-2 bg-blue-600 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    />
+                    <div
+                      className="h-2 w-2 bg-blue-600 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.4s" }}
+                    />
+                    <p className="ml-2">AI 후기 요약 생성중입니다...</p>
+                  </div>
+                </div>
+              ) : aiSummary &&
+                aiSummary.trim() &&
+                aiSummary.trim() !== "후기가 없습니다." ? (
+                <div className="mb-6 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-6 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      AI 후기 요약
+                    </h3>
+                  </div>
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                    {aiSummary}
+                  </p>
+                </div>
+              ) : null}
               {reviews.length > 0 ? (
                 <div className="space-y-6">
                   {reviews.map((review) => {
