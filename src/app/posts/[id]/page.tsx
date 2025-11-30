@@ -49,8 +49,10 @@ import {
 import { useReviewSummaryQuery } from "@/queries/user";
 
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Edit,
   Flag,
   Heart,
@@ -63,38 +65,6 @@ import {
   User,
 } from "lucide-react";
 
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -105,6 +75,7 @@ export default function PostDetailPage() {
     enabled: !deletePostMutation.isPending && !isDeleted, // 삭제 중이거나 삭제 완료 시 쿼리 비활성화
   });
   const [reviewPage, setReviewPage] = useState(0);
+  const [isAISummaryExpanded, setIsAISummaryExpanded] = useState(true);
   const reviewPageSize = 5;
   const { data: reviewsData } = useReviewsByPostQuery(postId, {
     page: reviewPage,
@@ -994,15 +965,27 @@ export default function PostDetailPage() {
                 aiSummary.trim() &&
                 aiSummary.trim() !== "후기가 없습니다." ? (
                 <div className="mb-6 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-6 border border-blue-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-5 w-5 text-blue-600" />
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      AI 후기 요약
-                    </h3>
-                  </div>
-                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                    {aiSummary}
-                  </p>
+                  <button
+                    onClick={() => setIsAISummaryExpanded(!isAISummaryExpanded)}
+                    className="w-full flex items-center justify-between gap-2 mb-3 hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-blue-600" />
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        AI 후기 요약
+                      </h3>
+                    </div>
+                    {isAISummaryExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-gray-600" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-600" />
+                    )}
+                  </button>
+                  {isAISummaryExpanded && (
+                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                      {aiSummary}
+                    </p>
+                  )}
                 </div>
               ) : null}
               {reviews.length > 0 ? (
