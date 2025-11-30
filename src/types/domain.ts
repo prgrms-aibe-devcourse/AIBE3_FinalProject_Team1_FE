@@ -251,6 +251,15 @@ export enum ReceiveMethod {
 }
 
 /**
+ * AI 검색 응답
+ */
+export interface AISearchResponse {
+  query: string;
+  answer: string;
+  posts: Post[];
+}
+
+/**
  * 게시글 (Post)
  */
 export interface Post extends BaseEntity {
