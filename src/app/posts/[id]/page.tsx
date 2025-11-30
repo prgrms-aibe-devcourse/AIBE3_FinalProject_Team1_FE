@@ -65,42 +65,6 @@ import {
   User,
 } from "lucide-react";
 
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
-/**
- * 게시글 상세 페이지
- */
-
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
