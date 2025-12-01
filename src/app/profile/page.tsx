@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 
 import type { Reservation, UpdateMemberDto } from "@/types/domain";
 
+import { formatNotificationMessage } from "@/lib/utils/notification";
+
 import { parseLocalDateString } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,7 @@ import { Input } from "@/components/ui/input";
 
 import { useAuthStore } from "@/store/authStore";
 
+import { useRecentNotificationsQuery } from "@/queries/notification";
 import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
 import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
@@ -55,122 +58,6 @@ import {
  * 마이페이지 - 내 정보
  */
 
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
-/**
- * 마이페이지 - 내 정보
- */
-
 export default function ProfilePage() {
   const router = useRouter();
   const { user: authUser, isAuthenticated } = useAuthStore();
@@ -180,6 +67,7 @@ export default function ProfilePage() {
   const meFinal = me ?? authUser;
   const { data: myPosts } = useMyPostsQuery();
   const { data: myReservations } = useMyReservationsQuery();
+  const { data: recentNotificationsData } = useRecentNotificationsQuery(5);
   const updateUserMutation = useUpdateUserMutation();
 
   // 클라이언트 마운트 여부 (Hydration 에러 방지)
@@ -782,32 +670,33 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="p-6 pt-6">
               <div className="space-y-4">
-                {reservations.slice(0, 3).map((reservation: Reservation) => (
-                  <div
-                    key={reservation.id}
-                    className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div className="shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 mb-1">
-                        새로운 예약 신청
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        예약 #{reservation.id}에 대한 예약 신청이 있습니다.
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {format(
-                          parseLocalDateString(reservation.createdAt),
-                          "yyyy. MM. dd. HH:mm",
-                          { locale: ko },
+                {recentNotificationsData?.content &&
+                recentNotificationsData.content.length > 0 ? (
+                  recentNotificationsData.content.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
+                    >
+                      <div className="shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          {formatNotificationMessage(notification)}
+                        </p>
+                        {notification.createdAt && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {format(
+                              parseLocalDateString(notification.createdAt),
+                              "yyyy. MM. dd. HH:mm",
+                              { locale: ko },
+                            )}
+                          </p>
                         )}
-                      </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {reservations.length === 0 && (
+                  ))
+                ) : (
                   <p className="text-center text-gray-500 py-8">
                     최근 활동이 없습니다.
                   </p>
