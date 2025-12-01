@@ -104,6 +104,9 @@ function formatReservationNotificationMessage(
         ? `"${postTitle}" 게시글의 예약이 취소되었습니다. (사유: ${cancelReason})`
         : `"${postTitle}" 게시글의 예약이 취소되었습니다.`;
 
+    case "REMIND_RETURN_DUE":
+      return `내일은 "${postTitle}" 대여 상품의 반납 예정일입니다.`;
+
     default:
       return `"${postTitle}" 게시글과 관련된 알림입니다.`;
   }
