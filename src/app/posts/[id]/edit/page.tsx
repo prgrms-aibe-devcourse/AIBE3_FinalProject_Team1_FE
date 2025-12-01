@@ -3,12 +3,15 @@
  */
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 
 import type { ReceiveMethod, UpdatePostDto } from "@/types/domain";
+
+import { getQueryKey, queryKeys } from "@/lib/query-keys";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -52,38 +55,6 @@ import {
  * 게시글 수정 페이지
  */
 
-/**
- * 게시글 수정 페이지
- */
-
-/**
- * 게시글 수정 페이지
- */
-
-/**
- * 게시글 수정 페이지
- */
-
-/**
- * 게시글 수정 페이지
- */
-
-/**
- * 게시글 수정 페이지
- */
-
-/**
- * 게시글 수정 페이지
- */
-
-/**
- * 게시글 수정 페이지
- */
-
-/**
- * 게시글 수정 페이지
- */
-
 interface PostOptionInput {
   id?: number; // 기존 옵션 ID (수정 모드)
   name: string;
@@ -92,6 +63,7 @@ interface PostOptionInput {
 }
 
 interface ImageData {
+  id?: number;
   file?: File; // 새로 추가된 파일
   url?: string; // 기존 이미지 URL
   isPrimary: boolean;
@@ -102,6 +74,7 @@ export default function EditPostPage() {
   const router = useRouter();
   const params = useParams();
   const postId = Number(params.id);
+  const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuthStore();
   const { data: me, isLoading: meLoading } = useMeQuery();
   const { data: post, isLoading: postLoading } = usePostQuery(postId);
@@ -239,7 +212,8 @@ export default function EditPostPage() {
     // 이미지 설정
     if (post.images && post.images.length > 0) {
       const imageData: ImageData[] = post.images.map((img) => ({
-        url: img.url || img.file,
+        id: img.id, // ← 추가: 서버에서 받은 이미지 ID
+        url: img.file, // img.file이 실제 URL
         isPrimary: img.isPrimary || false,
         isExisting: true,
       }));
@@ -526,8 +500,20 @@ export default function EditPostPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedRegionIds.length === 0) {
+    // selectedRegionIds와 formData.regionIds 둘 다 확인
+    const currentRegionIds =
+      selectedRegionIds.length > 0
+        ? selectedRegionIds
+        : formData.regionIds || [];
+
+    if (currentRegionIds.length === 0) {
       alert("지역을 선택해주세요.");
+      return;
+    }
+
+    // 이미지 검증 (기존 이미지 + 새 이미지 포함하여 최소 1개 이상)
+    if (images.length === 0) {
+      alert("최소 1개 이상의 이미지를 등록해주세요.");
       return;
     }
 
@@ -556,15 +542,15 @@ export default function EditPostPage() {
             }))
         : [];
 
-    // 이미지 데이터 구성 (isPrimary만 포함) - 생성 페이지와 동일
+    // ✅ 이미지 데이터 구성 (ID 포함)
     const imagesData = images.map((imageData) => ({
+      id: imageData.id || null, // ← 수정: 기존 이미지면 ID, 새 이미지면 null
       isPrimary: imageData.isPrimary,
     }));
 
     // FormData 생성
     const formDataToSend = new FormData();
 
-    // request JSON 데이터 구성 (생성 페이지와 동일한 형식)
     const requestData = {
       title: formData.title || "",
       content: formData.content || "",
@@ -572,12 +558,12 @@ export default function EditPostPage() {
       returnMethod: returnMethod,
       returnAddress1: returnAddress1,
       returnAddress2: returnAddress2,
-      regionIds: selectedRegionIds.map((id) => Number(id)),
+      regionIds: currentRegionIds.map((id) => Number(id)),
       categoryId: Number(selectedSubCategory || formData.categoryId || 0),
       deposit: deposit,
       fee: fee,
       options: optionsData,
-      images: imagesData,
+      images: imagesData, // ← ID 포함된 데이터
     };
 
     const requestBlob = new Blob([JSON.stringify(requestData)], {
@@ -585,36 +571,41 @@ export default function EditPostPage() {
     });
     formDataToSend.append("request", requestBlob);
 
-    // file part: 각 파일을 "file"로 추가 (서버에서 List<MultipartFile>로 받음)
-    // 생성 페이지와 동일하게 모든 이미지 파일을 전송
-    // 새로 선택한 이미지만 file로 전송 (기존 이미지는 url만 있고 file이 없음)
+    // ✅ 새로 추가된 이미지만 파일로 전송
     images.forEach((imageData) => {
       if (imageData.file) {
+        // file이 있으면 새 이미지
         formDataToSend.append("file", imageData.file);
       }
     });
 
-    // 디버깅: 전송되는 파일 확인
+    // 디버깅 로그
     if (process.env.NODE_ENV === "development") {
-      console.log(
-        "전송할 이미지 파일 수:",
-        images.filter((img) => img.file).length,
-      );
-      console.log("전체 이미지 수:", images.length);
-      images.forEach((img, index) => {
-        console.log(`이미지 ${index}:`, {
-          hasFile: !!img.file,
-          isExisting: img.isExisting,
-          isPrimary: img.isPrimary,
-        });
+      console.log("전송 데이터:", {
+        totalImages: images.length,
+        newFiles: images.filter((img) => img.file).length,
+        existingImages: images.filter((img) => img.id).length,
+        imagesData: imagesData,
       });
     }
 
     try {
+      // mutation 실행 (캐시 업데이트는 mutation의 onSuccess에서 처리)
       await updatePostMutation.mutateAsync({
         postId,
         data: formDataToSend as unknown as UpdatePostDto,
       });
+
+      // 상세 페이지 데이터를 prefetch하여 캐시에 로드
+      await queryClient.prefetchQuery({
+        queryKey: getQueryKey(queryKeys.post.detail(postId)),
+        queryFn: async () => {
+          const { getPost } = await import("@/api/endpoints/post");
+          return getPost(postId);
+        },
+      });
+
+      // prefetch 완료 후 navigate
       router.push(`/posts/${postId}`);
     } catch (error) {
       console.error("Update post failed:", error);
@@ -823,7 +814,6 @@ export default function EditPostPage() {
                       }
                     }
                   }}
-                  required
                   disabled={updatePostMutation.isPending}
                 >
                   <option value="">시/도 선택</option>
