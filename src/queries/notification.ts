@@ -37,6 +37,29 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useUIStore } from "@/store/uiStore";
 
 /**
+ * 최근 알림 목록 조회 query (마이페이지용)
+ * @param size 가져올 알림 개수 (기본값: 5)
+ */
+export function useRecentNotificationsQuery(size: number = 5) {
+  return useQuery({
+    queryKey: getQueryKey(queryKeys.notification.list({})).concat([
+      "recent",
+      size,
+    ]),
+    queryFn: async () => {
+      return getNotifications({
+        page: 0,
+        size: size,
+        sort: "createdAt,DESC",
+      });
+    },
+    staleTime: 1000 * 60, // 1분간 fresh 상태 유지
+    gcTime: 1000 * 60 * 5, // 5분간 캐시 유지
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
  * 알림 목록 조회 query (무한 스크롤)
  *
  * SSE로 실시간 알림이 도착하면:
