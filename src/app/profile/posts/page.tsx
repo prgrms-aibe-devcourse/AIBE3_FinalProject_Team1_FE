@@ -30,6 +30,12 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 
 import { useUIStore } from "@/store/uiStore";
+import {
+  handleCompleteReturnInspection as handleCompleteReturnInspectionUtil,
+  handleMarkLostOrUnreturned as handleMarkLostOrUnreturnedUtil,
+  handleReceiveReturn as handleReceiveReturnUtil,
+  handleRequestRefund as handleRequestRefundUtil,
+} from "@/lib/utils/reservation";
 
 import { useMyPostsQuery } from "@/queries/post";
 import {
@@ -680,24 +686,11 @@ function PostCard({ post }: { post: Post }) {
                                   variant="outline"
                                   size="sm"
                                   onClick={async () => {
-                                    try {
-                                      await updateStatusMutation.mutateAsync({
-                                        reservationId: reservation.id,
-                                        data: {
-                                          status:
-                                            ReservationStatus.INSPECTING_RETURN,
-                                        },
-                                      });
-                                      showToast(
-                                        "반납 수령 완료 처리되었습니다. (반납 검수 단계로 이동)",
-                                        "success",
-                                      );
-                                    } catch (error) {
-                                      console.error(
-                                        "Failed to confirm return receive:",
-                                        error,
-                                      );
-                                    }
+                                    await handleReceiveReturnUtil(
+                                      reservation.id,
+                                      updateStatusMutation,
+                                      showToast,
+                                    );
                                   }}
                                   disabled={updateStatusMutation.isPending}
                                   className="text-purple-600 border-purple-600 hover:bg-purple-50"
@@ -713,24 +706,11 @@ function PostCard({ post }: { post: Post }) {
                                     variant="outline"
                                     size="sm"
                                     onClick={async () => {
-                                      try {
-                                        await updateStatusMutation.mutateAsync({
-                                          reservationId: reservation.id,
-                                          data: {
-                                            status:
-                                              ReservationStatus.RETURN_COMPLETED,
-                                          },
-                                        });
-                                        showToast(
-                                          "반납 검수가 완료되었습니다.",
-                                          "success",
-                                        );
-                                      } catch (error) {
-                                        console.error(
-                                          "Failed to complete return inspection:",
-                                          error,
-                                        );
-                                      }
+                                      await handleCompleteReturnInspectionUtil(
+                                        reservation.id,
+                                        updateStatusMutation,
+                                        showToast,
+                                      );
                                     }}
                                     disabled={updateStatusMutation.isPending}
                                     className="text-green-600 border-green-600 hover:bg-green-50"
@@ -759,24 +739,11 @@ function PostCard({ post }: { post: Post }) {
                                   variant="outline"
                                   size="sm"
                                   onClick={async () => {
-                                    try {
-                                      await updateStatusMutation.mutateAsync({
-                                        reservationId: reservation.id,
-                                        data: {
-                                          status:
-                                            ReservationStatus.PENDING_REFUND,
-                                        },
-                                      });
-                                      showToast(
-                                        "환급 요청이 접수되었습니다.",
-                                        "success",
-                                      );
-                                    } catch (error) {
-                                      console.error(
-                                        "Failed to request refund:",
-                                        error,
-                                      );
-                                    }
+                                    await handleRequestRefundUtil(
+                                      reservation.id,
+                                      updateStatusMutation,
+                                      showToast,
+                                    );
                                   }}
                                   disabled={updateStatusMutation.isPending}
                                   className="text-blue-600 border-blue-600 hover:bg-blue-50"
@@ -791,24 +758,11 @@ function PostCard({ post }: { post: Post }) {
                                   variant="outline"
                                   size="sm"
                                   onClick={async () => {
-                                    try {
-                                      await updateStatusMutation.mutateAsync({
-                                        reservationId: reservation.id,
-                                        data: {
-                                          status:
-                                            ReservationStatus.LOST_OR_UNRETURNED,
-                                        },
-                                      });
-                                      showToast(
-                                        "미반납/분실 상태로 변경되었습니다.",
-                                        "success",
-                                      );
-                                    } catch (error) {
-                                      console.error(
-                                        "Failed to mark lost or unreturned:",
-                                        error,
-                                      );
-                                    }
+                                    await handleMarkLostOrUnreturnedUtil(
+                                      reservation.id,
+                                      updateStatusMutation,
+                                      showToast,
+                                    );
                                   }}
                                   disabled={updateStatusMutation.isPending}
                                   className="text-red-600 border-red-600 hover:bg-red-50"

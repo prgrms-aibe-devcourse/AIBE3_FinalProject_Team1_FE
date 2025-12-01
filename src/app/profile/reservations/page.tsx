@@ -34,6 +34,16 @@ import {
 } from "@/queries/reservation";
 import { useCreateReviewMutation } from "@/queries/review";
 import { useUIStore } from "@/store/uiStore";
+import {
+  handleCompletePickup as handleCompletePickupUtil,
+  handleCompleteRentalInspection as handleCompleteRentalInspectionUtil,
+  handleStartReturn as handleStartReturnUtil,
+  handleMarkLostOrUnreturned as handleMarkLostOrUnreturnedUtil,
+  canCompletePickup as canCompletePickupUtil,
+  canCompleteInspection as canCompleteInspectionUtil,
+  canStartReturn as canStartReturnUtil,
+  canSendReturnShipping as canSendReturnShippingUtil,
+} from "@/lib/utils/reservation";
 
 type StatusFilter =
   | "all"
@@ -287,13 +297,15 @@ export default function MyReservationsPage() {
                 (status === "PENDING_PICKUP" &&
                   reservation.receiveMethod != null &&
                   reservation.receiveMethod === ReceiveMethod.DIRECT);
-              const canCompleteInspection =
-                status === "INSPECTING_RENTAL";
-              const canStartReturn = status === "RENTING";
-              const canSendReturnShipping =
-                status === "PENDING_RETURN" &&
-                reservation.returnMethod != null &&
-                reservation.returnMethod === ReceiveMethod.DELIVERY;
+              const canCompleteInspection = canCompleteInspectionUtil(
+                reservation,
+                true,
+              );
+              const canStartReturn = canStartReturnUtil(reservation, true);
+              const canSendReturnShipping = canSendReturnShippingUtil(
+                reservation,
+                true,
+              );
 
               return (
                 <Card key={reservation.id} className="transition-shadow hover:shadow-md">
@@ -387,17 +399,11 @@ export default function MyReservationsPage() {
                               size="sm"
                               variant="outline"
                               onClick={async () => {
-                                try {
-                                  await updateStatusMutation.mutateAsync({
-                                    reservationId: reservation.id,
-                                    data: {
-                                      status: ReservationStatus.INSPECTING_RENTAL,
-                                    },
-                                  });
-                                  showToast("수령 완료 처리되었습니다.", "success");
-                                } catch (error) {
-                                  console.error("Failed to confirm receive:", error);
-                                }
+                                await handleCompletePickupUtil(
+                                  reservation.id,
+                                  updateStatusMutation,
+                                  showToast,
+                                );
                               }}
                               disabled={updateStatusMutation.isPending}
                               className="border-blue-600 text-blue-600 hover:bg-blue-50"
@@ -413,20 +419,11 @@ export default function MyReservationsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={async () => {
-                                  try {
-                                    await updateStatusMutation.mutateAsync({
-                                      reservationId: reservation.id,
-                                      data: {
-                                        status: ReservationStatus.RENTING,
-                                      },
-                                    });
-                                    showToast("검수가 완료되었습니다.", "success");
-                                  } catch (error) {
-                                    console.error(
-                                      "Failed to complete inspection:",
-                                      error,
-                                    );
-                                  }
+                                  await handleCompleteRentalInspectionUtil(
+                                    reservation.id,
+                                    updateStatusMutation,
+                                    showToast,
+                                  );
                                 }}
                                 disabled={updateStatusMutation.isPending}
                                 className="border-green-600 text-green-600 hover:bg-green-50"
@@ -456,17 +453,11 @@ export default function MyReservationsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={async () => {
-                                  try {
-                                    await updateStatusMutation.mutateAsync({
-                                      reservationId: reservation.id,
-                                      data: {
-                                        status: ReservationStatus.PENDING_RETURN,
-                                      },
-                                    });
-                                    showToast("반납 대기 상태로 변경되었습니다.", "success");
-                                  } catch (error) {
-                                    console.error("Failed to start return:", error);
-                                  }
+                                  await handleStartReturnUtil(
+                                    reservation.id,
+                                    updateStatusMutation,
+                                    showToast,
+                                  );
                                 }}
                                 disabled={updateStatusMutation.isPending}
                                 className="border-purple-600 text-purple-600 hover:bg-purple-50"
@@ -477,24 +468,11 @@ export default function MyReservationsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={async () => {
-                                  try {
-                                    await updateStatusMutation.mutateAsync({
-                                      reservationId: reservation.id,
-                                      data: {
-                                        status:
-                                          ReservationStatus.LOST_OR_UNRETURNED,
-                                      },
-                                    });
-                                    showToast(
-                                      "미반납/분실 상태로 변경되었습니다.",
-                                      "success",
-                                    );
-                                  } catch (error) {
-                                    console.error(
-                                      "Failed to mark lost or unreturned:",
-                                      error,
-                                    );
-                                  }
+                                  await handleMarkLostOrUnreturnedUtil(
+                                    reservation.id,
+                                    updateStatusMutation,
+                                    showToast,
+                                  );
                                 }}
                                 disabled={updateStatusMutation.isPending}
                                 className="border-red-600 text-red-600 hover:bg-red-50"

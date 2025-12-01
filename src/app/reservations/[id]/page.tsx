@@ -14,6 +14,24 @@ import type { ReservationLog } from "@/types/domain";
 import { ReceiveMethod, ReservationStatus } from "@/types/domain";
 
 import { getImageUrl } from "@/lib/utils/image";
+import {
+  canCompleteInspection as canCompleteInspectionUtil,
+  canCompletePickup as canCompletePickupUtil,
+  canCompleteRefund as canCompleteRefundUtil,
+  canCompleteReturnInspection as canCompleteReturnInspectionUtil,
+  canReceiveReturn as canReceiveReturnUtil,
+  canRequestRefund as canRequestRefundUtil,
+  canSendReturnShipping as canSendReturnShippingUtil,
+  canStartReturn as canStartReturnUtil,
+  handleCompletePickup as handleCompletePickupUtil,
+  handleCompleteRefund as handleCompleteRefundUtil,
+  handleCompleteRentalInspection as handleCompleteRentalInspectionUtil,
+  handleCompleteReturnInspection as handleCompleteReturnInspectionUtil,
+  handleMarkLostOrUnreturned as handleMarkLostOrUnreturnedUtil,
+  handleReceiveReturn as handleReceiveReturnUtil,
+  handleRequestRefund as handleRequestRefundUtil,
+  handleStartReturn as handleStartReturnUtil,
+} from "@/lib/utils/reservation";
 
 import { parseLocalDateString } from "@/lib/utils";
 
@@ -37,6 +55,7 @@ import {
   useApproveReservationMutation,
   useCancelReservationMutation,
   useRejectReservationMutation,
+  useUpdateReservationStatusMutation,
 } from "@/queries/reservation";
 
 import {
@@ -130,12 +149,24 @@ function ReservationDetailPageContent() {
   const approveMutation = useApproveReservationMutation();
   const rejectMutation = useRejectReservationMutation();
   const cancelMutation = useCancelReservationMutation();
+  const updateStatusMutation = useUpdateReservationStatusMutation();
 
   const [activeTab, setActiveTab] = useState<TabType>("info");
   const [rejectReason, setRejectReason] = useState("");
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [isInspectCancelDialogOpen, setIsInspectCancelDialogOpen] =
+    useState(false);
+  const [inspectCancelReason, setInspectCancelReason] = useState("");
+  const [isReturnShipDialogOpen, setIsReturnShipDialogOpen] = useState(false);
+  const [returnShipCarrier, setReturnShipCarrier] = useState("");
+  const [returnShipTracking, setReturnShipTracking] = useState("");
+  const [isShippingDialogOpen, setIsShippingDialogOpen] = useState(false);
+  const [shippingCarrier, setShippingCarrier] = useState("");
+  const [shippingTrackingNumber, setShippingTrackingNumber] = useState("");
+  const [isClaimDialogOpen, setIsClaimDialogOpen] = useState(false);
+  const [claimReason, setClaimReason] = useState("");
 
   // 예약 소유자(게스트) 또는 게시글 작성자(호스트)만 접근 가능
   useEffect(() => {
@@ -218,6 +249,177 @@ function ReservationDetailPageContent() {
     }
   };
 
+  // 상태 변경 핸들러들
+  const handleStartShipping = async () => {
+    if (!reservation) return;
+    setIsShippingDialogOpen(true);
+  };
+
+  const handleCompletePickup = async () => {
+    if (!reservation) return;
+    await handleCompletePickupUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
+  const handleCompleteRentalInspection = async () => {
+    if (!reservation) return;
+    await handleCompleteRentalInspectionUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
+  const handleStartReturn = async () => {
+    if (!reservation) return;
+    await handleStartReturnUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
+  const handleReceiveReturn = async () => {
+    if (!reservation) return;
+    await handleReceiveReturnUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
+  const handleCompleteReturnInspection = async () => {
+    if (!reservation) return;
+    await handleCompleteReturnInspectionUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
+  const handleCompleteRefund = async () => {
+    if (!reservation) return;
+    await handleCompleteRefundUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
+  // 추가 핸들러들
+  const handleInspectCancel = async () => {
+    if (!reservation) return;
+    if (!inspectCancelReason.trim()) {
+      showToast("취소 사유를 입력해주세요.", "error");
+      return;
+    }
+    try {
+      await updateStatusMutation.mutateAsync({
+        reservationId: reservation.id,
+        data: {
+          status: ReservationStatus.PENDING_RETURN,
+          cancelReason: inspectCancelReason.trim(),
+        },
+      });
+      showToast("대여 취소 및 반납 대기 상태로 변경되었습니다.", "success");
+      setIsInspectCancelDialogOpen(false);
+      setInspectCancelReason("");
+    } catch (error) {
+      console.error("Failed to cancel during inspection:", error);
+    }
+  };
+
+  const handleReturnShipping = async () => {
+    if (!reservation) return;
+    if (!returnShipCarrier.trim() || !returnShipTracking.trim()) {
+      showToast("택배사와 송장번호를 모두 입력해주세요.", "error");
+      return;
+    }
+    try {
+      await updateStatusMutation.mutateAsync({
+        reservationId: reservation.id,
+        data: {
+          status: ReservationStatus.RETURNING,
+          returnCarrier: returnShipCarrier.trim(),
+          returnTrackingNumber: returnShipTracking.trim(),
+        },
+      });
+      showToast("반납 중 상태로 변경되었습니다.", "success");
+      setIsReturnShipDialogOpen(false);
+      setReturnShipCarrier("");
+      setReturnShipTracking("");
+    } catch (error) {
+      console.error("Failed to send return shipping:", error);
+    }
+  };
+
+  const handleShipping = async () => {
+    if (!reservation) return;
+    if (!shippingCarrier.trim() || !shippingTrackingNumber.trim()) {
+      showToast("택배사와 송장번호를 모두 입력해주세요.", "error");
+      return;
+    }
+    try {
+      await updateStatusMutation.mutateAsync({
+        reservationId: reservation.id,
+        data: {
+          status: ReservationStatus.SHIPPING,
+          receiveCarrier: shippingCarrier.trim(),
+          receiveTrackingNumber: shippingTrackingNumber.trim(),
+        },
+      });
+      showToast("배송 정보가 등록되었습니다.", "success");
+      setIsShippingDialogOpen(false);
+      setShippingCarrier("");
+      setShippingTrackingNumber("");
+    } catch (error) {
+      console.error("Failed to update shipping info:", error);
+    }
+  };
+
+  const handleClaim = async () => {
+    if (!reservation) return;
+    if (!claimReason.trim()) {
+      showToast("청구 사유를 입력해주세요.", "error");
+      return;
+    }
+    try {
+      await updateStatusMutation.mutateAsync({
+        reservationId: reservation.id,
+        data: {
+          status: ReservationStatus.CLAIMING,
+          claimReason: claimReason.trim(),
+        },
+      });
+      showToast("청구 진행 상태로 변경되었습니다.", "success");
+      setIsClaimDialogOpen(false);
+      setClaimReason("");
+    } catch (error) {
+      console.error("Failed to request claim:", error);
+    }
+  };
+
+  const handleRequestRefund = async () => {
+    if (!reservation) return;
+    await handleRequestRefundUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
+  const handleMarkLostOrUnreturned = async () => {
+    if (!reservation) return;
+    await handleMarkLostOrUnreturnedUtil(
+      reservation.id,
+      updateStatusMutation,
+      showToast,
+    );
+  };
+
   if (reservationLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -263,17 +465,59 @@ function ReservationDetailPageContent() {
 
   const reservationAuthorId = reservation.author?.id || reservation.authorId;
   const isReservationOwner = reservationAuthorId === user?.id;
-  const postAuthorId = reservation.post?.authorId || post?.authorId;
-  const isPostOwner = postAuthorId === user?.id;
+  const postAuthorIdFromReservation =
+    reservation.post?.author?.id ?? reservation.post?.authorId;
+  const postAuthorIdFromPost = post?.author?.id ?? post?.authorId;
+  const postAuthorId = postAuthorIdFromReservation ?? postAuthorIdFromPost;
+  const isPostOwner = postAuthorId !== undefined && postAuthorId === user?.id;
   const status = reservation.status as string;
   const canApprove =
-    isPostOwner && status === ReservationStatus.PENDING_APPROVAL;
-  const canReject =
     isPostOwner && status === ReservationStatus.PENDING_APPROVAL;
   const canCancel =
     isReservationOwner &&
     (status === ReservationStatus.PENDING_APPROVAL ||
       status === ReservationStatus.PENDING_PAYMENT);
+
+  // 상태 변경 버튼 조건
+  // 호스트가 할 수 있는 액션
+  const canStartShipping =
+    isPostOwner &&
+    status === ReservationStatus.PENDING_PICKUP &&
+    reservation.receiveMethod === ReceiveMethod.DELIVERY;
+  const canCompleteRentalInspection =
+    isPostOwner && status === ReservationStatus.INSPECTING_RENTAL;
+  const canCompleteReturnInspection = reservation
+    ? canCompleteReturnInspectionUtil(reservation, isPostOwner)
+    : false;
+  const canCompleteRefund = reservation
+    ? canCompleteRefundUtil(reservation, isPostOwner)
+    : false;
+  const canReceiveReturn = reservation
+    ? canReceiveReturnUtil(reservation, isPostOwner)
+    : false;
+  const canRequestRefund = reservation
+    ? canRequestRefundUtil(reservation, isPostOwner)
+    : false;
+  const canRequestClaim =
+    isPostOwner &&
+    (status === ReservationStatus.INSPECTING_RETURN ||
+      status === ReservationStatus.LOST_OR_UNRETURNED);
+  const canMarkLostOrUnreturned =
+    isPostOwner && status === ReservationStatus.RENTING;
+
+  // 예약자가 할 수 있는 액션
+  const canCompletePickup = reservation
+    ? canCompletePickupUtil(reservation, isReservationOwner)
+    : false;
+  const canCompleteInspection = reservation
+    ? canCompleteInspectionUtil(reservation, isReservationOwner)
+    : false;
+  const canStartReturn = reservation
+    ? canStartReturnUtil(reservation, isReservationOwner)
+    : false;
+  const canSendReturnShipping = reservation
+    ? canSendReturnShippingUtil(reservation, isReservationOwner)
+    : false;
 
   // 대여 기간 계산
   const startDate =
@@ -1093,50 +1337,400 @@ function ReservationDetailPageContent() {
       </div>
 
       {/* 하단 액션 버튼들 */}
-      <div className="mt-8 flex gap-3">
-        {status === "PENDING_PAYMENT" && isReservationOwner && (
-          <Button className="flex-1" variant="outline" onClick={handlePayment}>
-            <CreditCard className="h-4 w-4 mr-2" />
-            결제하기
-          </Button>
-        )}
-        {/* 승인 대기 상태에서만 예약 수정 가능 */}
-        {isReservationOwner && status === "PENDING_APPROVAL" && (
-          <Button
-            onClick={() =>
-              router.push(
-                `/reservations/new?postId=${reservation.postId}&reservationId=${reservation.id}`,
-              )
-            }
-            variant="outline"
-            className="flex-1"
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            예약 수정
-          </Button>
-        )}
-        {/* 예약 취소 / 거절 */}
-        {(canCancel || (isPostOwner && canReject)) && (
-          <Button
-            onClick={
-              isReservationOwner && canCancel
-                ? () => setIsCancelDialogOpen(true)
-                : () => setIsRejectDialogOpen(true)
-            }
-            variant="outline"
-            className="flex-1"
-          >
-            <X className="h-4 w-4 mr-2" />
-            {isReservationOwner && canCancel ? "예약 취소" : "예약 거절"}
-          </Button>
-        )}
-        <Button
-          onClick={() => router.push("/profile/reservations")}
-          variant="outline"
-          className="flex-1"
-        >
-          예약 목록으로
-        </Button>
+      <div className="mt-8 space-y-3">
+        {/* 상태 변경 버튼들 */}
+        <div className="flex gap-3 flex-wrap">
+          {/* 호스트 액션 - 승인/거절 */}
+          {canApprove && (
+            <>
+              <Button
+                onClick={handleApprove}
+                disabled={approveMutation.isPending}
+                variant="outline"
+                className="text-green-600 border-green-600 hover:bg-green-50 flex-1"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {approveMutation.isPending ? "승인 중..." : "예약 승인"}
+              </Button>
+              <Button
+                onClick={() => setIsRejectDialogOpen(true)}
+                disabled={rejectMutation.isPending}
+                variant="outline"
+                className="text-red-600 border-red-600 hover:bg-red-50 flex-1"
+              >
+                <X className="h-4 w-4 mr-2" />
+                {rejectMutation.isPending ? "거절 중..." : "예약 거절"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canStartShipping && (
+            <>
+              <Button
+                onClick={handleStartShipping}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 text-blue-600 border-blue-600 hover:bg-blue-50"
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "배송 보내기"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canCompleteRentalInspection && (
+            <>
+              <Button
+                onClick={handleCompleteRentalInspection}
+                disabled={updateStatusMutation.isPending}
+                className="flex-1"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending
+                  ? "처리 중..."
+                  : "대여 검수 완료"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canReceiveReturn && (
+            <>
+              <Button
+                onClick={handleReceiveReturn}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 text-purple-600 border-purple-600 hover:bg-purple-50"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "수령 완료"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canCompleteReturnInspection && (
+            <>
+              <Button
+                onClick={handleCompleteReturnInspection}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 text-green-600 border-green-600 hover:bg-green-50"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "검수완료"}
+              </Button>
+              {canRequestClaim && (
+                <Button
+                  onClick={() => setIsClaimDialogOpen(true)}
+                  disabled={updateStatusMutation.isPending}
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  청구 요청
+                </Button>
+              )}
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canRequestRefund && (
+            <>
+              <Button
+                onClick={handleRequestRefund}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 text-blue-600 border-blue-600 hover:bg-blue-50"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "환급 요청"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canCompleteRefund && (
+            <>
+              <Button
+                onClick={handleCompleteRefund}
+                disabled={updateStatusMutation.isPending}
+                className="flex-1"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "환급 완료"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canRequestClaim &&
+            status === ReservationStatus.LOST_OR_UNRETURNED && (
+              <>
+                <Button
+                  onClick={() => setIsClaimDialogOpen(true)}
+                  disabled={updateStatusMutation.isPending}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  청구 요청
+                </Button>
+                <Button
+                  onClick={() => router.push("/profile/reservations")}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  예약 목록으로
+                </Button>
+              </>
+            )}
+          {canMarkLostOrUnreturned && (
+            <>
+              <Button
+                onClick={handleMarkLostOrUnreturned}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 border-red-600 text-red-600 hover:bg-red-50"
+              >
+                <X className="h-4 w-4 mr-2" />
+                미반납/분실 처리
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+
+          {/* 예약자 액션 */}
+          {status === "PENDING_PAYMENT" && isReservationOwner && (
+            <>
+              <Button
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                onClick={handlePayment}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                결제하기
+              </Button>
+              {canCancel && (
+                <Button
+                  onClick={() => setIsCancelDialogOpen(true)}
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  예약 취소
+                </Button>
+              )}
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canCompletePickup && (
+            <>
+              <Button
+                onClick={handleCompletePickup}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "수령 완료"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canCompleteInspection && (
+            <>
+              <Button
+                onClick={handleCompleteRentalInspection}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 border-green-600 text-green-600 hover:bg-green-50"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "검수완료"}
+              </Button>
+              <Button
+                onClick={() => setIsInspectCancelDialogOpen(true)}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 border-red-600 text-red-600 hover:bg-red-50"
+              >
+                <X className="h-4 w-4 mr-2" />
+                대여 취소
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canStartReturn && (
+            <>
+              <Button
+                onClick={handleStartReturn}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 border-purple-600 text-purple-600 hover:bg-purple-50"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "반납하기"}
+              </Button>
+              {isReservationOwner && status === ReservationStatus.RENTING && (
+                <Button
+                  onClick={handleMarkLostOrUnreturned}
+                  disabled={updateStatusMutation.isPending}
+                  variant="outline"
+                  className="flex-1 border-red-600 text-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  미반납/분실 처리
+                </Button>
+              )}
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {canSendReturnShipping && (
+            <>
+              <Button
+                onClick={() => setIsReturnShipDialogOpen(true)}
+                disabled={updateStatusMutation.isPending}
+                variant="outline"
+                className="flex-1 border-purple-600 text-purple-600 hover:bg-purple-50"
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? "처리 중..." : "반납 보내기"}
+              </Button>
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+
+          {/* 공통 액션 */}
+          {/* 승인 대기 상태에서만 예약 수정 가능 */}
+          {isReservationOwner && status === "PENDING_APPROVAL" && (
+            <>
+              <Button
+                onClick={() =>
+                  router.push(
+                    `/reservations/new?postId=${reservation.postId}&reservationId=${reservation.id}`,
+                  )
+                }
+                variant="outline"
+                className="flex-1"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                예약 수정
+              </Button>
+              {canCancel && (
+                <Button
+                  onClick={() => setIsCancelDialogOpen(true)}
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  예약 취소
+                </Button>
+              )}
+              <Button
+                onClick={() => router.push("/profile/reservations")}
+                variant="outline"
+                className="flex-1"
+              >
+                예약 목록으로
+              </Button>
+            </>
+          )}
+          {/* 예약 취소 (결제 대기 상태가 아니고 승인 대기 상태도 아닐 때만 별도로 표시) */}
+          {canCancel &&
+            !(status === "PENDING_PAYMENT" && isReservationOwner) &&
+            !(isReservationOwner && status === "PENDING_APPROVAL") && (
+              <>
+                <Button
+                  onClick={() => setIsCancelDialogOpen(true)}
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  예약 취소
+                </Button>
+                <Button
+                  onClick={() => router.push("/profile/reservations")}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  예약 목록으로
+                </Button>
+              </>
+            )}
+        </div>
       </div>
 
       {/* 예약 취소 다이얼로그 */}
@@ -1229,16 +1823,230 @@ function ReservationDetailPageContent() {
         </DialogContent>
       </Dialog>
 
-      {/* 승인 버튼 (호스트만) */}
-      {isPostOwner && canApprove && (
-        <Button
-          onClick={handleApprove}
-          disabled={approveMutation.isPending}
-          className="mt-4 w-full"
-        >
-          {approveMutation.isPending ? "승인 중..." : "예약 승인"}
-        </Button>
-      )}
+      {/* 대여 검수 단계 취소 다이얼로그 */}
+      <Dialog
+        open={isInspectCancelDialogOpen}
+        onOpenChange={(open) => {
+          setIsInspectCancelDialogOpen(open);
+          if (!open) {
+            setInspectCancelReason("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>대여 취소</DialogTitle>
+            <DialogDescription>
+              대여 검수 단계에서 대여를 진행하지 않고 반납만 진행하려는 경우,
+              취소 사유를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <textarea
+              value={inspectCancelReason}
+              onChange={(e) => setInspectCancelReason(e.target.value)}
+              placeholder="취소 사유를 입력해주세요"
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsInspectCancelDialogOpen(false)}
+              disabled={updateStatusMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleInspectCancel}
+              disabled={
+                updateStatusMutation.isPending || !inspectCancelReason.trim()
+              }
+            >
+              {updateStatusMutation.isPending ? "처리 중..." : "대여 취소"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 반납 택배 발송 다이얼로그 */}
+      <Dialog
+        open={isReturnShipDialogOpen}
+        onOpenChange={(open) => {
+          setIsReturnShipDialogOpen(open);
+          if (!open) {
+            setReturnShipCarrier("");
+            setReturnShipTracking("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>반납 보내기</DialogTitle>
+            <DialogDescription>
+              반납 택배를 보낼 때 택배사와 송장번호를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                택배사
+              </label>
+              <input
+                type="text"
+                value={returnShipCarrier}
+                onChange={(e) => setReturnShipCarrier(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                placeholder="예: CJ대한통운"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                송장번호
+              </label>
+              <input
+                type="text"
+                value={returnShipTracking}
+                onChange={(e) => setReturnShipTracking(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                placeholder="송장번호를 입력해주세요"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsReturnShipDialogOpen(false)}
+              disabled={updateStatusMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              onClick={handleReturnShipping}
+              disabled={
+                updateStatusMutation.isPending ||
+                !returnShipCarrier.trim() ||
+                !returnShipTracking.trim()
+              }
+            >
+              {updateStatusMutation.isPending ? "처리 중..." : "등록하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 배송 보내기 다이얼로그 */}
+      <Dialog
+        open={isShippingDialogOpen}
+        onOpenChange={(open) => {
+          setIsShippingDialogOpen(open);
+          if (!open) {
+            setShippingCarrier("");
+            setShippingTrackingNumber("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>배송 보내기</DialogTitle>
+            <DialogDescription>
+              게스트에게 보낼 택배의 정보를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                택배사
+              </label>
+              <input
+                type="text"
+                value={shippingCarrier}
+                onChange={(e) => setShippingCarrier(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                placeholder="예: CJ대한통운"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                송장번호
+              </label>
+              <input
+                type="text"
+                value={shippingTrackingNumber}
+                onChange={(e) => setShippingTrackingNumber(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                placeholder="송장번호를 입력해주세요"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsShippingDialogOpen(false)}
+              disabled={updateStatusMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              onClick={handleShipping}
+              disabled={
+                updateStatusMutation.isPending ||
+                !shippingCarrier.trim() ||
+                !shippingTrackingNumber.trim()
+              }
+            >
+              {updateStatusMutation.isPending ? "저장 중..." : "등록하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 청구 요청 다이얼로그 */}
+      <Dialog
+        open={isClaimDialogOpen}
+        onOpenChange={(open) => {
+          setIsClaimDialogOpen(open);
+          if (!open) {
+            setClaimReason("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>청구 요청</DialogTitle>
+            <DialogDescription>
+              청구 요청하려면 청구 사유를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <textarea
+              value={claimReason}
+              onChange={(e) => setClaimReason(e.target.value)}
+              placeholder="청구 사유를 입력해주세요"
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsClaimDialogOpen(false)}
+              disabled={updateStatusMutation.isPending}
+            >
+              닫기
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleClaim}
+              disabled={updateStatusMutation.isPending || !claimReason.trim()}
+            >
+              {updateStatusMutation.isPending ? "요청 중..." : "청구 요청"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
