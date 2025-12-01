@@ -138,6 +138,7 @@ export enum NotificationType {
   RESERVATION_REJECTED = "RESERVATION_REJECTED", // 예약 : 승인 거절
   RESERVATION_CANCELLED = "RESERVATION_CANCELLED", // 예약 : 예약 취소
   REVIEW_CREATED = "REVIEW_CREATED", // 리뷰 : 리뷰 작성
+  REMIND_RETURN_DUE = "REMIND_RETURN_DUE", // 예약 : 반납 임박 알림
 }
 
 /**
