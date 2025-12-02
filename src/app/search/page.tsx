@@ -8,6 +8,8 @@ import { Suspense, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
 
 import type { Post, ReceiveMethod } from "@/types/domain";
 
@@ -173,8 +175,98 @@ function SearchPageContent() {
                   <h2 className="text-lg font-semibold text-gray-900 mb-2">
                     에이전트 답변
                   </h2>
-                  <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-                    {searchResult.answer}
+                  <div className="text-gray-700 leading-relaxed prose prose-sm max-w-none">
+                    <ReactMarkdown
+                      rehypePlugins={[rehypeSanitize]}
+                      components={{
+                        p: ({ children }) => (
+                          <p className="mb-4 last:mb-0">{children}</p>
+                        ),
+                        h1: ({ children }) => (
+                          <h1 className="text-2xl font-bold mb-4 mt-6 first:mt-0">
+                            {children}
+                          </h1>
+                        ),
+                        h2: ({ children }) => (
+                          <h2 className="text-xl font-semibold mb-3 mt-5 first:mt-0">
+                            {children}
+                          </h2>
+                        ),
+                        h3: ({ children }) => (
+                          <h3 className="text-lg font-semibold mb-2 mt-4 first:mt-0">
+                            {children}
+                          </h3>
+                        ),
+                        ul: ({ children }) => (
+                          <ul className="list-disc list-inside mb-4 space-y-1">
+                            {children}
+                          </ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className="list-decimal list-inside mb-4 space-y-1">
+                            {children}
+                          </ol>
+                        ),
+                        li: ({ children }) => (
+                          <li className="ml-4">{children}</li>
+                        ),
+                        code: ({ children, className }) => {
+                          const isInline = !className;
+                          return isInline ? (
+                            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">
+                              {children}
+                            </code>
+                          ) : (
+                            <code className="block bg-gray-100 p-3 rounded text-sm font-mono overflow-x-auto mb-4">
+                              {children}
+                            </code>
+                          );
+                        },
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">
+                            {children}
+                          </blockquote>
+                        ),
+                        strong: ({ children }) => (
+                          <strong className="font-semibold">{children}</strong>
+                        ),
+                        em: ({ children }) => (
+                          <em className="italic">{children}</em>
+                        ),
+                        a: ({ href, children }) => {
+                          // XSS 방어: javascript:, vbscript:, file: 등의 위험한 프로토콜 차단
+                          const isSafeUrl = (url: string | undefined | null): boolean => {
+                            if (!url) return false;
+                            const lowerUrl = url.toLowerCase().trim();
+                            const dangerousProtocols = [
+                              "javascript:",
+                              "vbscript:",
+                              "file:",
+                              "data:",
+                              "about:",
+                            ];
+                            return !dangerousProtocols.some((protocol) =>
+                              lowerUrl.startsWith(protocol),
+                            );
+                          };
+
+                          const safeHref = isSafeUrl(href) ? href : "#";
+
+                          return (
+                            <a
+                              href={safeHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
+                      }}
+                    >
+                      {searchResult.answer}
+                    </ReactMarkdown>
                   </div>
                 </div>
               </div>
