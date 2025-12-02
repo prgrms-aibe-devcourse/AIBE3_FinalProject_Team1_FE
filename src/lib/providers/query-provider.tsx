@@ -32,9 +32,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           (error.status === 401 || error.status === 403)
         ) {
           // 백엔드에서 쿠키를 지웠을 때 프론트엔드 인증 상태도 업데이트
-          console.log(
-            "[QueryCache] Authentication error detected, logging out",
-          );
           authStore.logout();
         }
       },
@@ -53,9 +50,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           (error.status === 401 || error.status === 403)
         ) {
           // 백엔드에서 쿠키를 지웠을 때 프론트엔드 인증 상태도 업데이트
-          console.log(
-            "[MutationCache] Authentication error detected, logging out",
-          );
           authStore.logout();
         }
       },

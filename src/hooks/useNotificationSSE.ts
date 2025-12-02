@@ -63,7 +63,6 @@ export function useNotificationSSE() {
    */
   const handleNotification = useCallback(
     (notification: NotificationResBody) => {
-      console.log("[SSE] 알림 수신:", notification);
 
       // 1. 전역 상태 업데이트 (읽지 않은 알림 여부)
       if (!notification.isRead) {
@@ -91,7 +90,6 @@ export function useNotificationSSE() {
   const connect = useCallback(() => {
     // 인증되지 않았으면 연결하지 않음
     if (!isAuthenticated || !user?.id) {
-      console.log("[SSE] 인증되지 않아 연결하지 않음");
       return;
     }
 
@@ -112,8 +110,6 @@ export function useNotificationSSE() {
 
     const sseUrl = `${API_BASE_URL}/api/v1/notifications/subscribe`;
 
-    console.log("[SSE] 연결 시도:", sseUrl);
-
     try {
       const eventSource = new EventSource(sseUrl, {
         withCredentials: true, // 쿠키 포함
@@ -124,7 +120,6 @@ export function useNotificationSSE() {
 
       // 연결 성공
       eventSource.onopen = () => {
-        console.log("[SSE] 연결 성공");
         setIsConnected(true);
         reconnectAttempts = 0; // 재연결 성공 시 카운터 리셋
       };
@@ -136,7 +131,6 @@ export function useNotificationSSE() {
 
           // 처음 연결 시 "connected" 메시지는 무시
           if (data === "connected") {
-            console.log("[SSE] 연결 확인 메시지 수신 (무시)");
             return;
           }
 
@@ -161,10 +155,6 @@ export function useNotificationSSE() {
           if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
             const delay = RECONNECT_DELAY * reconnectAttempts; // 지수 백오프
-
-            console.log(
-              `[SSE] ${delay}ms 후 재연결 시도 (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
-            );
 
             reconnectTimeoutId = setTimeout(() => {
               connect();

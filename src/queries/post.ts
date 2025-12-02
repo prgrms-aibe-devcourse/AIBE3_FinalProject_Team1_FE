@@ -296,9 +296,6 @@ export function useAISearchQuery(query: string | null) {
       }
       try {
         const result = await searchPostsByAI(query);
-        if (process.env.NODE_ENV === "development") {
-          console.log("[useAISearchQuery] Search result:", result);
-        }
         return result;
       } catch (error) {
         console.error("Failed to search posts by AI:", error);

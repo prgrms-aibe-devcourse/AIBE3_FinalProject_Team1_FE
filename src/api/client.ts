@@ -24,11 +24,6 @@ class ApiClient {
   async get<T>(endpoint: string): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
-    // 개발 환경에서 쿠키 전송 확인
-    if (process.env.NODE_ENV === "development") {
-      console.log("[API Client] GET Request:", url);
-      console.log("[API Client] Credentials:", "include");
-    }
 
     try {
       const response = await fetch(url, {
@@ -54,21 +49,8 @@ class ApiClient {
 
       const result: ApiResponse<T> = await response.json();
       
-      // 개발 환경에서 응답 로그
-      if (process.env.NODE_ENV === "development") {
-        console.log("[API Client] GET Response:", {
-          url,
-          status: result.status,
-          hasData: result.data !== undefined,
-          dataType: typeof result.data,
-        });
-      }
-      
       // data가 undefined인 경우를 방지
       if (result.data === undefined) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[API Client] Response data is undefined:", result);
-        }
         throw new Error("API response data is undefined");
       }
       return result.data;
@@ -79,12 +61,6 @@ class ApiClient {
           status: 0,
           message: `Network error: ${error.message}`,
         };
-        if (process.env.NODE_ENV === "development") {
-          console.error("[API Client] Network Error:", {
-            url,
-            error: networkError.message,
-          });
-        }
         throw networkError;
       }
       // 기타 에러는 그대로 전달
@@ -110,12 +86,6 @@ class ApiClient {
       headers["Content-Type"] = "application/json";
     }
 
-    // 개발 환경에서 쿠키 전송 확인
-    if (process.env.NODE_ENV === "development") {
-      console.log("[API Client] POST Request:", url);
-      console.log("[API Client] Credentials:", "include");
-      console.log("[API Client] IsFormData:", isFormData);
-    }
 
     const response = await fetch(url, {
       method: "POST",

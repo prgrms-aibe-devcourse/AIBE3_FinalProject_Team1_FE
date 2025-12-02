@@ -298,17 +298,6 @@ function PostCard({ post }: { post: Post }) {
     return null;
   };
 
-  // 디버깅: 지역 정보 확인 (개발 환경에서만)
-  if (process.env.NODE_ENV === "development") {
-    console.log("[PostCard] post:", {
-      id: post.id,
-      title: post.title,
-      regions: post.regions,
-      regionIds: post.regionIds,
-      regionsList: regions,
-      regionsListLength: regions?.length,
-    });
-  }
 
   return (
     <Card className="group transition-shadow hover:shadow-md">

@@ -35,10 +35,6 @@ export const useChatStore = create<ChatState>((set) => ({
         return state; // 상태 변경 없음
       }
 
-      console.log(
-        "[STORE] setRooms called, currentRoomId:",
-        state.currentRoomId,
-      );
       // 기존 rooms의 실시간 업데이트 데이터 보존
       const updatedRooms = rooms.map((newRoom) => {
         const existingRoom = state.rooms.find((r) => r.id === newRoom.id);
@@ -46,11 +42,6 @@ export const useChatStore = create<ChatState>((set) => ({
 
         // 현재 열려있는 채팅방이면 unreadCount는 무조건 0 유지
         if (state.currentRoomId === newRoom.id) {
-          console.log(
-            "[STORE] Room",
-            newRoom.id,
-            "is current room, forcing unreadCount to 0",
-          );
           return {
             ...newRoom,
             unreadCount: 0,

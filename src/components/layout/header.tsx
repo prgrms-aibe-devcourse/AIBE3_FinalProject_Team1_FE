@@ -43,7 +43,6 @@ export function Header() {
     0,
   );
 
-  console.log("[HEADER] rooms count:", rooms.length, "totalUnread:", totalChatUnread);
 
   const handleLogout = () => {
     logoutMutation.mutate();

@@ -579,15 +579,6 @@ export default function EditPostPage() {
       }
     });
 
-    // 디버깅 로그
-    if (process.env.NODE_ENV === "development") {
-      console.log("전송 데이터:", {
-        totalImages: images.length,
-        newFiles: images.filter((img) => img.file).length,
-        existingImages: images.filter((img) => img.id).length,
-        imagesData: imagesData,
-      });
-    }
 
     try {
       // mutation 실행 (캐시 업데이트는 mutation의 onSuccess에서 처리)

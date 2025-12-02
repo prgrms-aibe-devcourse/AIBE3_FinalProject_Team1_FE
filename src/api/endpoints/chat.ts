@@ -64,10 +64,6 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
     PaginatedApiResponse<ChatRoomListDto> | ChatRoomListDto[]
   >("/api/v1/chats");
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("[API] getChatRoomList response:", response);
-  }
-
   /* 🔥 any 제거 + 타입 가드 */
   let rawList: unknown[] = [];
 
@@ -246,15 +242,10 @@ export async function markChatRoomAsRead(
   roomId: number,
   lastMessageId: number,
 ): Promise<void> {
-  console.log(
-    `[API] Marking room ${roomId} as read up to message ${lastMessageId}`,
-  );
-
   const result = await apiClient.patch<void>(
     `/api/v1/chats/${roomId}/read?lastMessageId=${lastMessageId}`,
     {},
   );
 
-  console.log(`[API] Successfully marked room ${roomId} as read`);
   return result;
 }

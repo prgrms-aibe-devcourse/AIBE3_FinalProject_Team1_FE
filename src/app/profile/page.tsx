@@ -158,14 +158,6 @@ export default function ProfilePage() {
     // removeProfileImage가 true이고 파일이 없으면 백엔드에서 이미지 삭제 처리
     // (reqBody에 removeProfileImage: true가 포함되어 있음)
 
-    // 디버깅용 로그
-    if (process.env.NODE_ENV === "development") {
-      console.log("프로필 수정 요청:", {
-        removeProfileImage: formData.removeProfileImage,
-        hasProfileImageFile: !!profileImageFile,
-        reqBody,
-      });
-    }
 
     try {
       const response = await updateUserMutation.mutateAsync(

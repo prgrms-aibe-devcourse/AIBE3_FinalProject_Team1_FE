@@ -50,13 +50,6 @@ function SearchPageContent() {
   const { data: regions } = useRegionListQuery();
   const { data: categories } = useCategoryListQuery();
 
-  // 디버깅용 로그
-  if (process.env.NODE_ENV === "development") {
-    console.log("[SearchPage] queryParam:", queryParam);
-    console.log("[SearchPage] searchResult:", searchResult);
-    console.log("[SearchPage] isLoading:", isLoading);
-    console.log("[SearchPage] error:", error);
-  }
 
   const handleSearch = () => {
     if (searchQuery.trim()) {

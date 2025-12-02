@@ -37,9 +37,6 @@ export function useChatRoomListQuery(enabled = true) {
     queryFn: async (): Promise<ChatRoomListDto[]> => {
       try {
         const response = await getChatRoomList();
-        if (process.env.NODE_ENV === "development") {
-          console.log("[Query] chat rooms fetched:", response);
-        }
         return response;
       } catch (error) {
         console.error("Failed to fetch chat room list:", error);
@@ -212,18 +209,10 @@ export function useMarkAsReadMutation() {
       roomId: number;
       lastMessageId: number;
     }) => {
-      console.log(
-        "[markChatRoomAsRead API call] roomId:",
-        roomId,
-        "lastMessageId:",
-        lastMessageId,
-      );
       return markChatRoomAsRead(roomId, lastMessageId);
     },
-    onSuccess: (_, variables) => {
-      console.log("[Mark as read SUCCESS] roomId:", variables.roomId);
+    onSuccess: () => {
       // 읽음 처리 성공 후 채팅방 목록 갱신
-      console.log("[Mark as read] Invalidating chat rooms query");
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.rooms),
       });
