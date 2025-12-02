@@ -34,6 +34,8 @@
     "react": "19.1.0",
     "react-datepicker": "^8.9.0",
     "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
+    "rehype-sanitize": "^6.0.0",
     "sockjs-client": "^1.6.1",
     "zustand": "^5.0.8"
   },
