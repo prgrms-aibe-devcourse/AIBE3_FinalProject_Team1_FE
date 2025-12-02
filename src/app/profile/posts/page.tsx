@@ -14,6 +14,12 @@ import type { Post, Reservation } from "@/types/domain";
 import { ReceiveMethod, ReservationStatus } from "@/types/domain";
 
 import { getImageUrl } from "@/lib/utils/image";
+import {
+  handleCompleteReturnInspection as handleCompleteReturnInspectionUtil,
+  handleMarkLostOrUnreturned as handleMarkLostOrUnreturnedUtil,
+  handleReceiveReturn as handleReceiveReturnUtil,
+  handleRequestRefund as handleRequestRefundUtil,
+} from "@/lib/utils/reservation";
 
 import { parseLocalDateString } from "@/lib/utils";
 
@@ -30,12 +36,6 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 
 import { useUIStore } from "@/store/uiStore";
-import {
-  handleCompleteReturnInspection as handleCompleteReturnInspectionUtil,
-  handleMarkLostOrUnreturned as handleMarkLostOrUnreturnedUtil,
-  handleReceiveReturn as handleReceiveReturnUtil,
-  handleRequestRefund as handleRequestRefundUtil,
-} from "@/lib/utils/reservation";
 
 import { useMyPostsQuery } from "@/queries/post";
 import {
@@ -54,6 +54,10 @@ import {
   User,
   X,
 } from "lucide-react";
+
+/**
+ * 마이페이지 - 내 게시글
+ */
 
 /**
  * 마이페이지 - 내 게시글
@@ -421,22 +425,6 @@ function PostCard({ post }: { post: Post }) {
                       }>) ||
                       [];
 
-                    // 결제 금액 계산
-                    const baseFee = post.fee || 0;
-                    const baseDeposit = post.deposit || 0;
-                    const rentalFee = baseFee * reservationDays;
-                    const optionsFee = options.reduce(
-                      (sum, opt) => sum + (opt.fee || 0) * reservationDays,
-                      0,
-                    );
-                    const optionsDeposit = options.reduce(
-                      (sum, opt) => sum + (opt.deposit || 0),
-                      0,
-                    );
-                    const totalRentalFee = rentalFee + optionsFee;
-                    const totalDeposit = baseDeposit + optionsDeposit;
-                    const totalAmount = totalRentalFee + totalDeposit;
-
                     const status = reservation.status as string;
                     const canConfirmReturnReceive =
                       status === "RETURNING" ||
@@ -552,7 +540,7 @@ function PostCard({ post }: { post: Post }) {
                               총 결제금액
                             </p>
                             <p className="text-lg font-bold text-green-600 bg-green-50 px-3 py-2 rounded-lg inline-block">
-                              {totalAmount.toLocaleString()}원
+                              {reservation.totalAmount}원
                             </p>
                           </div>
 
