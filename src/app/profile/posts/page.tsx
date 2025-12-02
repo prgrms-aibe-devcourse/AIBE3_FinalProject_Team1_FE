@@ -71,6 +71,10 @@ import {
  * 마이페이지 - 내 게시글
  */
 
+/**
+ * 마이페이지 - 내 게시글
+ */
+
 const statusLabels: Record<string, string> = {
   PENDING_APPROVAL: "승인 대기",
   PENDING_PAYMENT: "결제 대기",
@@ -389,7 +393,7 @@ function PostCard({ post }: { post: Post }) {
                             (reservationEndDate.getTime() -
                               reservationStartDate.getTime()) /
                               (1000 * 60 * 60 * 24),
-                          ) + 1
+                          )
                         : 0;
 
                     // 옵션 목록
