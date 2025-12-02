@@ -575,7 +575,7 @@ export default function EditPostPage() {
     images.forEach((imageData) => {
       if (imageData.file) {
         // file이 있으면 새 이미지
-        formDataToSend.append("file", imageData.file);
+        formDataToSend.append("images", imageData.file);
       }
     });
 
