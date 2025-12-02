@@ -81,7 +81,7 @@ export function usePostListQuery(filters?: PostListFilters) {
         };
       }
     },
-    staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지
+    staleTime: 0, // 항상 최신 데이터로 업데이트
     retry: false, // 재시도하지 않음
   });
 }
@@ -89,10 +89,7 @@ export function usePostListQuery(filters?: PostListFilters) {
 /**
  * 게시글 상세 조회 query
  */
-export function usePostQuery(
-  postId: number,
-  options?: { enabled?: boolean },
-) {
+export function usePostQuery(postId: number, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: getQueryKey(queryKeys.post.detail(postId)),
     queryFn: async (): Promise<Post | null> => {
@@ -217,19 +214,31 @@ export function useUpdatePostMutation() {
   return useMutation({
     mutationFn: ({ postId, data }: { postId: number; data: UpdatePostDto }) =>
       updatePost(postId, data),
-    onSuccess: (response, variables) => {
-      // 게시글 상세 쿼리 업데이트
+    onSuccess: async (response, variables) => {
+      // 1. 게시글 상세 쿼리에 업데이트된 데이터 즉시 설정
       queryClient.setQueryData(
         getQueryKey(queryKeys.post.detail(variables.postId)),
         response,
       );
-      // 게시글 목록 쿼리 무효화
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.all),
+
+      // 2. 게시글 목록 쿼리 무효화 및 강제 refetch
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getQueryKey(queryKeys.post.all),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getQueryKey(queryKeys.post.list()),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getQueryKey(queryKeys.post.myPosts()),
+        }),
+      ]);
+
+      // 3. 상세 페이지 쿼리도 무효화하여 최신 데이터 보장
+      await queryClient.invalidateQueries({
+        queryKey: getQueryKey(queryKeys.post.detail(variables.postId)),
       });
-      queryClient.invalidateQueries({
-        queryKey: getQueryKey(queryKeys.post.myPosts()),
-      });
+
       showToast("게시글이 수정되었습니다.", "success");
     },
     onError: (error: unknown) => {
