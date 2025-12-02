@@ -272,6 +272,22 @@ export interface AISearchResponse {
 }
 
 /**
+ * AI 게시글 생성 응답
+ */
+export interface GenPostDetailResBody {
+  title: string;
+  content: string;
+  categoryId: number;
+  fee: number;
+  deposit: number;
+  options: Array<{
+    name: string;
+    deposit: number;
+    fee: number;
+  }>;
+}
+
+/**
  * 게시글 (Post)
  */
 export interface Post extends BaseEntity {

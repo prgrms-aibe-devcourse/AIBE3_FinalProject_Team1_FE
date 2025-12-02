@@ -18,13 +18,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 
 import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
 
 import { useCategoryListQuery } from "@/queries/category";
-import { useCreatePostMutation } from "@/queries/post";
+import {
+  useCreatePostMutation,
+  useGeneratePostDetailMutation,
+} from "@/queries/post";
 import { useRegionListQuery } from "@/queries/region";
 import { useMeQuery } from "@/queries/user";
 
@@ -32,8 +43,10 @@ import {
   Camera,
   CheckCircle,
   Info,
+  Loader2,
   MapPin,
   Plus,
+  Sparkles,
   Star,
   Truck,
   User,
@@ -109,11 +122,16 @@ interface PostOptionInput {
 export default function NewPostPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
+  const showToast = useUIStore((state) => state.showToast);
   const { data: me, isLoading: meLoading } = useMeQuery();
   const createPostMutation = useCreatePostMutation();
+  const generatePostDetailMutation = useGeneratePostDetailMutation();
   const { data: categories } = useCategoryListQuery();
   const { data: regions } = useRegionListQuery();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAdditionalInfoDialogOpen, setIsAdditionalInfoDialogOpen] =
+    useState(false);
+  const [additionalInfo, setAdditionalInfo] = useState("");
 
   // 인증 상태 확인 (me API 호출 결과 또는 스토어의 사용자 정보)
   const currentUser = me ?? user;
@@ -545,6 +563,81 @@ export default function NewPostPage() {
     });
   };
 
+  // AI 게시글 생성 버튼 클릭 핸들러 (다이얼로그 열기)
+  const handleOpenGenerateDialog = () => {
+    if (images.length === 0) {
+      showToast("이미지를 먼저 업로드해주세요.", "error");
+      return;
+    }
+    setIsAdditionalInfoDialogOpen(true);
+  };
+
+  // AI 게시글 생성 핸들러 (실제 생성)
+  const handleGeneratePostDetail = async () => {
+    try {
+      const imageFiles = images.map((img) => img.file);
+      const info = additionalInfo.trim() || undefined;
+
+      setIsAdditionalInfoDialogOpen(false);
+
+      const result = await generatePostDetailMutation.mutateAsync({
+        imageFiles,
+        additionalInfo: info,
+      });
+
+      // 응답 데이터를 폼에 채워넣기
+      setFormData((prev) => ({
+        ...prev,
+        title: result.title,
+        content: result.content,
+        deposit: result.deposit,
+        fee: result.fee,
+        categoryId: result.categoryId,
+      }));
+
+      // 카테고리 설정
+      if (categories) {
+        // 먼저 소분류에서 찾기
+        let found = false;
+        for (const mainCategory of categories) {
+          const subCategories = mainCategory.child || mainCategory.children || [];
+          const subCategory = subCategories.find(
+            (sub) => sub.id === result.categoryId,
+          );
+          if (subCategory) {
+            setSelectedMainCategory(mainCategory.id);
+            setSelectedSubCategory(subCategory.id);
+            found = true;
+            break;
+          }
+        }
+        // 소분류에서 못 찾으면 대분류에서 찾기
+        if (!found) {
+          const mainCategory = categories.find(
+            (cat) => cat.id === result.categoryId,
+          );
+          if (mainCategory) {
+            setSelectedMainCategory(mainCategory.id);
+            setSelectedSubCategory(null);
+          }
+        }
+      }
+
+      // 옵션 설정
+      if (result.options && result.options.length > 0) {
+        setOptions(
+          result.options.map((opt) => ({
+            name: opt.name,
+            deposit: opt.deposit,
+            fee: opt.fee,
+          })),
+        );
+      }
+    } catch (error) {
+      console.error("Failed to generate post detail:", error);
+    }
+  };
+
   // 로딩 중이거나 인증되지 않은 경우
   if (meLoading || !authenticated) {
     return (
@@ -563,8 +656,25 @@ export default function NewPostPage() {
     <div className="container mx-auto px-4 py-8">
       <Card className="mx-auto max-w-4xl">
         <CardHeader>
-          <CardTitle className="text-2xl">게시글 등록</CardTitle>
-          <CardDescription>대여할 물품 정보를 입력해주세요</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">게시글 등록</CardTitle>
+              <CardDescription>대여할 물품 정보를 입력해주세요</CardDescription>
+            </div>
+            <Button
+              type="button"
+              onClick={handleOpenGenerateDialog}
+              disabled={
+                generatePostDetailMutation.isPending ||
+                createPostMutation.isPending
+              }
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              AI로 게시글 생성
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -1350,6 +1460,85 @@ export default function NewPostPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* 추가 정보 입력 다이얼로그 */}
+      <Dialog
+        open={isAdditionalInfoDialogOpen}
+        onOpenChange={setIsAdditionalInfoDialogOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              AI 게시글 생성
+            </DialogTitle>
+            <DialogDescription>
+              AI에게 전달할 추가 정보를 입력해주세요 (선택사항)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 px-6 pb-4">
+            <div className="space-y-2">
+              <label
+                htmlFor="dialogAdditionalInfo"
+                className="text-sm font-medium"
+              >
+                추가 정보
+              </label>
+              <textarea
+                id="dialogAdditionalInfo"
+                rows={3}
+                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                placeholder="예: 특별한 사용법, 주의사항, 대여 조건 등"
+                value={additionalInfo}
+                onChange={(e) => setAdditionalInfo(e.target.value)}
+                disabled={generatePostDetailMutation.isPending}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-gray-200 p-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAdditionalInfoDialogOpen(false)}
+              disabled={generatePostDetailMutation.isPending}
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              onClick={handleGeneratePostDetail}
+              disabled={generatePostDetailMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              {generatePostDetailMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                "생성하기"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI 생성 로딩 다이얼로그 */}
+      <Dialog open={generatePostDetailMutation.isPending}>
+        <DialogContent showCloseButton={false} className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              AI 게시글 생성 중
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              AI가 이미지를 분석하여 게시글을 생성하고 있습니다.
+              <br />
+              잠시만 기다려주세요...
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
