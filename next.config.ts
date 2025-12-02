@@ -26,8 +26,9 @@ const nextConfig: NextConfig = {
         hostname: "picsum.photos",
       },
     ],
-    // 로컬 개발 환경에서도 이미지 최적화 허용
-    unoptimized: process.env.NODE_ENV === "development" ? false : false,
+    // presigned URL 사용 시 이미지 최적화 비활성화
+    // presigned URL은 쿼리 파라미터와 만료 시간이 있어 Next.js 서버가 재요청할 때 실패할 수 있음
+    unoptimized: true,
   },
 };
 
