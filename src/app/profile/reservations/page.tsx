@@ -39,7 +39,6 @@ import {
   handleCompleteRentalInspection as handleCompleteRentalInspectionUtil,
   handleStartReturn as handleStartReturnUtil,
   handleMarkLostOrUnreturned as handleMarkLostOrUnreturnedUtil,
-  canCompletePickup as canCompletePickupUtil,
   canCompleteInspection as canCompleteInspectionUtil,
   canStartReturn as canStartReturnUtil,
   canSendReturnShipping as canSendReturnShippingUtil,
@@ -309,7 +308,7 @@ export default function MyReservationsPage() {
 
               return (
                 <Card key={reservation.id} className="transition-shadow hover:shadow-md">
-                  <CardContent className="p-4 pt-4">
+                  <CardContent padding="compact">
                     <div className="flex gap-4">
                       {/* 이미지 */}
                       <div className="flex-shrink-0">

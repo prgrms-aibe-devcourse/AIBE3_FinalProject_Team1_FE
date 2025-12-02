@@ -10,12 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import type {
-  ChatMessageDto,
-  ChatNotiDto,
-  NewMessageNotiDto,
-  NewRoomNotiDto,
-} from "@/types/domain";
+import type { ChatMessageDto } from "@/types/domain";
 
 import { getQueryKey, queryKeys } from "@/lib/query-keys";
 /* ======================
@@ -109,8 +104,6 @@ function ChatPage() {
   const setCurrentRoomId = useChatStore((state) => state.setCurrentRoomId);
   const resetUnread = useChatStore((state) => state.resetUnread);
   const updateRoom = useChatStore((state) => state.updateRoom);
-  const addRoom = useChatStore((state) => state.addRoom);
-
   // selectedRoomId가 변경될 때 chatStore에 동기화
   useEffect(() => {
     setCurrentRoomId(selectedRoomId);
@@ -408,14 +401,19 @@ function ChatPage() {
       shouldAutoScrollRef.current = true;
     });
 
+    // cleanup 함수에서 사용할 ref 값 복사 (effect 내부에서)
+    const timerRef = markAsReadTimerByRoomRef.current;
+    const currentSelectedRoomId = selectedRoomId;
+
     return () => {
       console.log("🔕 STOMP UNSUB", { dest, subId });
-      if (markAsReadTimerByRoomRef.current[selectedRoomId]) {
-        clearTimeout(markAsReadTimerByRoomRef.current[selectedRoomId]);
-        delete markAsReadTimerByRoomRef.current[selectedRoomId];
+      if (timerRef[currentSelectedRoomId]) {
+        clearTimeout(timerRef[currentSelectedRoomId]);
+        delete timerRef[currentSelectedRoomId];
       }
       unsub();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoomId, isConnected, subscribe, queryClient]);
 
   /* ======================

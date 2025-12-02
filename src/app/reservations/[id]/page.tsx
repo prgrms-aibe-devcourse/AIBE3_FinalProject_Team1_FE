@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { differenceInDays, format } from "date-fns";
+import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Suspense, useEffect, useState } from "react";
 
@@ -15,6 +15,9 @@ import { ReceiveMethod, ReservationStatus } from "@/types/domain";
 
 import { getImageUrl } from "@/lib/utils/image";
 import {
+  type ReservationOptionForCalculation,
+  calculateReservationAmount,
+  calculateReservationDays,
   canCompleteInspection as canCompleteInspectionUtil,
   canCompletePickup as canCompletePickupUtil,
   canCompleteRefund as canCompleteRefundUtil,
@@ -73,6 +76,14 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+
+/**
+ * 예약 상세 페이지
+ */
+
+/**
+ * 예약 상세 페이지
+ */
 
 /**
  * 예약 상세 페이지
@@ -519,7 +530,11 @@ function ReservationDetailPageContent() {
     ? canSendReturnShippingUtil(reservation, isReservationOwner)
     : false;
 
-  // 대여 기간 계산
+  // 대여 기간 계산 (공통 유틸 사용)
+  const daysDiff = calculateReservationDays(
+    reservation.reservationStartAt,
+    reservation.reservationEndAt,
+  );
   const startDate =
     reservation.reservationStartAt &&
     new Date(
@@ -534,21 +549,6 @@ function ReservationDetailPageContent() {
         ? reservation.reservationEndAt
         : reservation.reservationEndAt,
     );
-  // 날짜만 추출하여 계산 (시간 부분 제거)
-  const startDateOnly = startDate
-    ? new Date(
-        startDate.getFullYear(),
-        startDate.getMonth(),
-        startDate.getDate(),
-      )
-    : null;
-  const endDateOnly = endDate
-    ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
-    : null;
-  const daysDiff =
-    startDateOnly && endDateOnly
-      ? differenceInDays(endDateOnly, startDateOnly) + 1
-      : 0;
 
   // 옵션 목록 (예약에는 id와 이름만 있고, 가격은 post의 options에서 가져옴)
   const reservationOptions =
@@ -575,31 +575,22 @@ function ReservationDetailPageContent() {
     [];
 
   // post의 options에서 가격 정보를 가져와서 매칭
-  const options = reservationOptions.map((resOpt) => {
-    const postOption = post?.options?.find((po) => po.id === resOpt.id);
-    return {
-      id: resOpt.id,
-      name: resOpt.name,
-      fee: postOption?.fee || 0,
-      deposit: postOption?.deposit || 0,
-    };
-  });
+  const options: ReservationOptionForCalculation[] = reservationOptions.map(
+    (resOpt) => {
+      const postOption = post?.options?.find((po) => po.id === resOpt.id);
+      return {
+        id: resOpt.id,
+        name: resOpt.name,
+        fee: postOption?.fee || 0,
+        deposit: postOption?.deposit || 0,
+      };
+    },
+  );
 
-  // 결제 금액 계산
-  const baseFee = post?.fee || 0;
-  const baseDeposit = post?.deposit || 0;
-  const rentalFee = baseFee * daysDiff;
-  const optionsFee = options.reduce(
-    (sum, opt) => sum + (opt.fee || 0) * daysDiff,
-    0,
-  );
-  const optionsDeposit = options.reduce(
-    (sum, opt) => sum + (opt.deposit || 0),
-    0,
-  );
-  const totalRentalFee = rentalFee + optionsFee;
-  const totalDeposit = baseDeposit + optionsDeposit;
-  const totalAmount = totalRentalFee + totalDeposit;
+  // 결제 금액 계산 (공통 유틸 사용)
+  const amountCalc = calculateReservationAmount(post, options, daysDiff);
+  const { baseFee, baseDeposit, totalRentalFee, totalDeposit, totalAmount } =
+    amountCalc;
 
   // 예약 로그 (타임라인)
   const logs = (reservation.logs || []) as ReservationLog[];
@@ -640,9 +631,22 @@ function ReservationDetailPageContent() {
               <div className="flex-shrink-0">
                 <Image
                   src={getImageUrl(
-                    post.thumbnailImageUrl ||
-                      post.images?.[0]?.file ||
-                      post.images?.[0]?.url,
+                    (() => {
+                      // isPrimary가 true인 이미지 우선 사용
+                      const primaryImage = post.images?.find(
+                        (img) => img.isPrimary,
+                      );
+                      if (primaryImage) {
+                        return primaryImage.file || primaryImage.url || "";
+                      }
+                      // 없으면 썸네일 또는 첫 번째 이미지
+                      return (
+                        post.thumbnailImageUrl ||
+                        post.images?.[0]?.file ||
+                        post.images?.[0]?.url ||
+                        ""
+                      );
+                    })(),
                   )}
                   alt={post.title}
                   width={200}

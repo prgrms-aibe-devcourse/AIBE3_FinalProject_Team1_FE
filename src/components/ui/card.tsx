@@ -66,10 +66,28 @@ const CardDescription = forwardRef<
 
 CardDescription.displayName = "CardDescription";
 
-const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => {
+type CardContentProps = HTMLAttributes<HTMLDivElement> & {
+  padding?: "default" | "compact" | "none";
+};
+
+const CardContent = forwardRef<HTMLDivElement, CardContentProps>(
+  ({ className, padding = "default", ...props }, ref) => {
+    const paddingClasses = {
+      default: "p-6",
+      compact: "p-6",
+      none: "p-0",
+    };
+
     return (
-      <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+      <div
+        ref={ref}
+        className={cn(
+          padding === "default" ? "pt-0" : "",
+          paddingClasses[padding],
+          className,
+        )}
+        {...props}
+      />
     );
   },
 );

@@ -16,6 +16,11 @@ import { ReceiveMethod, ReservationStatus } from "@/types/domain";
 import { getImageUrl } from "@/lib/utils/image";
 
 import { parseLocalDateString } from "@/lib/utils";
+import {
+  calculateReservationAmount,
+  calculateReservationDays,
+  type ReservationOptionForCalculation,
+} from "@/lib/utils/reservation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +49,8 @@ import {
   useReservationsByPostQuery,
   useUpdateReservationStatusMutation,
 } from "@/queries/reservation";
+import { useCategoryListQuery } from "@/queries/category";
+import { useRegionListQuery } from "@/queries/region";
 
 import {
   CheckCircle,
@@ -108,7 +115,7 @@ const statusColors: Record<string, string> = {
 };
 
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
-  DIRECT: "만나서",
+  DIRECT: "직거래",
   DELIVERY: "택배",
   ANY: "상관없음",
 };
@@ -122,6 +129,8 @@ function PostCard({ post }: { post: Post }) {
   const approveMutation = useApproveReservationMutation();
   const rejectMutation = useRejectReservationMutation();
   const updateStatusMutation = useUpdateReservationStatusMutation();
+  const { data: categories } = useCategoryListQuery();
+  const { data: regions } = useRegionListQuery();
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
@@ -252,11 +261,60 @@ function PostCard({ post }: { post: Post }) {
     }
   };
 
+  // 카테고리 정보 찾기
+  const findCategory = (
+    catId: number,
+    catList: typeof categories,
+  ): { main: string; sub: string } | null => {
+    if (!catList) return null;
+    for (const mainCat of catList) {
+      const subCategories = mainCat.child || mainCat.children || [];
+      const subCat = subCategories.find((c) => c.id === catId);
+      if (subCat) {
+        return { main: mainCat.name, sub: subCat.name };
+      }
+    }
+    return null;
+  };
+  const categoryInfo =
+    post.categoryId && categories
+      ? findCategory(post.categoryId, categories)
+      : null;
+
+  // 지역 정보 찾기 (메인 페이지와 동일한 방식)
+  const findRegionById = (id: number): import("@/types/domain").Region | null => {
+    if (!regions) return null;
+    for (const region of regions) {
+      if (region.id === id) return region;
+      if (region.child) {
+        const child = region.child.find((r) => r.id === id);
+        if (child) return child;
+      }
+      if (region.children) {
+        const child = region.children.find((r) => r.id === id);
+        if (child) return child;
+      }
+    }
+    return null;
+  };
+
+  // 디버깅: 지역 정보 확인 (개발 환경에서만)
+  if (process.env.NODE_ENV === "development") {
+    console.log("[PostCard] post:", {
+      id: post.id,
+      title: post.title,
+      regions: post.regions,
+      regionIds: post.regionIds,
+      regionsList: regions,
+      regionsListLength: regions?.length,
+    });
+  }
+
   return (
-    <Card className="mb-6">
-      <CardContent className="p-4 pt-4">
+    <Card className="group transition-shadow hover:shadow-md">
+      <CardContent padding="compact">
         {/* 게시글 정보 */}
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-4">
           {/* 이미지 */}
           <div className="shrink-0">
             <Image
@@ -276,23 +334,54 @@ function PostCard({ post }: { post: Post }) {
           <div className="flex-1 flex flex-col justify-center">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
                   {post.title}
                 </h3>
-                {post.regions && post.regions.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>
-                      {post.regions
-                        .map((r) => r.name)
-                        .filter(Boolean)
-                        .join(", ")}
-                    </span>
+                {/* 카테고리 */}
+                {categoryInfo && (
+                  <div className="text-sm text-gray-600 mb-1">
+                    {categoryInfo.main} &gt; {categoryInfo.sub}
                   </div>
                 )}
-                <p className="text-sm text-gray-600 mb-2">
+                {/* 지역 */}
+                {(() => {
+                  let regionNames: string[] = [];
+                  
+                  // 1. post.regions 배열이 있으면 사용
+                  if (post.regions && Array.isArray(post.regions) && post.regions.length > 0) {
+                    regionNames = post.regions
+                      .map((r) => {
+                        if (typeof r === "object" && r !== null && "name" in r) {
+                          return r.name as string;
+                        }
+                        return null;
+                      })
+                      .filter((name): name is string => Boolean(name));
+                  }
+                  // 2. post.regionIds가 있고 regions 목록이 로드되었으면 findRegionById 사용 (메인 페이지와 동일)
+                  else if (post.regionIds && Array.isArray(post.regionIds) && post.regionIds.length > 0 && regions) {
+                    regionNames = post.regionIds
+                      .map((id) => findRegionById(id))
+                      .filter((r) => r !== null)
+                      .map((r) => r!.name);
+                  }
+                  
+                  return regionNames.length > 0 ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                      <MapPin className="h-4 w-4" />
+                      <span>{regionNames.join(", ")}</span>
+                    </div>
+                  ) : null;
+                })()}
+                {/* 수령/반납 방법 */}
+                <div className="flex items-center gap-3 text-sm text-gray-600 mb-1">
+                  <span>수령: {RECEIVE_METHOD_LABELS[post.receiveMethod]}</span>
+                  <span>반납: {RECEIVE_METHOD_LABELS[post.returnMethod]}</span>
+                </div>
+                {/* 작성일 */}
+                <p className="text-sm text-gray-600 mb-1">
                   {post.createdAt &&
-                    `작성일 : ${format(
+                    `작성일: ${format(
                       parseLocalDateString(post.createdAt),
                       "yyyy-MM-dd",
                       {
@@ -300,9 +389,15 @@ function PostCard({ post }: { post: Post }) {
                       },
                     )}`}
                 </p>
-                <p className="text-lg font-semibold text-blue-600">
-                  {post.fee?.toLocaleString() || 0}원/일
-                </p>
+                {/* 가격 정보 */}
+                <div className="flex items-center gap-4 text-sm mt-2">
+                  <span className="font-semibold text-blue-600">
+                    대여료: {post.fee?.toLocaleString() || 0}원/일
+                  </span>
+                  <span className="text-gray-600">
+                    보증금: {post.deposit?.toLocaleString() || 0}원
+                  </span>
+                </div>
               </div>
 
               {/* 예약 건수 */}
@@ -349,7 +444,7 @@ function PostCard({ post }: { post: Post }) {
 
         {/* 예약 목록 (펼쳐졌을 때만 표시) */}
         {isExpanded && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-200">
             {reservationsLoading ? (
               <div className="text-center py-8 text-gray-500">
                 예약 목록을 불러오는 중...
@@ -365,6 +460,11 @@ function PostCard({ post }: { post: Post }) {
                 </h4>
                 <div className="space-y-4">
                   {reservations.map((reservation: Reservation) => {
+                    // 대여 기간 계산 (공통 유틸 사용)
+                    const reservationDays = calculateReservationDays(
+                      reservation.reservationStartAt,
+                      reservation.reservationEndAt,
+                    );
                     const reservationStartDate =
                       reservation.reservationStartAt &&
                       new Date(
@@ -379,17 +479,9 @@ function PostCard({ post }: { post: Post }) {
                           ? reservation.reservationEndAt
                           : reservation.reservationEndAt,
                       );
-                    const reservationDays =
-                      reservationStartDate && reservationEndDate
-                        ? Math.ceil(
-                            (reservationEndDate.getTime() -
-                              reservationStartDate.getTime()) /
-                              (1000 * 60 * 60 * 24),
-                          ) + 1
-                        : 0;
 
                     // 옵션 목록
-                    const options =
+                    const options: ReservationOptionForCalculation[] =
                       reservation.options?.map((ro) => ({
                         id: ro.id,
                         name: ro.option?.name || `옵션 #${ro.optionId}`,
@@ -413,29 +505,22 @@ function PostCard({ post }: { post: Post }) {
                           }
                           return null;
                         })
-                        .filter(Boolean) as Array<{
-                        id: number;
-                        name: string;
-                        fee: number;
-                        deposit: number;
-                      }>) ||
+                        .filter(Boolean) as ReservationOptionForCalculation[]) ||
                       [];
 
-                    // 결제 금액 계산
-                    const baseFee = post.fee || 0;
-                    const baseDeposit = post.deposit || 0;
-                    const rentalFee = baseFee * reservationDays;
-                    const optionsFee = options.reduce(
-                      (sum, opt) => sum + (opt.fee || 0) * reservationDays,
-                      0,
-                    );
-                    const optionsDeposit = options.reduce(
-                      (sum, opt) => sum + (opt.deposit || 0),
-                      0,
-                    );
-                    const totalRentalFee = rentalFee + optionsFee;
-                    const totalDeposit = baseDeposit + optionsDeposit;
-                    const totalAmount = totalRentalFee + totalDeposit;
+                    // 총 금액: 서버에서 제공하는 totalAmount 우선 사용, 없으면 클라이언트에서 계산 (공통 유틸 사용)
+                    let totalAmount: number;
+                    if (reservation.totalAmount !== undefined && reservation.totalAmount !== null) {
+                      totalAmount = reservation.totalAmount;
+                    } else {
+                      // fallback: 클라이언트에서 계산
+                      const amountCalc = calculateReservationAmount(
+                        post,
+                        options,
+                        reservationDays,
+                      );
+                      totalAmount = amountCalc.totalAmount;
+                    }
 
                     const status = reservation.status as string;
                     const canConfirmReturnReceive =
@@ -452,7 +537,7 @@ function PostCard({ post }: { post: Post }) {
 
                     return (
                       <Card key={reservation.id} className="bg-gray-50">
-                        <CardContent className="p-4 pt-4">
+                        <CardContent padding="compact">
                           <div className="flex items-start justify-between mb-4">
                             {/* 예약자 정보 */}
                             <div className="flex items-center gap-3">
@@ -1060,7 +1145,7 @@ export default function MyPostsPage() {
         <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-4 pt-4">
+              <CardContent padding="compact">
                 <div className="flex items-center gap-4">
                   <div className="h-24 w-24 bg-gray-200 rounded-lg shrink-0" />
                   <div className="flex-1 space-y-2">
@@ -1082,7 +1167,7 @@ export default function MyPostsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {posts.map((post: Post) => (
             <PostCard key={post.id} post={post} />
           ))}

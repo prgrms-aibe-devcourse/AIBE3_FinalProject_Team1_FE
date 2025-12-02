@@ -25,7 +25,6 @@ import {
   Clock,
   Flag,
   Info,
-  Trash2,
   Unlock,
   X,
 } from "lucide-react";
