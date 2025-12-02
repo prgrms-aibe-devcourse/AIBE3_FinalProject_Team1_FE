@@ -14,6 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { useReservationQuery } from "@/queries/reservation";
 import { usePostQuery } from "@/queries/post";
+import {
+  calculateReservationAmount,
+  calculateReservationDays,
+  type ReservationOptionForCalculation,
+} from "@/lib/utils/reservation";
 
 const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "";
 
@@ -29,25 +34,11 @@ export default function TossWidgetsPaymentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 대여 기간 계산
-  const startDate =
-    reservation?.reservationStartAt &&
-    new Date(
-      typeof reservation.reservationStartAt === "string"
-        ? reservation.reservationStartAt
-        : reservation.reservationStartAt,
-    );
-  const endDate =
-    reservation?.reservationEndAt &&
-    new Date(
-      typeof reservation.reservationEndAt === "string"
-        ? reservation.reservationEndAt
-        : reservation.reservationEndAt,
-    );
-  const daysDiff =
-    startDate && endDate
-      ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      : 0;
+  // 대여 기간 계산 (공통 유틸 사용)
+  const daysDiff = calculateReservationDays(
+    reservation?.reservationStartAt,
+    reservation?.reservationEndAt,
+  );
 
   // 옵션 목록 (예약에는 id와 이름만 있고, 가격은 post의 options에서 가져옴)
   const reservationOptions =
@@ -71,25 +62,25 @@ export default function TossWidgetsPaymentPage() {
     [];
 
   // post의 options에서 가격 정보를 가져와서 매칭
-  const options = reservationOptions.map((resOpt) => {
-    const postOption = post?.options?.find((po) => po.id === resOpt.id);
-    return {
-      id: resOpt.id,
-      name: resOpt.name,
-      fee: postOption?.fee || 0,
-      deposit: postOption?.deposit || 0,
-    };
-  });
+  const options: ReservationOptionForCalculation[] = reservationOptions.map(
+    (resOpt) => {
+      const postOption = post?.options?.find((po) => po.id === resOpt.id);
+      return {
+        id: resOpt.id,
+        name: resOpt.name,
+        fee: postOption?.fee || 0,
+        deposit: postOption?.deposit || 0,
+      };
+    },
+  );
 
-  // 결제 금액 계산
-  const baseFee = post?.fee || 0;
-  const baseDeposit = post?.deposit || 0;
-  const rentalFee = baseFee * daysDiff;
-  const optionsFee = options.reduce((sum, opt) => sum + (opt.fee || 0) * daysDiff, 0);
-  const optionsDeposit = options.reduce((sum, opt) => sum + (opt.deposit || 0), 0);
-  const totalRentalFee = rentalFee + optionsFee;
-  const totalDeposit = baseDeposit + optionsDeposit;
-  const totalAmount = totalRentalFee + totalDeposit;
+  // 결제 금액 계산 (공통 유틸 사용)
+  const amountCalc = calculateReservationAmount(post, options, daysDiff);
+  const {
+    totalRentalFee,
+    totalDeposit,
+    totalAmount,
+  } = amountCalc;
 
   useEffect(() => {
     if (!reservation || !post) return;

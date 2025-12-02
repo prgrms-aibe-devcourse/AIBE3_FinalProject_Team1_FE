@@ -7,7 +7,6 @@ import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type {
   AISearchResponse,
   CreatePostDto,
-  GenPostDetailResBody,
   Post,
   PostListFilters,
   UpdatePostDto,
