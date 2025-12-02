@@ -519,9 +519,9 @@ export default function NewPostPage() {
     });
     formDataToSend.append("request", requestBlob);
 
-    // file part: 각 파일을 "file"로 추가 (서버에서 List<MultipartFile>로 받음)
+    // images part: 각 파일을 "images"로 추가 (서버에서 List<MultipartFile>로 받음)
     images.forEach((imageData) => {
-      formDataToSend.append("file", imageData.file);
+      formDataToSend.append("images", imageData.file);
     });
 
     try {

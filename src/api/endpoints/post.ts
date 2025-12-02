@@ -134,7 +134,7 @@ export async function searchPostsByAI(
 ): Promise<import("@/types/domain").AISearchResponse> {
   const params = new URLSearchParams({ query });
   const result = await apiClient.get<import("@/types/domain").AISearchResponse>(
-    `/api/v1/posts/search/ai?${params.toString()}`,
+    `/api/v1/posts/search-ai?${params.toString()}`,
   );
   if (process.env.NODE_ENV === "development") {
     console.log("[searchPostsByAI] Raw result:", result);
@@ -162,7 +162,7 @@ export async function generatePostDetail(
   }
   
   return apiClient.post<import("@/types/domain").GenPostDetailResBody>(
-    "/api/v1/posts/genDetail",
+    "/api/v1/posts/gen-detail",
     formData,
     {
       isFormData: true,
