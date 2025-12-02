@@ -141,3 +141,31 @@ export async function searchPostsByAI(
   }
   return result;
 }
+
+/**
+ * AI 게시글 생성
+ */
+export async function generatePostDetail(
+  imageFiles: File[],
+  additionalInfo?: string,
+): Promise<import("@/types/domain").GenPostDetailResBody> {
+  const formData = new FormData();
+  
+  // 이미지 파일 추가
+  imageFiles.forEach((file) => {
+    formData.append("images", file);
+  });
+  
+  // 추가 정보가 있으면 추가
+  if (additionalInfo) {
+    formData.append("additionalInfo", additionalInfo);
+  }
+  
+  return apiClient.post<import("@/types/domain").GenPostDetailResBody>(
+    "/api/v1/posts/genDetail",
+    formData,
+    {
+      isFormData: true,
+    },
+  );
+}

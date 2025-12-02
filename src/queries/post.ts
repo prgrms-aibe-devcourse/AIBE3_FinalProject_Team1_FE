@@ -7,6 +7,7 @@ import type { ApiError, PaginatedApiResponse } from "@/types/api";
 import type {
   AISearchResponse,
   CreatePostDto,
+  GenPostDetailResBody,
   Post,
   PostListFilters,
   UpdatePostDto,
@@ -17,6 +18,7 @@ import { getQueryKey, queryKeys } from "@/lib/query-keys";
 import {
   createPost,
   deletePost,
+  generatePostDetail,
   getMyPosts,
   getPost,
   getPostList,
@@ -298,5 +300,32 @@ export function useAISearchQuery(query: string | null) {
     enabled: !!query && query.trim() !== "",
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     retry: false,
+  });
+}
+
+/**
+ * AI 게시글 생성 mutation
+ */
+export function useGeneratePostDetailMutation() {
+  const showToast = useUIStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: ({
+      imageFiles,
+      additionalInfo,
+    }: {
+      imageFiles: File[];
+      additionalInfo?: string;
+    }) => generatePostDetail(imageFiles, additionalInfo),
+    onSuccess: () => {
+      showToast("AI 게시글 생성이 완료되었습니다.", "success");
+    },
+    onError: (error: unknown) => {
+      console.error("Generate post detail error:", error);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError.message || "AI 게시글 생성에 실패했습니다.";
+      showToast(errorMessage, "error");
+    },
   });
 }
