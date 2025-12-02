@@ -211,18 +211,12 @@ function ChatPage() {
       const lastId = lastMessageIdByRoom.current[roomId];
       const prev = lastMarkedMessageIdByRoom.current[roomId];
 
-      console.log("[READ] markRoomAsRead called", { roomId, lastId, prev });
-
       if (!lastId) {
-        console.log("[READ] ❌ Skip: no lastId");
         return;
       }
       if (prev && prev >= lastId) {
-        console.log("[READ] ❌ Skip: already marked", { prev, lastId });
         return;
       }
-
-      console.log("🔥 [READ] Marking as read", { roomId, lastId });
 
       lastMarkedMessageIdByRoom.current[roomId] = lastId;
 
@@ -239,12 +233,10 @@ function ChatPage() {
     const curr = selectedRoomId;
 
     if (prev && prev !== curr) {
-      console.log("🚪 [READ] EXIT ROOM", prev, "→ calling markRoomAsRead");
       markRoomAsRead(prev);
     }
 
     if (curr && prev !== curr) {
-      console.log("👀 [READ] ENTER ROOM", curr, "→ resetUnread + reset flag");
 
       // 먼저 로컬 store에서 unreadCount를 0으로 설정
       resetUnread(curr);
@@ -269,10 +261,6 @@ function ChatPage() {
     if (hasEnterReadRunRef.current) return;
 
     hasEnterReadRunRef.current = true;
-    console.log("👁️ [READ] ENTER READ after messages loaded", {
-      roomId: selectedRoomId,
-      messageCount: messages.length,
-    });
     markRoomAsRead(selectedRoomId);
     resetUnread(selectedRoomId);
   }, [selectedRoomId, messages.length, markRoomAsRead, resetUnread]);
@@ -296,7 +284,6 @@ function ChatPage() {
       if (!roomId || !lastId) return;
       if (prevMarked && prevMarked >= lastId) return;
 
-      console.log("🔥 READ (unmount fallback)", { roomId, lastId });
       markChatRoomAsRead(roomId, lastId).catch(console.error);
     };
   }, []);
@@ -313,16 +300,10 @@ function ChatPage() {
 
     const dest = `/sub/chat/${selectedRoomId}`;
     const subId = `chat-page-${Date.now()}`;
-    console.log("🔔 STOMP SUB", { dest, subId });
 
     const unsub = subscribe(dest, (msg: IMessage) => {
       const parsed = JSON.parse(msg.body) as ChatMessageDto;
       const roomId = selectedRoomId;
-
-      console.log("💬 RECEIVE MESSAGE", {
-        roomId,
-        msgId: parsed.id,
-      });
 
       queryClient.setQueryData(
         getQueryKey(queryKeys.chat.messages(roomId)),
@@ -333,10 +314,6 @@ function ChatPage() {
             pg.content.some((m: ChatMessageDto) => m.id === parsed.id),
           );
           if (exists) {
-            console.log(
-              "💬 [DUPLICATE] Message already exists, skipping",
-              parsed.id,
-            );
             return old;
           }
 
@@ -376,22 +353,11 @@ function ChatPage() {
       // (디바운스: 마지막 메시지 이후 1초 대기)
       if (markAsReadTimerByRoomRef.current[roomId]) {
         clearTimeout(markAsReadTimerByRoomRef.current[roomId]);
-        console.log("⏱️ [READ] Timer cancelled, will restart", { roomId });
       }
-      console.log("⏱️ [READ] Starting new timer (1000ms)", {
-        roomId,
-        msgId: parsed.id,
-      });
       markAsReadTimerByRoomRef.current[roomId] = setTimeout(() => {
         const lastId = lastMessageIdByRoom.current[roomId];
         const prev = lastMarkedMessageIdByRoom.current[roomId];
-        console.log("💬 [READ] Debounced mark as read FIRED after 1000ms", {
-          roomId,
-          lastId,
-          prev,
-        });
         if (lastId && (!prev || prev < lastId)) {
-          console.log("🔥 [READ] Marking as read", { roomId, lastId });
           lastMarkedMessageIdByRoom.current[roomId] = lastId;
           markAsReadMutation.mutate({ roomId, lastMessageId: lastId });
         }
@@ -406,7 +372,6 @@ function ChatPage() {
     const currentSelectedRoomId = selectedRoomId;
 
     return () => {
-      console.log("🔕 STOMP UNSUB", { dest, subId });
       if (timerRef[currentSelectedRoomId]) {
         clearTimeout(timerRef[currentSelectedRoomId]);
         delete timerRef[currentSelectedRoomId];
@@ -531,11 +496,6 @@ function ChatPage() {
   useEffect(() => {
     if (!selectedRoomId || messages.length === 0) return;
 
-    console.log("📜 [SCROLL] Scrolling to bottom", {
-      roomId: selectedRoomId,
-      messagesCount: messages.length,
-    });
-
     // 첫 진입 플래그 설정
     isInitialRoomEntryRef.current = true;
     prevMessagesLengthRef.current = messages.length; // 현재 길이로 초기화
@@ -546,10 +506,6 @@ function ChatPage() {
       // requestAnimationFrame을 사용하여 렌더링 직후 즉시 스크롤
       requestAnimationFrame(() => {
         container.scrollTop = container.scrollHeight;
-        console.log("📜 [SCROLL] Scrolled to bottom", {
-          scrollTop: container.scrollTop,
-          scrollHeight: container.scrollHeight,
-        });
         // 스크롤 완료 후 플래그 해제
         isInitialRoomEntryRef.current = false;
       });
@@ -566,7 +522,6 @@ function ChatPage() {
 
     // 첫 진입 중이면 스킵 (위의 useEffect에서 처리)
     if (isInitialRoomEntryRef.current) {
-      console.log("📜 [SCROLL] Initial entry, skipping new message scroll");
       return;
     }
 
@@ -578,10 +533,6 @@ function ChatPage() {
 
     // 메시지가 증가했을 때만 스크롤 (새 메시지 도착)
     if (messages.length > prevLength) {
-      console.log("📜 [SCROLL] New message, auto-scrolling", {
-        prev: prevLength,
-        current: messages.length,
-      });
 
       const timer = setTimeout(() => {
         const container = messagesEndRef.current?.parentElement;
@@ -736,9 +687,6 @@ function ChatPage() {
                       hasNextPage &&
                       !isFetchingNextPage
                     ) {
-                      console.log("📄 [SCROLL] Fetching previous page", {
-                        scrollTop: t.scrollTop,
-                      });
                       handleFetchNextPage();
                     }
                   }}

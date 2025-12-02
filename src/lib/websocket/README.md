@@ -18,7 +18,7 @@ import { useStomp } from "@/hooks/useStomp";
 function ChatComponent() {
   const { isConnected, subscribe, publish } = useStomp({
     onConnect: (client) => {
-      console.log("STOMP 연결 완료");
+      // 콘솔 로그
     },
     onError: (error) => {
       console.error("STOMP 연결 오류:", error);
@@ -31,7 +31,7 @@ function ChatComponent() {
     // 채팅방 메시지 구독
     const unsubscribe = subscribe(`/sub/chat/room/${roomId}`, (message) => {
       const chatMessage = JSON.parse(message.body);
-      console.log("새 메시지:", chatMessage);
+      // 콘솔 로그
       // 메시지 처리 로직
     });
 
@@ -62,7 +62,7 @@ client.onConnect = () => {
   // 구독
   client.subscribe(`/sub/chat/room/${roomId}`, (message) => {
     const chatMessage = JSON.parse(message.body);
-    console.log("새 메시지:", chatMessage);
+    // 콘솔 로그
   });
 
   // 메시지 발행
@@ -96,6 +96,7 @@ WebSocket은 HTTP 요청을 업그레이드하는 방식이므로, 브라우저�
 **백엔드 설정 필요 사항**:
 
 1. **CORS 설정** (크로스 오리진인 경우):
+
 ```java
 @Configuration
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
@@ -115,6 +116,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 ```
 
 2. **세션 인증** (세션 기반 인증인 경우):
+
 ```java
 @Component
 public class WebSocketInterceptor implements HandshakeInterceptor {

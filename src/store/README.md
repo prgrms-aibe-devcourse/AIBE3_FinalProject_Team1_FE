@@ -16,7 +16,7 @@ function MyComponent() {
 
   // 사용자 정보 확인
   if (isAuthenticated) {
-    console.log(user?.nickname);
+    // 콘솔 로그
   }
 }
 ```

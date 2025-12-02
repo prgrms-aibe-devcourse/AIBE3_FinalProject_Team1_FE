@@ -22,11 +22,8 @@ export function createStompClient() {
     reconnectDelay: 5000, // 재연결 지연 시간 (5초)
     heartbeatIncoming: 4000, // 하트비트 수신 간격 (4초)
     heartbeatOutgoing: 4000, // 하트비트 송신 간격 (4초)
-    debug: (str) => {
-      // 개발 환경에서만 디버그 로그 출력
-      if (process.env.NODE_ENV === "development") {
-        console.log("[STOMP]", str);
-      }
+    debug: () => {
+      // 디버그 로그 비활성화
     },
     // WebSocket 연결 시 자동으로 인증 헤더 추가 (필요 시)
     connectHeaders: {
@@ -35,9 +32,7 @@ export function createStompClient() {
     },
     // WebSocket 연결 실패 시 자동 재연결
     onConnect: () => {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[STOMP] Connected");
-      }
+      // 연결 성공
     },
     onStompError: (frame) => {
       console.error("[STOMP] Error:", frame);
@@ -46,9 +41,7 @@ export function createStompClient() {
       console.error("[STOMP] WebSocket Error:", event);
     },
     onDisconnect: () => {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[STOMP] Disconnected");
-      }
+      // 연결 해제
     },
   });
 

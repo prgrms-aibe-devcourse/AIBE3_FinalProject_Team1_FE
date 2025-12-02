@@ -51,11 +51,8 @@ export function useStomp() {
 
     // 로그인하지 않았으면 연결하지 않음
     if (!isAuthenticated) {
-      console.log("[STOMP] Skip connection - not authenticated");
       return;
     }
-
-    console.log("[STOMP] Initializing new connection");
 
     // ⭐ 환경변수에서 URL 가져오기 (주의: http/https 사용!)
     const wsUrl =
@@ -72,11 +69,9 @@ export function useStomp() {
       heartbeatOutgoing: 4000,
       
       onConnect: () => {
-        console.log("[STOMP] Connected");
         setIsConnected(true);
       },
       onDisconnect: () => {
-        console.log("[STOMP] Disconnected");
         setIsConnected(false);
       },
       onStompError: (err) => {
@@ -86,17 +81,11 @@ export function useStomp() {
         if (err.headers?.message?.includes("401") || 
             err.headers?.message?.includes("UNAUTHORIZED") ||
             !isAuthenticatedRef.current) {
-          console.log("[STOMP] Auth error or logged out, stopping reconnection");
           if (globalClient) {
             globalClient.deactivate();
             globalClient = null;
           }
         }
-      },
-      
-      // ⭐ 디버깅용 (선택사항) - 프로덕션에서는 제거 권장
-      debug: (str) => {
-        console.log("[STOMP Debug]", str);
       },
     });
 
@@ -106,7 +95,6 @@ export function useStomp() {
 
     return () => {
       if (client === globalClient) {
-        console.log("[STOMP] Deactivating global client...");
         client.deactivate();
         globalClient = null;
       }
@@ -117,7 +105,6 @@ export function useStomp() {
   // 로그아웃 시 연결 해제
   useEffect(() => {
     if (!isAuthenticated && globalClient) {
-      console.log("[STOMP] User logged out, deactivating client");
       globalClient.deactivate();
       globalClient = null;
       clientRef.current = null;

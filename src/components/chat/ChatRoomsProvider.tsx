@@ -24,7 +24,6 @@ export function ChatRoomsProvider() {
 
   useEffect(() => {
     if (!isSuccess || !data) return;
-    console.log("[ChatRoomsProvider] Setting rooms:", data.length, "rooms");
     setRooms(data);
   }, [isSuccess, data, setRooms]);
 

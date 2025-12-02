@@ -41,10 +41,6 @@ export async function createPost(
   const isFormData =
     typeof FormData !== "undefined" && data instanceof FormData;
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("[createPost] IsFormData:", isFormData);
-    console.log("[createPost] Data type:", data.constructor?.name);
-  }
 
   return apiClient.post<Post>("/api/v1/posts", data, {
     isFormData,
@@ -136,9 +132,6 @@ export async function searchPostsByAI(
   const result = await apiClient.get<import("@/types/domain").AISearchResponse>(
     `/api/v1/posts/search-ai?${params.toString()}`,
   );
-  if (process.env.NODE_ENV === "development") {
-    console.log("[searchPostsByAI] Raw result:", result);
-  }
   return result;
 }
 

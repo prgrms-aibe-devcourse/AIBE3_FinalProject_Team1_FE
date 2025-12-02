@@ -61,7 +61,6 @@ export function useUserQuery(userId?: number) {
           (error.status === 401 || error.status === 403)
         ) {
           // 명확한 인증 에러인 경우에만 로그아웃
-          console.log("[useUserQuery] Authentication failed, logging out");
           logout();
         } else {
           // 네트워크 에러, CORS 에러, 또는 기타 에러는 로그만 남기고 로그아웃하지 않음
