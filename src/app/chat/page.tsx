@@ -5,7 +5,7 @@ import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { differenceInMinutes, format, isSameDay, isToday } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Suspense } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -104,15 +104,17 @@ function ChatPage() {
     isFetchingNextPage: isFetchingNextChatRoomsPage,
   } = useChatRoomListQuery();
 
-  const chatRoomsInitial = chatRoomsData
-    ? chatRoomsData.pages.flatMap((page) => page.content || [])
-    : [];
+  const chatRoomsInitial = useMemo(() => {
+    if (!chatRoomsData) return [];
+    return chatRoomsData.pages.flatMap((page) => page.content || []);
+  }, [chatRoomsData]);
 
   const chatRooms = useChatStore((state) => state.rooms);
   const setRooms = useChatStore((state) => state.setRooms);
   const setCurrentRoomId = useChatStore((state) => state.setCurrentRoomId);
   const resetUnread = useChatStore((state) => state.resetUnread);
   const updateRoom = useChatStore((state) => state.updateRoom);
+
   // selectedRoomId가 변경될 때 chatStore에 동기화
   useEffect(() => {
     setCurrentRoomId(selectedRoomId);
@@ -123,13 +125,19 @@ function ChatPage() {
     };
   }, [selectedRoomId, setCurrentRoomId]);
 
+  // 채팅방 목록이 실제로 변경되었을 때만 업데이트
   useEffect(() => {
-    // chatRoomsInitial이 실제로 변경되었을 때만 업데이트
-    if (chatRoomsInitial.length > 0 || chatRooms.length === 0) {
+    if (!chatRoomsData) return;
+
+    // 길이가 다르거나, ID 목록이 다를 때만 업데이트
+    const newRoomIds = chatRoomsInitial.map((r) => r.id).join(",");
+    const currentRoomIds = chatRooms.map((r) => r.id).join(",");
+
+    if (newRoomIds !== currentRoomIds || chatRooms.length === 0) {
       setRooms(chatRoomsInitial);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatRoomsInitial]);
+  }, [chatRoomsData, setRooms]);
 
   /* ======================
      메시지 페이지네이션
