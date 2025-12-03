@@ -115,7 +115,7 @@ export function useReservationsByPostQuery(
 ) {
   // enabled 조건 추출 (filters에서 제거)
   const enabled = filters?.enabled as boolean | undefined;
-  const queryFilters = { ...filters };
+  const queryFilters = filters ? { ...filters } : {};
   delete queryFilters.enabled;
 
   return useQuery({
