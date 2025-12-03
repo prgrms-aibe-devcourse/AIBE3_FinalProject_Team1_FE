@@ -237,7 +237,6 @@ function ChatPage() {
     }
 
     if (curr && prev !== curr) {
-
       // 먼저 로컬 store에서 unreadCount를 0으로 설정
       resetUnread(curr);
       hasEnterReadRunRef.current = false;
@@ -299,7 +298,6 @@ function ChatPage() {
     if (!selectedRoomId || !isConnected) return;
 
     const dest = `/sub/chat/${selectedRoomId}`;
-    const subId = `chat-page-${Date.now()}`;
 
     const unsub = subscribe(dest, (msg: IMessage) => {
       const parsed = JSON.parse(msg.body) as ChatMessageDto;
@@ -533,7 +531,6 @@ function ChatPage() {
 
     // 메시지가 증가했을 때만 스크롤 (새 메시지 도착)
     if (messages.length > prevLength) {
-
       const timer = setTimeout(() => {
         const container = messagesEndRef.current?.parentElement;
         if (container) {
