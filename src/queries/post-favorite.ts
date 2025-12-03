@@ -22,7 +22,10 @@ import {
  */
 export function useFavoritePostsQuery(filters?: Record<string, unknown>) {
   return useQuery({
-    queryKey: getQueryKey(queryKeys.post.favorites),
+    queryKey: [
+      ...getQueryKey(queryKeys.post.favorites),
+      filters ?? {},
+    ],
     queryFn: async (): Promise<PaginatedApiResponse<Post>> => {
       try {
         return await getFavoritePosts(filters);

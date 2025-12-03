@@ -113,14 +113,22 @@ export function useReservationsByPostQuery(
   postId: number,
   filters?: Record<string, unknown>,
 ) {
+  // enabled 조건 추출 (filters에서 제거)
+  const enabled = filters?.enabled as boolean | undefined;
+  const queryFilters = { ...filters };
+  delete queryFilters.enabled;
+
   return useQuery({
-    queryKey: getQueryKey(queryKeys.reservation.byPost(postId)),
+    queryKey: [
+      ...getQueryKey(queryKeys.reservation.byPost(postId)),
+      queryFilters,
+    ],
     queryFn: async (): Promise<
       Reservation[] | PaginatedApiResponse<Reservation>
     > => {
-      return getReservationsByPost(postId, filters);
+      return getReservationsByPost(postId, queryFilters);
     },
-    enabled: !!postId, // postId가 있을 때만 쿼리 실행
+    enabled: !!postId && (enabled !== false), // postId가 있고 enabled가 false가 아닐 때만 쿼리 실행
     staleTime: 1000 * 60 * 2, // 2분간 fresh 상태 유지
   });
 }
