@@ -149,8 +149,10 @@ export default function AdminCategoriesPage() {
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
+                    e.preventDefault();
                     handleCreateParent();
                   } else if (e.key === "Escape") {
+                    e.preventDefault();
                     setIsCreatingParent(false);
                     setNewCategoryName("");
                   }
@@ -212,8 +214,10 @@ export default function AdminCategoriesPage() {
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
+                            e.preventDefault();
                             handleUpdate(category.id, editingCategory.name);
                           } else if (e.key === "Escape") {
+                            e.preventDefault();
                             setEditingCategory(null);
                           }
                         }}
@@ -336,8 +340,10 @@ export default function AdminCategoriesPage() {
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
+                        e.preventDefault();
                         handleCreateChild();
                       } else if (e.key === "Escape") {
+                        e.preventDefault();
                         setIsCreatingChild(false);
                         setNewCategoryName("");
                       }
@@ -394,8 +400,10 @@ export default function AdminCategoriesPage() {
                             }
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
+                                e.preventDefault();
                                 handleUpdate(category.id, editingCategory.name);
                               } else if (e.key === "Escape") {
+                                e.preventDefault();
                                 setEditingCategory(null);
                               }
                             }}
