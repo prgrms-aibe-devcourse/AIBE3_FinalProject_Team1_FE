@@ -6,6 +6,9 @@ import SockJS from "sockjs-client";
 import { useAuthStore } from "@/store/authStore";
 
 let globalClient: Client | null = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY = 3000; // 3초
 
 export function useStomp() {
   const [isConnected, setIsConnected] = useState(false);
@@ -64,15 +67,31 @@ export function useStomp() {
         transports: ['xhr-streaming', 'xhr-polling']  // ⭐ WebSocket 제외
       }),
       
-      reconnectDelay: 3000,
+      reconnectDelay: RECONNECT_DELAY,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       
       onConnect: () => {
         setIsConnected(true);
+        reconnectAttempts = 0; // 연결 성공 시 카운터 리셋
       },
       onDisconnect: () => {
         setIsConnected(false);
+      },
+      onWebSocketError: (event) => {
+        console.error("[STOMP] WebSocket Error:", event);
+        
+        // 재시도 횟수 체크
+        reconnectAttempts++;
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+          console.error(
+            `[STOMP] 최대 재연결 시도 횟수(${MAX_RECONNECT_ATTEMPTS}) 초과, 재연결 중지`,
+          );
+          if (globalClient) {
+            globalClient.deactivate();
+            globalClient = null;
+          }
+        }
       },
       onStompError: (err) => {
         console.error("[STOMP] Error:", err);
@@ -85,12 +104,26 @@ export function useStomp() {
             globalClient.deactivate();
             globalClient = null;
           }
+          reconnectAttempts = 0; // 인증 에러는 재시도 카운터 리셋
+        } else {
+          // 기타 에러 시 재시도 횟수 체크
+          reconnectAttempts++;
+          if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            console.error(
+              `[STOMP] 최대 재연결 시도 횟수(${MAX_RECONNECT_ATTEMPTS}) 초과, 재연결 중지`,
+            );
+            if (globalClient) {
+              globalClient.deactivate();
+              globalClient = null;
+            }
+          }
         }
       },
     });
 
     globalClient = client;
     clientRef.current = client;
+    reconnectAttempts = 0; // 새 연결 시도 시 카운터 리셋
     client.activate();
 
     return () => {
@@ -109,6 +142,7 @@ export function useStomp() {
       globalClient = null;
       clientRef.current = null;
       setIsConnected(false);
+      reconnectAttempts = 0; // 로그아웃 시 카운터 리셋
     }
   }, [isAuthenticated]);
 
