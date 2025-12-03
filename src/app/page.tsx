@@ -124,8 +124,9 @@ export default function Home() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
+      e.preventDefault();
       handleSearch();
     }
   };
@@ -162,7 +163,7 @@ export default function Home() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onKeyDown={handleKeyDown}
                       placeholder="어떤 장비를 찾고 있나요?"
                       className="flex-1 border-0 text-gray-900 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />

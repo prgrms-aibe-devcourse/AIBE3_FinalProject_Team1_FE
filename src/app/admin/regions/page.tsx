@@ -147,8 +147,10 @@ export default function AdminRegionsPage() {
                 onChange={(e) => setNewRegionName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
+                    e.preventDefault();
                     handleCreateParent();
                   } else if (e.key === "Escape") {
+                    e.preventDefault();
                     setIsCreatingParent(false);
                     setNewRegionName("");
                   }
@@ -207,8 +209,10 @@ export default function AdminRegionsPage() {
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
+                            e.preventDefault();
                             handleUpdate(region.id, editingRegion.name);
                           } else if (e.key === "Escape") {
+                            e.preventDefault();
                             setEditingRegion(null);
                           }
                         }}
@@ -328,8 +332,10 @@ export default function AdminRegionsPage() {
                     onChange={(e) => setNewRegionName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
+                        e.preventDefault();
                         handleCreateChild();
                       } else if (e.key === "Escape") {
+                        e.preventDefault();
                         setIsCreatingChild(false);
                         setNewRegionName("");
                       }
@@ -386,8 +392,10 @@ export default function AdminRegionsPage() {
                             }
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
+                                e.preventDefault();
                                 handleUpdate(region.id, editingRegion.name);
                               } else if (e.key === "Escape") {
+                                e.preventDefault();
                                 setEditingRegion(null);
                               }
                             }}
