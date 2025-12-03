@@ -25,7 +25,11 @@ import { useAuthStore } from "@/store/authStore";
 import { useRecentNotificationsQuery } from "@/queries/notification";
 import { useMyPostsQuery } from "@/queries/post";
 import { useMyReservationsQuery } from "@/queries/reservation";
-import { useMeQuery, useUpdateUserMutation } from "@/queries/user";
+import {
+  useMeQuery,
+  useReviewSummaryQuery,
+  useUpdateUserMutation,
+} from "@/queries/user";
 
 import {
   Calendar,
@@ -68,6 +72,7 @@ export default function ProfilePage() {
   const { data: myPosts } = useMyPostsQuery();
   const { data: myReservations } = useMyReservationsQuery();
   const { data: recentNotificationsData } = useRecentNotificationsQuery(5);
+  const { data: reviewSummary } = useReviewSummaryQuery(meFinal?.id);
   const updateUserMutation = useUpdateUserMutation();
 
   // 클라이언트 마운트 여부 (Hydration 에러 방지)
@@ -366,8 +371,14 @@ export default function ProfilePage() {
               <p className="text-gray-600 mb-3">{meFinal?.email}</p>
               <div className="flex items-center justify-center gap-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold text-gray-900">4.8</span>
-                <span className="text-gray-600">(24개 리뷰)</span>
+                <span className="font-semibold text-gray-900">
+                  {reviewSummary?.avgScore
+                    ? reviewSummary.avgScore.toFixed(1)
+                    : "0.0"}
+                </span>
+                <span className="text-gray-600">
+                  ({reviewSummary?.count || 0}개 리뷰)
+                </span>
               </div>
               <p className="text-sm text-gray-600">
                 가입일:{" "}

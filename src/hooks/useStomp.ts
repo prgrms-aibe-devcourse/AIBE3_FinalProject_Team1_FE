@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 
 let globalClient: Client | null = null;
 let reconnectAttempts = 0;
+let clientRefCount = 0; // 클라이언트를 사용하는 컴포넌트 수
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000; // 3초
 
@@ -45,16 +46,41 @@ export function useStomp() {
   }, []);
 
   useEffect(() => {
-    // 이미 글로벌 인스턴스가 있으면 재사용
-    if (globalClient) {
-      clientRef.current = globalClient;
-      setIsConnected(globalClient.connected);
-      return;
-    }
-
     // 로그인하지 않았으면 연결하지 않음
     if (!isAuthenticated) {
       return;
+    }
+
+    // 이미 글로벌 인스턴스가 있고 연결되어 있으면 재사용
+    if (globalClient && globalClient.connected) {
+      clientRef.current = globalClient;
+      setIsConnected(true);
+      clientRefCount++;
+      return () => {
+        clientRefCount--;
+        // 마지막 컴포넌트가 unmount될 때만 cleanup
+        if (clientRefCount <= 0 && globalClient) {
+          globalClient.deactivate();
+          globalClient = null;
+          clientRefCount = 0;
+        }
+      };
+    }
+
+    // 이미 글로벌 인스턴스가 있지만 연결되지 않은 경우 재사용 (재연결 중일 수 있음)
+    if (globalClient) {
+      clientRef.current = globalClient;
+      setIsConnected(globalClient.connected);
+      clientRefCount++;
+      return () => {
+        clientRefCount--;
+        // 마지막 컴포넌트가 unmount될 때만 cleanup
+        if (clientRefCount <= 0 && globalClient) {
+          globalClient.deactivate();
+          globalClient = null;
+          clientRefCount = 0;
+        }
+      };
     }
 
     // ⭐ 환경변수에서 URL 가져오기 (주의: http/https 사용!)
@@ -124,12 +150,16 @@ export function useStomp() {
     globalClient = client;
     clientRef.current = client;
     reconnectAttempts = 0; // 새 연결 시도 시 카운터 리셋
+    clientRefCount++;
     client.activate();
 
     return () => {
-      if (client === globalClient) {
+      clientRefCount--;
+      // 마지막 컴포넌트가 unmount될 때만 cleanup
+      if (clientRefCount <= 0 && client === globalClient) {
         client.deactivate();
         globalClient = null;
+        clientRefCount = 0;
       }
       setIsConnected(false);
     };
