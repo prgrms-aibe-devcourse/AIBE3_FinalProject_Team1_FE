@@ -24,7 +24,8 @@ export function ChatRoomsProvider() {
 
   useEffect(() => {
     if (!isSuccess || !data) return;
-    setRooms(data);
+    const allRooms = data.pages.flatMap((page) => page.content || []);
+    setRooms(allRooms);
   }, [isSuccess, data, setRooms]);
 
   return null;

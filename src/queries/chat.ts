@@ -9,6 +9,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import type { PaginatedApiResponse } from "@/types/api";
 import type {
   ChatRoomDto,
   ChatRoomListDto,
@@ -29,19 +30,41 @@ import {
 } from "@/api/endpoints/chat";
 
 /**
- * 채팅방 목록 조회 query
+ * 채팅방 목록 조회 query (무한 스크롤)
  */
 export function useChatRoomListQuery(enabled = true) {
-  return useQuery({
-    queryKey: getQueryKey(queryKeys.chat.rooms),
-    queryFn: async (): Promise<ChatRoomListDto[]> => {
+  const size = 10;
+  
+  return useInfiniteQuery({
+    queryKey: [
+      ...getQueryKey(queryKeys.chat.rooms),
+      { size },
+    ],
+    queryFn: async ({ pageParam = 0 }): Promise<PaginatedApiResponse<ChatRoomListDto>> => {
       try {
-        const response = await getChatRoomList();
+        const response = await getChatRoomList(pageParam, size);
         return response;
       } catch (error) {
         console.error("Failed to fetch chat room list:", error);
-        return [];
+        return {
+          content: [],
+          page: {
+            page: 0,
+            size: 10,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true,
+            hasNext: false,
+            hasPrevious: false,
+            sort: [],
+          },
+        };
       }
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      return lastPage.page.hasNext ? lastPage.page.page + 1 : undefined;
     },
     enabled,
     // ChatPage 들어올 때마다 invalidateQueries로 1번 새로 가져오고
