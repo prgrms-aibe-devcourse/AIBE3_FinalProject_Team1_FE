@@ -125,6 +125,8 @@ const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
  */
 function PostCard({ post }: { post: Post }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [reservationPage, setReservationPage] = useState(0);
+  const reservationPageSize = 5;
   const showToast = useUIStore((state) => state.showToast);
   const approveMutation = useApproveReservationMutation();
   const rejectMutation = useRejectReservationMutation();
@@ -149,6 +151,8 @@ function PostCard({ post }: { post: Post }) {
 
   const { data: reservationsData, isLoading: reservationsLoading } =
     useReservationsByPostQuery(post.id, {
+      page: reservationPage,
+      size: reservationPageSize,
       sort: ["id,desc"], // 최신순 정렬
       enabled: isExpanded, // 펼쳐졌을 때만 조회
     });
@@ -158,6 +162,17 @@ function PostCard({ post }: { post: Post }) {
     return Array.isArray(reservationsData)
       ? reservationsData
       : reservationsData.content || [];
+  }, [reservationsData]);
+
+  const reservationTotalPages = useMemo(() => {
+    if (!reservationsData || Array.isArray(reservationsData)) return 1;
+    return reservationsData.page?.totalPages || 1;
+  }, [reservationsData]);
+
+  const reservationTotalElements = useMemo(() => {
+    if (!reservationsData) return 0;
+    if (Array.isArray(reservationsData)) return reservationsData.length;
+    return reservationsData.page?.totalElements || 0;
   }, [reservationsData]);
 
   const handleApprove = async (reservationId: number) => {
@@ -390,10 +405,10 @@ function PostCard({ post }: { post: Post }) {
               </div>
 
               {/* 예약 건수 */}
-              {isExpanded && reservations.length > 0 && (
+              {isExpanded && reservationTotalElements > 0 && (
                 <div className="text-right">
                   <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                    예약 {reservations.length}건
+                    예약 {reservationTotalElements}건
                   </span>
                 </div>
               )}
@@ -405,7 +420,13 @@ function PostCard({ post }: { post: Post }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => {
+                  setIsExpanded(!isExpanded);
+                  if (!isExpanded) {
+                    // 펼칠 때 첫 페이지로 리셋
+                    setReservationPage(0);
+                  }
+                }}
                 className="flex items-center gap-2"
               >
                 {isExpanded ? (
@@ -445,7 +466,7 @@ function PostCard({ post }: { post: Post }) {
             ) : (
               <>
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                  예약 목록 (총 {reservations.length}건의 예약)
+                  예약 목록 (총 {reservationTotalElements}건의 예약)
                 </h4>
                 <div className="space-y-4">
                   {reservations.map((reservation: Reservation) => {
@@ -868,6 +889,16 @@ function PostCard({ post }: { post: Post }) {
                     );
                   })}
                 </div>
+                {/* 예약 목록 페이지네이션 */}
+                {reservationTotalPages > 1 && (
+                  <div className="mt-6">
+                    <Pagination
+                      currentPage={reservationPage + 1}
+                      totalPages={reservationTotalPages}
+                      onPageChange={(newPage) => setReservationPage(newPage - 1)}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>
