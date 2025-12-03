@@ -65,7 +65,10 @@ export function useReviewsByPostQuery(
   filters?: Record<string, unknown>,
 ) {
   return useQuery({
-    queryKey: getQueryKey(queryKeys.review.byPost(postId)),
+    queryKey: [
+      ...getQueryKey(queryKeys.review.byPost(postId)),
+      filters ?? {},
+    ],
     queryFn: async (): Promise<PaginatedApiResponse<Review>> => {
       try {
         return await getReviewsByPost(postId, filters);
@@ -102,7 +105,10 @@ export function useReviewsByMemberQuery(
   filters?: Record<string, unknown>,
 ) {
   return useQuery({
-    queryKey: getQueryKey(queryKeys.review.byMember(memberId)),
+    queryKey: [
+      ...getQueryKey(queryKeys.review.byMember(memberId)),
+      filters ?? {},
+    ],
     queryFn: async (): Promise<PaginatedApiResponse<Review>> => {
       return getReviewsByMember(memberId, filters);
     },
