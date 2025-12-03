@@ -33,7 +33,7 @@ import {
  * 채팅방 목록 조회 query (무한 스크롤)
  */
 export function useChatRoomListQuery(enabled = true) {
-  const size = 5;
+  const size = 10;
   
   return useInfiniteQuery({
     queryKey: [
@@ -50,7 +50,7 @@ export function useChatRoomListQuery(enabled = true) {
           content: [],
           page: {
             page: 0,
-            size: 5,
+            size: 10,
             totalElements: 0,
             totalPages: 0,
             first: true,

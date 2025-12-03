@@ -61,7 +61,7 @@ interface ChatRoomListRaw {
  */
 export async function getChatRoomList(
   page: number = 0,
-  size: number = 5,
+  size: number = 10,
 ): Promise<PaginatedApiResponse<ChatRoomListDto>> {
   const response = await apiClient.get<
     PaginatedApiResponse<ChatRoomListDto> | ChatRoomListDto[]
