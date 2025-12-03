@@ -59,22 +59,40 @@ interface ChatRoomListRaw {
 /**
  * 채팅방 목록 조회
  */
-export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
+export async function getChatRoomList(
+  page: number = 0,
+  size: number = 5,
+): Promise<PaginatedApiResponse<ChatRoomListDto>> {
   const response = await apiClient.get<
     PaginatedApiResponse<ChatRoomListDto> | ChatRoomListDto[]
-  >("/api/v1/chats");
+  >(`/api/v1/chats?page=${page}&size=${size}&sort=lastMessageTime,DESC&sort=id,DESC`);
 
   /* 🔥 any 제거 + 타입 가드 */
   let rawList: unknown[] = [];
+  let pageInfo: PaginatedApiResponse<ChatRoomListDto>["page"] | undefined;
 
   if (Array.isArray(response)) {
     rawList = response;
+    // 배열인 경우 기본 페이지네이션 정보 생성
+    pageInfo = {
+      page: 0,
+      size: response.length,
+      totalElements: response.length,
+      totalPages: 1,
+      first: true,
+      last: true,
+      hasNext: false,
+      hasPrevious: false,
+      sort: [],
+    };
   } else if (
     typeof response === "object" &&
     response !== null &&
     Array.isArray((response as { content?: unknown }).content)
   ) {
-    rawList = (response as { content: unknown[] }).content;
+    const paginated = response as PaginatedApiResponse<ChatRoomListDto>;
+    rawList = paginated.content;
+    pageInfo = paginated.page;
   }
 
   const mapped: ChatRoomListDto[] = rawList.map((raw) => {
@@ -169,7 +187,25 @@ export async function getChatRoomList(): Promise<ChatRoomListDto[]> {
     };
   });
 
-  return mapped;
+  // 페이지네이션 정보가 없으면 기본값 생성
+  if (!pageInfo) {
+    pageInfo = {
+      page: 0,
+      size: mapped.length,
+      totalElements: mapped.length,
+      totalPages: 1,
+      first: true,
+      last: true,
+      hasNext: false,
+      hasPrevious: false,
+      sort: [],
+    };
+  }
+
+  return {
+    content: mapped,
+    page: pageInfo,
+  };
 }
 
 /**

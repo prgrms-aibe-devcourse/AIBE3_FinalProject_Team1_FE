@@ -94,10 +94,19 @@ function ChatPage() {
   const { data: me } = useMeQuery();
 
   /* ======================
-     채팅방 목록
+     채팅방 목록 (무한 스크롤)
   ====================== */
-  const { data: chatRoomsInitial = [], isLoading: chatRoomsLoading } =
-    useChatRoomListQuery();
+  const {
+    data: chatRoomsData,
+    isLoading: chatRoomsLoading,
+    fetchNextPage: fetchNextChatRoomsPage,
+    hasNextPage: hasNextChatRoomsPage,
+    isFetchingNextPage: isFetchingNextChatRoomsPage,
+  } = useChatRoomListQuery();
+
+  const chatRoomsInitial = chatRoomsData
+    ? chatRoomsData.pages.flatMap((page) => page.content || [])
+    : [];
 
   const chatRooms = useChatStore((state) => state.rooms);
   const setRooms = useChatStore((state) => state.setRooms);
@@ -242,7 +251,7 @@ function ChatPage() {
       hasEnterReadRunRef.current = false;
       shouldAutoScrollRef.current = true; // 자동 스크롤 활성화
 
-      // 그 다음 채팅방 목록 refetch (setRooms에서 currentRoomId 체크로 0 유지)
+      // 그 다음 채팅방 목록 refetch
       queryClient.invalidateQueries({
         queryKey: getQueryKey(queryKeys.chat.rooms),
       });
@@ -557,7 +566,20 @@ function ChatPage() {
               <h2 className="text-lg font-semibold">채팅</h2>
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div
+              className="flex-1 overflow-y-auto min-h-0"
+              onScroll={(e) => {
+                const container = e.currentTarget;
+                // 맨 위에 가까워지면 다음 페이지 로드
+                if (
+                  container.scrollTop < 50 &&
+                  hasNextChatRoomsPage &&
+                  !isFetchingNextChatRoomsPage
+                ) {
+                  fetchNextChatRoomsPage();
+                }
+              }}
+            >
               {chatRoomsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   로딩 중...
@@ -568,66 +590,73 @@ function ChatPage() {
                   <p>채팅방이 없습니다</p>
                 </div>
               ) : (
-                chatRooms.map((room) => (
-                  <button
-                    key={room.id}
-                    onClick={() => setSelectedRoomId(room.id)}
-                    className={`w-full py-4 border-b border-gray-100 hover:bg-gray-50 text-left ${
-                      selectedRoomId === room.id ? "bg-gray-100" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 px-4">
-                      <div className="relative h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
-                        {room.otherMember?.profileImgUrl ? (
-                          <Image
-                            src={room.otherMember.profileImgUrl}
-                            alt={room.otherMember.nickname}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <User className="h-6 w-6 text-gray-400" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        {/* 상단: 닉네임 + 읽지 않음 카운트 */}
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-sm truncate">
-                            {room.otherMember?.nickname}
-                          </span>
-
-                          {room.id !== selectedRoomId &&
-                            (room.unreadCount ?? 0) > 0 && (
-                              <span className="text-xs bg-red-500 text-white rounded-full h-5 min-w-5 px-2 flex items-center justify-center">
-                                {room.unreadCount}
-                              </span>
-                            )}
+                <>
+                  {isFetchingNextChatRoomsPage && (
+                    <div className="text-center text-sm text-gray-500 py-2">
+                      이전 채팅방 로딩 중...
+                    </div>
+                  )}
+                  {chatRooms.map((room) => (
+                    <button
+                      key={room.id}
+                      onClick={() => setSelectedRoomId(room.id)}
+                      className={`w-full py-4 border-b border-gray-100 hover:bg-gray-50 text-left ${
+                        selectedRoomId === room.id ? "bg-gray-100" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 px-4">
+                        <div className="relative h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                          {room.otherMember?.profileImgUrl ? (
+                            <Image
+                              src={room.otherMember.profileImgUrl}
+                              alt={room.otherMember.nickname}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <User className="h-6 w-6 text-gray-400" />
+                          )}
                         </div>
 
-                        {/* 🔵 게시글 제목 (항상 표시) */}
-                        <span className="text-[11px] text-blue-500 font-medium block truncate mt-[2px]">
-                          {room.post.title}
-                        </span>
-
-                        {/* 최근 메시지가 있을 때만 */}
-                        {room.lastMessage && (
-                          <div className="flex gap-2 items-center mt-[4px]">
-                            {/* 🟣 최근 메시지 내용: 더 크고 조금 더 진하게 */}
-                            <span className="text-sm text-gray-800 font-medium truncate">
-                              {room.lastMessage}
+                        <div className="flex-1 min-w-0">
+                          {/* 상단: 닉네임 + 읽지 않음 카운트 */}
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-sm truncate">
+                              {room.otherMember?.nickname}
                             </span>
 
-                            {/* ⏱ 시간 */}
-                            <span className="text-[10px] text-gray-400 shrink-0">
-                              {formatLastMessageTime(room.lastMessageTime)}
-                            </span>
+                            {room.id !== selectedRoomId &&
+                              (room.unreadCount ?? 0) > 0 && (
+                                <span className="text-xs bg-red-500 text-white rounded-full h-5 min-w-5 px-2 flex items-center justify-center">
+                                  {room.unreadCount}
+                                </span>
+                              )}
                           </div>
-                        )}
+
+                          {/* 🔵 게시글 제목 (항상 표시) */}
+                          <span className="text-[11px] text-blue-500 font-medium block truncate mt-[2px]">
+                            {room.post.title}
+                          </span>
+
+                          {/* 최근 메시지가 있을 때만 */}
+                          {room.lastMessage && (
+                            <div className="flex gap-2 items-center mt-[4px]">
+                              {/* 🟣 최근 메시지 내용: 더 크고 조금 더 진하게 */}
+                              <span className="text-sm text-gray-800 font-medium truncate">
+                                {room.lastMessage}
+                              </span>
+
+                              {/* ⏱ 시간 */}
+                              <span className="text-[10px] text-gray-400 shrink-0">
+                                {formatLastMessageTime(room.lastMessageTime)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  ))}
+                </>
               )}
             </div>
           </CardContent>
