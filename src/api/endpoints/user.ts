@@ -100,7 +100,7 @@ export async function getReviewSummary(
   memberId: number,
 ): Promise<import("@/types/domain").ReviewSummary> {
   return apiClient.get<import("@/types/domain").ReviewSummary>(
-    `/api/v1/members/${memberId}/review-summary`,
+    `/api/v1/members/${memberId}/reviews/summary`,
   );
 }
 
@@ -110,5 +110,5 @@ export async function getReviewSummary(
 export async function getMemberReviewAISummary(
   memberId: number,
 ): Promise<string> {
-  return apiClient.get<string>(`/api/v1/members/${memberId}/reviews/summary`);
+  return apiClient.get<string>(`/api/v1/members/${memberId}/reviews/summary/ai`);
 }
