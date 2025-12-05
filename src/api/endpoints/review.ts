@@ -109,7 +109,7 @@ export async function getPostReviewSummary(
   postId: number,
 ): Promise<import("@/types/domain").ReviewSummary> {
   return apiClient.get<import("@/types/domain").ReviewSummary>(
-    `/api/v1/posts/${postId}/review-summary`,
+    `/api/v1/posts/${postId}/reviews/summary`,
   );
 }
 
@@ -121,6 +121,6 @@ export async function getPostReviewAISummary(
 ): Promise<string> {
   // apiClient.get은 이미 result.data를 반환하므로 string 타입으로 지정
   return apiClient.get<string>(
-    `/api/v1/posts/${postId}/reviews/summary`,
+    `/api/v1/posts/${postId}/reviews/summary/ai`,
   );
 }
