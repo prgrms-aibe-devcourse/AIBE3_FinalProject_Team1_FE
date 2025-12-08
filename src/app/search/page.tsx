@@ -19,6 +19,7 @@ import { getImageUrl } from "@/lib/utils/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AISearchIcon } from "@/components/ui/ai-search-icon";
 
 import { useAISearchQuery } from "@/queries/post";
 import { useToggleFavoriteMutation } from "@/queries/post-favorite";
@@ -26,7 +27,8 @@ import { useCategoryListQuery } from "@/queries/category";
 import { useRegionListQuery } from "@/queries/region";
 import { useAuthStore } from "@/store/authStore";
 
-import { Heart, MapPin, Send, Sparkles } from "lucide-react";
+import { Heart, MapPin, Send } from "lucide-react";
+import { useEffect } from "react";
 
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   DIRECT: "직거래",
@@ -40,12 +42,21 @@ function SearchPageContent() {
   const queryParam = searchParams.get("q") || "";
   const [searchQuery, setSearchQuery] = useState(queryParam);
 
+  const { isAuthenticated } = useAuthStore();
+
+  // 로그인 체크
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router]);
+
   const {
     data: searchResult,
     isLoading,
     error,
   } = useAISearchQuery(queryParam || null);
-  const { isAuthenticated, user } = useAuthStore();
+  const { user } = useAuthStore();
   const toggleFavoriteMutation = useToggleFavoriteMutation();
   const { data: regions } = useRegionListQuery();
   const { data: categories } = useCategoryListQuery();
@@ -73,6 +84,11 @@ function SearchPageContent() {
     toggleFavoriteMutation.mutate(post.id);
   };
 
+  // 로그인하지 않은 경우 아무것도 렌더링하지 않음 (리다이렉트 중)
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* 검색 바 */}
@@ -88,7 +104,7 @@ function SearchPageContent() {
             >
               <div className="flex-1 flex items-center bg-white rounded-lg">
               <div className="pl-4 pr-2">
-                <Sparkles className="h-6 w-6 text-blue-500" />
+                <AISearchIcon size={24} />
               </div>
               <Input
                 type="text"
@@ -117,7 +133,7 @@ function SearchPageContent() {
             <CardContent className="p-12 pt-12">
               <div className="flex flex-col items-center justify-center space-y-6">
                 <div className="flex items-center gap-3">
-                  <Sparkles className="h-8 w-8 text-blue-500 animate-pulse" />
+                  <AISearchIcon size={32} />
                   <div className="text-center">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
                       AI가 응답을 생성하고 있습니다...
@@ -163,7 +179,7 @@ function SearchPageContent() {
             <CardContent className="p-6 pt-6">
               <div className="flex items-start gap-3 mb-4">
                 <div className="flex-shrink-0">
-                  <Sparkles className="h-8 w-8 text-blue-500" />
+                  <AISearchIcon size={32} />
                 </div>
                 <div className="flex-1">
                   <h2 className="text-lg font-semibold text-gray-900 mb-2">

@@ -29,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AISearchIcon } from "@/components/ui/ai-search-icon";
 
 import { useAuthStore } from "@/store/authStore";
 
@@ -119,6 +120,11 @@ export default function Home() {
   const featuredPosts = posts.slice(0, 6);
 
   const handleSearch = () => {
+    // 로그인 체크
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
@@ -146,7 +152,7 @@ export default function Home() {
                 필요한 장비를 쉽고 빠르게 대여하세요
               </p>
               {/* AI 검색 바 */}
-              <div className="mb-8">
+              <div className="mb-8" data-ai-search-bar>
                 <div
                   className="relative flex items-center rounded-lg max-w-2xl mx-auto"
                   style={{
@@ -156,9 +162,9 @@ export default function Home() {
                   }}
                 >
                   <div className="flex-1 flex items-center bg-white rounded-lg">
-              <div className="pl-4 pr-2">
-                <Sparkles className="h-6 w-6 text-blue-500" />
-              </div>
+                    <div className="pl-4 pr-2">
+                      <AISearchIcon size={24} />
+                    </div>
                     <Input
                       type="text"
                       value={searchQuery}
@@ -184,11 +190,13 @@ export default function Home() {
                     게시글 보기
                   </button>
                 </Link>
-                <Link href="/signup">
-                  <button className="inline-flex items-center justify-center rounded-lg border-2 border-white bg-transparent px-6 py-3 text-lg font-medium text-white shadow-lg transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2">
-                    시작하기
-                  </button>
-                </Link>
+                {!isAuthenticated && (
+                  <Link href="/signup">
+                    <button className="inline-flex items-center justify-center rounded-lg border-2 border-white bg-transparent px-6 py-3 text-lg font-medium text-white shadow-lg transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2">
+                      시작하기
+                    </button>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
