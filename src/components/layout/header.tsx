@@ -4,7 +4,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   FileText,
@@ -21,6 +21,7 @@ import {
 import { MemberRole } from "@/types/domain";
 
 import { Button } from "@/components/ui/button";
+import { AISearchIcon } from "@/components/ui/ai-search-icon";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useChatStore } from "@/store/chatStore";
@@ -29,6 +30,7 @@ import { useMeQuery } from "@/queries/user";
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const { hasUnread } = useNotificationStore();
   const rooms = useChatStore((state) => state.rooms);
@@ -43,9 +45,16 @@ export function Header() {
     0,
   );
 
-
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+
+  const handleAISearchClick = () => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    router.push("/search");
   };
 
   return (
@@ -57,6 +66,18 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-2">
+          <button
+            onClick={handleAISearchClick}
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === "/search"
+                ? "bg-blue-50 text-blue-600"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+            title="AI 검색"
+          >
+            <AISearchIcon size={20} />
+            <span className="hidden sm:inline">AI 검색</span>
+          </button>
           <Link
             href="/posts"
             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
