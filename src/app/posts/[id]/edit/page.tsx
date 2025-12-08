@@ -678,7 +678,7 @@ export default function EditPostPage() {
               <Input
                 id="title"
                 name="title"
-                placeholder="대여할 물품의 제목을 입력하세요"
+                placeholder="예) 가볍게 즐기는 초보자용 캠핑 텐트"
                 value={formData.title}
                 onChange={handleChange}
                 required
@@ -695,8 +695,15 @@ export default function EditPostPage() {
                 id="content"
                 name="content"
                 rows={6}
-                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="물품에 대한 자세한 설명을 입력하세요"
+                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base placeholder:text-gray-400 placeholder:whitespace-pre-line focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder={`장비 상태, 사용 기간, 구성품, 주의사항 등을 자세히 적어주세요.
+
+예)
+• 사용 기간: 1년
+• 상태: 생활 기스 약간 있음
+• 구성품: 본체 + 배터리 2개 + 충전기
+• 비고: 파손 시 수리비 부담 부탁드립니다.
+`}
                 value={formData.content}
                 onChange={handleChange}
                 required
@@ -1353,7 +1360,7 @@ export default function EditPostPage() {
                             옵션명
                           </label>
                           <Input
-                            placeholder="옵션명을 입력하세요"
+                            placeholder="예) 랜턴 추가"
                             value={option.name}
                             onChange={(e) =>
                               handleOptionChange(index, "name", e.target.value)
