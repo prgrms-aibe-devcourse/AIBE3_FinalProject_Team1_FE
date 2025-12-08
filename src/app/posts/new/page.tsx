@@ -1390,7 +1390,7 @@ export default function NewPostPage() {
                             옵션명
                           </label>
                           <Input
-                            placeholder="옵션명을 입력하세요"
+                            placeholder="예) 랜턴 추가"
                             value={option.name}
                             onChange={(e) =>
                               handleOptionChange(index, "name", e.target.value)
