@@ -44,20 +44,56 @@ import {
   canSendReturnShipping as canSendReturnShippingUtil,
 } from "@/lib/utils/reservation";
 
+// 예약 상태 그룹 정의
+// 1. 예약 요청 단계
+const RESERVATION_REQUEST = [
+  ReservationStatus.PENDING_APPROVAL,
+  ReservationStatus.REJECTED,
+  ReservationStatus.CANCELLED,
+];
+
+// 2. 결제 및 수령 단계
+const PAYMENT_AND_PICKUP = [
+  ReservationStatus.PENDING_PAYMENT,
+  ReservationStatus.PENDING_PICKUP,
+  ReservationStatus.SHIPPING,
+];
+
+// 3. 대여 진행 단계
+const RENTAL_IN_PROGRESS = [
+  ReservationStatus.INSPECTING_RENTAL,
+  ReservationStatus.RENTING,
+];
+
+// 4. 반납 진행 단계
+const RETURN_IN_PROGRESS = [
+  ReservationStatus.PENDING_RETURN,
+  ReservationStatus.RETURNING,
+  ReservationStatus.INSPECTING_RETURN,
+];
+
+// 5. 반납 완료/정산 단계
+const RETURN_AND_SETTLEMENT = [
+  ReservationStatus.RETURN_COMPLETED,
+  ReservationStatus.PENDING_REFUND,
+  ReservationStatus.REFUND_COMPLETED,
+];
+
+// 6. 사고/클레임 단계
+const ISSUE_PROCESS = [
+  ReservationStatus.LOST_OR_UNRETURNED,
+  ReservationStatus.CLAIMING,
+  ReservationStatus.CLAIM_COMPLETED,
+];
+
 type StatusFilter =
   | "all"
-  | "PENDING_APPROVAL"
-  | "PENDING_PAYMENT"
-  | "PENDING_PICKUP"
-  | "RENTING"
-  | "RETURN_COMPLETED"
-  | "PENDING_REFUND"
-  | "REFUND_COMPLETED"
-  | "LOST_OR_UNRETURNED"
-  | "CLAIMING"
-  | "CLAIM_COMPLETED"
-  | "REJECTED"
-  | "CANCELLED";
+  | "RESERVATION_REQUEST"
+  | "PAYMENT_AND_PICKUP"
+  | "RENTAL_IN_PROGRESS"
+  | "RETURN_IN_PROGRESS"
+  | "RETURN_AND_SETTLEMENT"
+  | "ISSUE_PROCESS";
 
 const statusLabels: Record<string, string> = {
   PENDING_APPROVAL: "승인 대기",
@@ -101,19 +137,24 @@ const statusColors: Record<string, string> = {
 
 const statusTabs: Array<{ key: StatusFilter; label: string }> = [
   { key: "all", label: "전체" },
-  { key: "PENDING_APPROVAL", label: "승인 대기" },
-  { key: "PENDING_PAYMENT", label: "결제 대기" },
-  { key: "PENDING_PICKUP", label: "수령 대기" },
-  { key: "RENTING", label: "대여중" },
-  { key: "RETURN_COMPLETED", label: "반납 완료" },
-  { key: "PENDING_REFUND", label: "환급 예정" },
-  { key: "REFUND_COMPLETED", label: "환급 완료" },
-  { key: "LOST_OR_UNRETURNED", label: "미반납/분실" },
-  { key: "CLAIMING", label: "청구 진행" },
-  { key: "CLAIM_COMPLETED", label: "청구 완료" },
-  { key: "REJECTED", label: "승인 거절" },
-  { key: "CANCELLED", label: "예약 취소" },
+  { key: "RESERVATION_REQUEST", label: "예약 요청" },
+  { key: "PAYMENT_AND_PICKUP", label: "결제 및 수령" },
+  { key: "RENTAL_IN_PROGRESS", label: "대여 진행" },
+  { key: "RETURN_IN_PROGRESS", label: "반납 진행" },
+  { key: "RETURN_AND_SETTLEMENT", label: "반납 완료/정산" },
+  { key: "ISSUE_PROCESS", label: "사고/클레임" },
 ];
+
+// 상태 필터 그룹 매핑
+const statusFilterMap: Record<StatusFilter, ReservationStatus[]> = {
+  all: [],
+  RESERVATION_REQUEST,
+  PAYMENT_AND_PICKUP,
+  RENTAL_IN_PROGRESS,
+  RETURN_IN_PROGRESS,
+  RETURN_AND_SETTLEMENT,
+  ISSUE_PROCESS,
+};
 
 export default function MyReservationsPage() {
   const router = useRouter();
@@ -151,7 +192,9 @@ export default function MyReservationsPage() {
       page: page,
       size: pageSize,
       sort: ["id,desc"], // 최신순 정렬
-      ...(statusFilter !== "all" && { status: statusFilter }),
+      ...(statusFilter !== "all" && {
+        status: statusFilterMap[statusFilter],
+      }),
     });
 
   const reservations = useMemo(() => {
