@@ -27,6 +27,18 @@ import { useCreateReportMutation } from "@/queries/report";
 
 import { HelpCircle } from "lucide-react";
 
+// 신고 사유 옵션
+const REPORT_REASON_OPTIONS = [
+  { value: "SPAM", label: "스팸/홍보" },
+  { value: "INAPPROPRIATE", label: "부적절한 내용" },
+  { value: "FRAUD", label: "사기/거짓 정보" },
+  { value: "HARASSMENT", label: "욕설/혐오 표현" },
+  { value: "COPYRIGHT", label: "저작권 침해" },
+  { value: "OTHER", label: "기타 (직접 작성)" },
+] as const;
+
+type ReportReason = (typeof REPORT_REASON_OPTIONS)[number]["value"];
+
 interface ReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -68,12 +80,25 @@ export function ReportDialog({
   targetId,
   targetTitle,
 }: ReportDialogProps) {
+  const [selectedReason, setSelectedReason] = useState<ReportReason | "">("");
   const [comment, setComment] = useState("");
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const createReportMutation = useCreateReportMutation();
 
+  const isOtherSelected = selectedReason === "OTHER";
+
   const handleSubmit = async () => {
-    if (!comment.trim()) {
+    if (!selectedReason) {
+      return;
+    }
+
+    // 기타 선택 시 comment 필수, 그 외에는 선택한 사유를 comment로 사용
+    const reportComment = isOtherSelected
+      ? comment.trim()
+      : REPORT_REASON_OPTIONS.find((opt) => opt.value === selectedReason)
+          ?.label || "";
+
+    if (!reportComment) {
       return;
     }
 
@@ -81,9 +106,10 @@ export function ReportDialog({
       await createReportMutation.mutateAsync({
         reportType,
         targetId,
-        comment: comment.trim(),
+        comment: reportComment,
       });
       // 성공 시 모달 닫기 및 입력 초기화
+      setSelectedReason("");
       setComment("");
       onOpenChange(false);
     } catch (error) {
@@ -93,12 +119,15 @@ export function ReportDialog({
   };
 
   const handleClose = () => {
+    setSelectedReason("");
     setComment("");
     onOpenChange(false);
   };
 
   const commentLength = comment.length;
-  const isCommentValid = comment.trim().length > 0;
+  const isCommentValid = isOtherSelected
+    ? comment.trim().length > 0
+    : selectedReason !== "";
 
   const typeConfig = REPORT_TYPE_CONFIG[reportType];
 
@@ -185,29 +214,50 @@ export function ReportDialog({
             <label className="text-sm font-medium text-gray-900">
               신고 사유 <span className="text-red-500">*</span>
             </label>
-            <Textarea
-              placeholder="신고 사유를 자세히 입력해주세요."
-              value={comment}
+            <select
+              value={selectedReason}
               onChange={(e) => {
-                const newValue = e.target.value;
-                if (newValue.length <= MAX_COMMENT_LENGTH) {
-                  setComment(newValue);
+                setSelectedReason(e.target.value as ReportReason | "");
+                if (e.target.value !== "OTHER") {
+                  setComment("");
                 }
               }}
-              className="min-h-[120px]"
-              error={!isCommentValid && commentLength > 0}
-            />
-            <div className="flex justify-end">
-              <span
-                className={`text-xs ${
-                  commentLength > MAX_COMMENT_LENGTH
-                    ? "text-red-500"
-                    : "text-gray-500"
-                }`}
-              >
-                {commentLength}/{MAX_COMMENT_LENGTH}자
-              </span>
-            </div>
+              className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">신고 사유를 선택해주세요</option>
+              {REPORT_REASON_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {isOtherSelected && (
+              <div className="space-y-2">
+                <Textarea
+                  placeholder="신고 사유를 자세히 입력해주세요."
+                  value={comment}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    if (newValue.length <= MAX_COMMENT_LENGTH) {
+                      setComment(newValue);
+                    }
+                  }}
+                  className="min-h-[120px]"
+                  error={!isCommentValid && commentLength > 0}
+                />
+                <div className="flex justify-end">
+                  <span
+                    className={`text-xs ${
+                      commentLength > MAX_COMMENT_LENGTH
+                        ? "text-red-500"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {commentLength}/{MAX_COMMENT_LENGTH}자
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 신고 안내 */}
