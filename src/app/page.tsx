@@ -11,9 +11,11 @@ import { useRouter } from "next/navigation";
 
 import type { Category, Post, ReceiveMethod, Region } from "@/types/domain";
 
-import { parseLocalDateString } from "@/lib/utils";
 import { getImageUrl } from "@/lib/utils/image";
 
+import { parseLocalDateString } from "@/lib/utils";
+
+import { AISearchIcon } from "@/components/ui/ai-search-icon";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,7 +31,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AISearchIcon } from "@/components/ui/ai-search-icon";
 
 import { useAuthStore } from "@/store/authStore";
 
@@ -49,55 +50,27 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
+/**
+ * 홈 페이지
+ */
+
 const RECEIVE_METHOD_LABELS: Record<ReceiveMethod, string> = {
   DIRECT: "직거래",
   DELIVERY: "택배",
   ANY: "상관없음",
 };
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
-
-/**
- * 홈 페이지
- */
 
 /**
  * 홈 페이지
@@ -145,10 +118,10 @@ export default function Home() {
           <div className="container relative mx-auto px-4">
             <div className="mx-auto max-w-4xl text-center">
               <h1 className="mb-6 text-5xl font-bold md:text-6xl lg:text-7xl">
-                P2P 취미 장비 대여 플랫폼
+                CHWI·MEET, 취미 대여
               </h1>
               <p className="mb-10 text-xl text-blue-50 md:text-2xl">
-                필요한 장비를 쉽고 빠르게 대여하세요
+                원하는 활동에 맞는 장비를 쉽고 빠르게 빌려보세요.
               </p>
               {/* AI 검색 바 */}
               <div className="mb-8" data-ai-search-bar>
@@ -169,7 +142,7 @@ export default function Home() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="어떤 장비를 찾고 있나요?"
+                      placeholder="예) 혼자 캠핑 갈 건데 필요한 장비 알려줘"
                       className="flex-1 border-0 text-gray-900 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                     <Button
@@ -280,7 +253,9 @@ export default function Home() {
                         if (child) return child;
                       }
                       if (category.children) {
-                        const child = category.children.find((c) => c.id === id);
+                        const child = category.children.find(
+                          (c) => c.id === id,
+                        );
                         if (child) return child;
                       }
                     }
@@ -333,7 +308,8 @@ export default function Home() {
                     toggleFavoriteMutation.mutate(post.id);
                   };
 
-                  const isAuthor = user?.id === (post.author?.id ?? post.authorId);
+                  const isAuthor =
+                    user?.id === (post.author?.id ?? post.authorId);
 
                   return (
                     <div key={post.id} className="relative">
@@ -369,7 +345,9 @@ export default function Home() {
                               )}
                               {isAuthenticated && isAuthor && (
                                 <TooltipContent>
-                                  <p>자신의 게시글에는 즐겨찾기를 할 수 없습니다.</p>
+                                  <p>
+                                    자신의 게시글에는 즐겨찾기를 할 수 없습니다.
+                                  </p>
                                 </TooltipContent>
                               )}
                             </Tooltip>
