@@ -46,7 +46,6 @@ import {
   Search,
   Send,
   Shield,
-  Sparkles,
   TrendingUp,
 } from "lucide-react";
 

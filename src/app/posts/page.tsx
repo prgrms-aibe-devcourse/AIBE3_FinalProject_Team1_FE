@@ -5,8 +5,9 @@
 
 import { useEffect, useState } from "react";
 
-import Image from "next/image";
 import Link from "next/link";
+
+import { RetryImage } from "@/components/ui/retry-image";
 
 import type { Category, Post, ReceiveMethod, Region } from "@/types/domain";
 
@@ -905,7 +906,7 @@ export default function PostsPage() {
                     {(post.thumbnailImageUrl ||
                       (post.images && post.images.length > 0)) && (
                       <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
-                        <Image
+                        <RetryImage
                           src={
                             post.thumbnailImageUrl ||
                             post.images![0].file ||
@@ -915,6 +916,8 @@ export default function PostsPage() {
                           alt={post.title}
                           fill
                           className="object-cover"
+                          maxRetries={5}
+                          retryDelay={1000}
                         />
                         {/* 카테고리 배지 (좌측 상단) */}
                         <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">

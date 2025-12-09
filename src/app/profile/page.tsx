@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+import { RetryImage } from "@/components/ui/retry-image";
+
 import type { Reservation, UpdateMemberDto } from "@/types/domain";
 
 import { formatNotificationMessage } from "@/lib/utils/notification";
@@ -352,12 +354,14 @@ export default function ProfilePage() {
               <div className="relative mx-auto mb-4 h-24 w-24 rounded-full bg-gray-200 ring-4 ring-gray-300">
                 {/* 항상 원본 이미지만 표시 */}
                 {meFinal?.profileImgUrl ? (
-                  <Image
+                  <RetryImage
                     src={meFinal.profileImgUrl}
                     alt={meFinal?.nickname || "User"}
                     fill
                     className="object-cover rounded-full"
                     key={meFinal.profileImgUrl}
+                    maxRetries={5}
+                    retryDelay={1000}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
