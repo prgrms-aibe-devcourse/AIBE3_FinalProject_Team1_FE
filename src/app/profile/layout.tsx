@@ -5,8 +5,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
+
+import { RetryImage } from "@/components/ui/retry-image";
 import { usePathname } from "next/navigation";
 
 import { useMeQuery } from "@/queries/user";
@@ -156,11 +157,13 @@ export default function ProfileLayout({ children }: ProfileLayoutProps) {
             <div className="flex flex-col items-center gap-3">
               <div className="relative h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                 {currentUser?.profileImgUrl ? (
-                  <Image
+                  <RetryImage
                     src={currentUser.profileImgUrl}
                     alt={currentUser.nickname || "User"}
                     fill
                     className="object-cover rounded-full"
+                    maxRetries={5}
+                    retryDelay={1000}
                   />
                 ) : (
                   <User className="h-8 w-8 text-gray-400" />

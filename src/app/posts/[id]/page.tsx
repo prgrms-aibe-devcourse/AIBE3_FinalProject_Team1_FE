@@ -9,6 +9,8 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
+import { RetryImage } from "@/components/ui/retry-image";
+
 import { ReportType } from "@/types/domain";
 
 import { parseLocalDateString } from "@/lib/utils";
@@ -281,12 +283,14 @@ export default function PostDetailPage() {
             <div>
               {mainImageUrl ? (
                 <div className="relative h-[500px] w-full overflow-hidden rounded-lg mb-4">
-                  <Image
+                  <RetryImage
                     src={mainImageUrl}
                     alt={post.title}
                     fill
                     className="object-cover"
                     priority
+                    maxRetries={5}
+                    retryDelay={1000}
                   />
                 </div>
               ) : (
@@ -323,11 +327,13 @@ export default function PostDetailPage() {
                               : "hover:opacity-80"
                           }`}
                         >
-                          <Image
+                          <RetryImage
                             src={imageUrl}
                             alt={`${post.title} ${actualIndex + 1}`}
                             fill
                             className="object-cover"
+                            maxRetries={5}
+                            retryDelay={1000}
                           />
                         </div>
                       );
