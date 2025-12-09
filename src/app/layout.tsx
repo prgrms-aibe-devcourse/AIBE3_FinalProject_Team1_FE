@@ -10,8 +10,8 @@ import { Toast } from "@/components/ui/toast";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 
-import { NotificationSSEProvider } from "@/components/notification/NotificationSSEProvider";
 import { ChatRoomsProvider } from "@/components/chat/ChatRoomsProvider";
+import { NotificationSSEProvider } from "@/components/notification/NotificationSSEProvider";
 
 import "./globals.css";
 
@@ -26,8 +26,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "취밋",
-  description: "P2P 취미 장비 대여 플랫폼",
+  title: "CHWI·MEET | 취미를 만나다",
+  description:
+    "P2P 기반 취미 장비 대여 플랫폼, 필요한 장비를 안전하게 빌려보세요.",
 };
 
 export default function RootLayout({
