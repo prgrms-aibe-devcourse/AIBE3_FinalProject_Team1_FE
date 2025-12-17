@@ -22,7 +22,9 @@
 <br>
 
 ## 🏆 프로젝트 성과
-- AIBE3 최종 팀 프로젝트 평가에서 **운영진 평가 1위**, **참여기업 평가 1위**, **교육생 평가 2위** 선정
+![운영진 평가 1위](https://img.shields.io/badge/운영진%20평가-1위-gold)
+![참여기업 평가 1위](https://img.shields.io/badge/참여기업%20평가-1위-gold)
+![교육생 평가 2위](https://img.shields.io/badge/교육생%20평가-2위-silver)
 
 <br>
 
