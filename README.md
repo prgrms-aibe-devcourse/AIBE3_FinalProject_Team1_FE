@@ -18,7 +18,11 @@
 [🛠️ API 문서 (Swagger)](https://api.chwimeet.store/)
 
 </div>
+ 
+<br>
 
+## 🏆 프로젝트 성과
+- AIBE3 최종 팀 프로젝트 평가에서 운영진 평가 1위, 참여기업 평가 1위, 교육생 평가 2위 선정
 
 <br>
 
