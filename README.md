@@ -72,16 +72,24 @@
 <br>
 
 # 🧩 아키텍쳐
-- 아키텍처 이미지
 <div align="center">
 <img width="720" height="347" alt="image" src="https://github.com/user-attachments/assets/fa9ea756-b7c3-4f40-b0f0-812108882554" />
 </div>
 
-- 주요 아키텍처 특징
-  - 실시간 모니터링: Grafana 대시보드를 통한 실시간 시스템 메트릭 모니터링 및 알림
-  - 무중단 배포: Nginx Proxy Manager를 활용한 Blue/Green 배포 전략으로 서비스 중단 없이 안전한 배포 구현
-  - 이미지 최적화: AWS Lambda를 통한 서버리스 이미지 리사이징으로 메인 서버 부하 분산 및 비용 효율화
-  - 분산 캐싱: Redis를 활용한 세션 관리 및 캐싱으로 서버 간 데이터 일관성 유지
+### 주요 아키텍처 특징
+- **실시간 모니터링** -
+ **Prometheus**를 통해 애플리케이션 및 시스템 메트릭을 수집하고,
+ **Grafana** 대시보드로 실시간 시각화
+- **무중단 배포** -
+ Nginx Proxy Manager 기반의 **Blue/Green 배포 전략**을 적용하여 서비스 중단 없이 안전한 배포 환경 구축
+- **이미지 최적화** -
+ AWS Lambda를 활용한 **서버리스 이미지 리사이징**으로 메인 서버 부하를 분산하고 운영 비용 절감
+- **분산 인증 토큰 관리** -
+ Redis를 Refresh Token 저장소로 활용해 서버 간 인증 상태를 공유하고, **수평 확장 및 무중단 배포 환경 지원**
+
+
+### DataBase 설계
+<img width="1485" height="739" alt="image" src="https://github.com/user-attachments/assets/0f8892fc-cbab-4de3-95fd-acb3c62dda34" />
 
 <br>
 
