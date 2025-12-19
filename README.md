@@ -73,7 +73,7 @@
 
 # 🧩 아키텍쳐
 <div align="center">
-<img width="720" height="347" alt="image" src="https://github.com/user-attachments/assets/fa9ea756-b7c3-4f40-b0f0-812108882554" />
+<img width="2084" height="952" alt="image" src="https://github.com/user-attachments/assets/eafa2e2a-a728-4fe9-8288-5902287fb609" />
 </div>
 
 ### 주요 아키텍처 특징
